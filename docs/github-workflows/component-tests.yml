@@ -1,0 +1,48 @@
+name: Component Tests
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'components/**'
+      - 'app/**'
+      - 'web-interface/components/**'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  theme-toggle-tests:
+    name: Theme Toggle Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    - run: npm ci
+    - run: npx jest components/ui/__tests__/theme-toggle-simple.test.tsx --verbose
+
+  wallet-connect-tests:
+    name: Wallet Connect Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    - run: npm ci
+    - run: npx jest components/wallet/__tests__/wallet-connect-simple.test.tsx --verbose
+
+  ui-component-tests:
+    name: UI Component Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    - run: npm ci
+    - run: npx jest components/ui/__tests__/ --verbose

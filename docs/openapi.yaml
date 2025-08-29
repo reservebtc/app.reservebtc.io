@@ -1,0 +1,192 @@
+openapi: 3.1.0
+info:
+  title: ReserveBTC dApp API
+  version: "0.1.0"
+servers:
+  - url: https://app.reservebtc.io
+paths:
+  /api/user/state:
+    get:
+      summary: Get current user's dashboard state
+      security:
+        - wallet: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserState"
+        "401":
+          description: Unauthorized
+
+  /api/verification/bip322:
+    post:
+      summary: Submit BIP-322 signature for verification
+      security:
+        - wallet: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Bip322Request"
+      responses:
+        "200":
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifyResult"
+        "400":
+          description: Invalid payload
+
+  /api/verification/selfsend:
+    post:
+      summary: Start self-send verification tracker
+      security:
+        - wallet: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SelfSendRequest"
+      responses:
+        "202":
+          description: Tracking started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackStart"
+
+  /api/verification/status:
+    get:
+      summary: Get current status of self-send verification
+      parameters:
+        - in: query
+          name: btc
+          schema: { type: string }
+          required: true
+      responses:
+        "200":
+          description: Current status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  /api/widgets:
+    post:
+      summary: Save widget configuration
+      security:
+        - wallet: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WidgetRequest"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WidgetSaved"
+
+components:
+  securitySchemes:
+    wallet:
+      type: http
+      scheme: bearer
+      bearerFormat: "Ethereum wallet session" # server binds request to eth_address
+
+  schemas:
+    EthHex:
+      type: string
+      pattern: "^0x[0-9a-fA-F]{40}$"
+
+    UserState:
+      type: object
+      required: [eth, verified, method, balanceBtc, synthSats, feeVaultEth, lastSync]
+      properties:
+        eth: { $ref: "#/components/schemas/EthHex" }
+        btc: { type: string, nullable: true }
+        verified: { type: boolean }
+        method: { type: integer, enum: [1,2], nullable: true }
+        verifiedAt: { type: string, format: date-time, nullable: true }
+        height: { type: integer, nullable: true }
+        balanceBtc: { type: number, format: double }    # BTC (not sats) for UI
+        synthSats: { type: integer }
+        autoSync: { type: boolean, default: true }
+        feeVaultEth: { type: string }                   # wei as decimal string
+        lastSync: { type: string, format: date-time, nullable: true }
+        lastDeltaSats: { type: integer, nullable: true }
+        lastFeeEth: { type: string, nullable: true }    # wei as decimal string
+        widgetConfig:
+          type: object
+          properties:
+            variant: { type: string, enum: ["badge","card","panel"] }
+            theme: { type: string, enum: ["auto","light","dark","gold-glass"] }
+            website: { type: string }
+            socials: { type: object, additionalProperties: true }
+        merkleCID: { type: string, nullable: true }
+        merkleProof:
+          type: array
+          items: { type: string }
+          nullable: true
+
+    Bip322Request:
+      type: object
+      required: [btc, checksum, signature]
+      properties:
+        btc: { type: string }                           # bech32
+        checksum: { type: string, pattern: "^0x[0-9a-fA-F]{64}$" }
+        signature: { type: string }                     # BIP-322 base64/hex
+        height: { type: integer }
+        nonce: { type: string }                         # string to avoid JS int issues
+
+    VerifyResult:
+      type: object
+      required: [verified, method]
+      properties:
+        verified: { type: boolean }
+        method: { type: integer, enum: [1,2] }
+        message: { type: string, nullable: true }
+
+    SelfSendRequest:
+      type: object
+      required: [btc]
+      properties:
+        btc: { type: string }                           # bech32
+        minConfirmations: { type: integer, default: 3 }
+
+    TrackStart:
+      type: object
+      required: [tracking]
+      properties:
+        tracking: { type: string }                      # tracking id
+
+    StatusResponse:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: ["pending","mempool","confirmed","invalid","expired"] }
+        height: { type: integer, nullable: true }
+        txid: { type: string, nullable: true }
+
+    WidgetRequest:
+      type: object
+      required: [website, socials, variant, theme]
+      properties:
+        website: { type: string }
+        socials: { type: object, additionalProperties: true } # { x: "@handle", ... }
+        variant: { type: string, enum: ["badge","card","panel"] }
+        theme: { type: string, enum: ["auto","light","dark","gold-glass"] }
+
+    WidgetSaved:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string, format: uuid }

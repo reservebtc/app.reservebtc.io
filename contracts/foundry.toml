@@ -1,0 +1,34 @@
+# Foundry config for app.reservebtc.io/contracts
+[profile.default]
+# we run forge from the ./contracts folder
+src  = "."
+test = "test"
+script = "script"      
+out  = "out"
+libs = ["lib"]
+
+solc_version = "0.8.24"
+evm_version  = "paris"
+
+remappings = [
+  "forge-std/=lib/forge-std/src/",
+]
+
+optimizer      = true
+optimizer_runs = 200
+bytecode_hash  = "none"
+verbosity      = 3
+ffi            = false
+
+[profile.ci]
+src  = "."
+test = "test"
+script = "script"
+out  = "out"
+libs = ["lib"]
+remappings = ["forge-std/=lib/forge-std/src/"]
+optimizer      = true
+optimizer_runs = 200
+bytecode_hash  = "none"
+verbosity      = 3
+ffi            = false

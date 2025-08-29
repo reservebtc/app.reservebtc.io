@@ -1,0 +1,111 @@
+name: Smart Contract Test Suite
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/**'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  FOUNDRY_DISABLE_NIGHTLY_WARNING: true
+
+jobs:
+  e2e-scenarios:
+    name: E2E Scenarios (7 tests)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+    - name: E2E Tests - Register, Sync, Multi-user
+      run: |
+        cd contracts
+        forge test --match-path "*E2E_*" --verbosity 2
+
+  all-contract-tests:
+    name: All Smart Contract Tests (206 tests)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+    - name: Run all Foundry tests
+      run: |
+        cd contracts
+        forge test --verbosity 1
+        
+  feepolicy-tests:
+    name: FeePolicy Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive  
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+    - name: Test FeePolicy contracts
+      run: |
+        cd contracts
+        forge test --match-path "*FeePolicy*" --verbosity 1
+
+  feevault-tests:
+    name: FeeVault Tests  
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+    - name: Test FeeVault contracts
+      run: |
+        cd contracts  
+        forge test --match-path "*FeeVault*" --verbosity 1
+
+  oracle-tests:
+    name: Oracle Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+    - name: Test Oracle contracts
+      run: |
+        cd contracts
+        forge test --match-path "*Oracle*" --verbosity 1
+
+  gas-report:
+    name: Gas Usage Report
+    runs-on: ubuntu-latest
+    needs: [e2e-scenarios, feepolicy-comprehensive-security, feevault-comprehensive-security, oracle-comprehensive-security]
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+    - name: Generate gas snapshots
+      run: |
+        cd contracts
+        forge test --gas-report > gas-report.txt
+        cat gas-report.txt

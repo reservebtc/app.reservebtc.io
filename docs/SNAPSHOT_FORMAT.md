@@ -1,0 +1,2 @@
+{"eth":"0xEip55...", "btc":"bc1p...", "btcProgramHex":"0x...32bytes...", "checksum":"0x...32bytes...", "method":1, "balance_sats":123456789, "height":854321, "timestamp":1724400123}
+{"eth":"0xAbC...","btc":"bc1q...","btcProgramHex":"0x...32bytes...","checksum":"0x...","method":2,"balance_sats":100000,"height":854321,"timestamp":1724400123}

@@ -1,0 +1,6 @@
+{
+  "RBTC_Synth": "0xYOUR_SYNTH",
+  "OracleAggregator": "0xYOUR_AGG",
+  "FeeVault": "0xYOUR_VAULT",
+  "FeePolicy": "0xYOUR_POLICY"
+}

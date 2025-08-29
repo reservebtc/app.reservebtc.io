@@ -1,0 +1,46 @@
+name: Bitcoin Provider Tests
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/bitcoin-provider/**'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: Bitcoin Provider Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    - name: Install dependencies
+      run: |
+        cd backend/bitcoin-provider
+        npm ci
+    - name: Run unit tests
+      run: |
+        cd backend/bitcoin-provider
+        npx vitest run
+
+  integration-tests:
+    name: Bitcoin Provider Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    - name: Install dependencies
+      run: |
+        cd backend/bitcoin-provider
+        npm ci
+    - name: Run integration tests
+      run: |
+        cd backend/bitcoin-provider
+        npx vitest run test/bitcoin-provider.int.test.ts

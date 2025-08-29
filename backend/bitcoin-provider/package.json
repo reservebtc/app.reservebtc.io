@@ -1,0 +1,21 @@
+{
+  "name": "@reservebtc/bitcoin-provider",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev:up": "docker compose up -d",
+    "dev:down": "docker compose down -v",
+    "test:int": "vitest run --reporter=default"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "typescript": "^5.5.4",
+    "vitest": "^1.6.0"
+  }
+}

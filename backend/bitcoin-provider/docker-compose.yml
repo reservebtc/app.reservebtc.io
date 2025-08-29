@@ -1,0 +1,17 @@
+services:
+  bitcoind:
+    image: bitcoin/bitcoin:latest
+    platform: linux/amd64
+    restart: unless-stopped
+    command:
+      - -regtest=1
+      - -server=1
+      - -printtoconsole=1
+      - -rpcallowip=0.0.0.0/0
+      - -rpcbind=0.0.0.0
+      - -rpcuser=rpcuser
+      - -rpcpassword=rpcpass
+      - -fallbackfee=0.0001
+      - -txindex=0
+    ports:
+      - "18443:18443"
