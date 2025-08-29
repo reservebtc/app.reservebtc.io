@@ -1,25 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  webpack: (config, { isServer }) => {
+  webpack: (config) => {
     config.resolve.fallback = { fs: false, net: false, tls: false };
-    
-    // Ignore backend and contracts directories during webpack compilation
-    config.resolve.alias = {
-      ...config.resolve.alias,
-    };
-    
+    config.externals.push('pino-pretty');
     return config;
   },
-  experimental: {
-    serverComponentsExternalPackages: ['pino', 'pino-pretty'],
-  },
-  // Increase build timeout for static generation
-  staticPageGenerationTimeout: 300,
-  // Improve build performance
-  swcMinify: true,
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
-  },
+  transpilePackages: ['framer-motion'],
 }
 
 module.exports = nextConfig
