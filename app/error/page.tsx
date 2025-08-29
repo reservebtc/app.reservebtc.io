@@ -1,11 +1,11 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { motion } from 'framer-motion'
 import { AlertCircle, RefreshCw, Home, HelpCircle } from 'lucide-react'
 import Link from 'next/link'
 
-export default function ErrorPage() {
+function ErrorContent() {
   const searchParams = useSearchParams()
   const type = searchParams.get('type') || 'general'
   const message = searchParams.get('message')
@@ -70,51 +70,24 @@ export default function ErrorPage() {
 
   return (
     <div className="max-w-2xl mx-auto text-center space-y-8">
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ 
-          type: "spring", 
-          stiffness: 260, 
-          damping: 20,
-          delay: 0.2 
-        }}
-      >
-        <div className="p-6 bg-red-100 dark:bg-red-900/20 rounded-full w-24 h-24 mx-auto flex items-center justify-center mb-8">
-          <AlertCircle className="h-12 w-12 text-red-600" />
-        </div>
-      </motion.div>
+      <div className="p-6 bg-red-100 dark:bg-red-900/20 rounded-full w-24 h-24 mx-auto flex items-center justify-center mb-8">
+        <AlertCircle className="h-12 w-12 text-red-600" />
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
-        className="space-y-4"
-      >
+      <div className="space-y-4">
         <h1 className="text-3xl font-bold text-red-600">{content.title}</h1>
         <p className="text-muted-foreground text-lg">{content.description}</p>
-      </motion.div>
+      </div>
 
       {code && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-          className="bg-card border rounded-xl p-4"
-        >
+        <div className="bg-card border rounded-xl p-4">
           <div className="text-sm text-muted-foreground">
             Error Code: <span className="font-mono">{code}</span>
           </div>
-        </motion.div>
+        </div>
       )}
 
-      {/* Suggestions */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.6 }}
-        className="bg-card border rounded-xl p-6 text-left space-y-4"
-      >
+      <div className="bg-card border rounded-xl p-6 text-left space-y-4">
         <h3 className="font-semibold flex items-center space-x-2">
           <HelpCircle className="h-5 w-5" />
           <span>What you can try:</span>
@@ -127,17 +100,12 @@ export default function ErrorPage() {
             </li>
           ))}
         </ul>
-      </motion.div>
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.8 }}
-        className="flex flex-col sm:flex-row gap-4 justify-center"
-      >
+      <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <button
           onClick={() => window.location.reload()}
-          className="flex items-center justify-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-medium transition-all hover:scale-105 active:scale-95"
+          className="flex items-center justify-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-medium transition-colors"
         >
           <RefreshCw className="h-4 w-4" />
           <span>Try Again</span>
@@ -145,7 +113,7 @@ export default function ErrorPage() {
 
         <Link
           href="/"
-          className="flex items-center justify-center space-x-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 px-6 py-3 rounded-lg font-medium transition-all hover:scale-105 active:scale-95"
+          className="flex items-center justify-center space-x-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 px-6 py-3 rounded-lg font-medium transition-colors"
         >
           <Home className="h-4 w-4" />
           <span>Go Home</span>
@@ -153,12 +121,30 @@ export default function ErrorPage() {
 
         <Link
           href="/faq"
-          className="flex items-center justify-center space-x-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground px-6 py-3 rounded-lg font-medium transition-all hover:scale-105 active:scale-95"
+          className="flex items-center justify-center space-x-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground px-6 py-3 rounded-lg font-medium transition-colors"
         >
           <HelpCircle className="h-4 w-4" />
           <span>Get Help</span>
         </Link>
-      </motion.div>
+      </div>
     </div>
+  )
+}
+
+export default function ErrorPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-2xl mx-auto text-center space-y-8">
+        <div className="p-6 bg-red-100 dark:bg-red-900/20 rounded-full w-24 h-24 mx-auto flex items-center justify-center mb-8">
+          <AlertCircle className="h-12 w-12 text-red-600" />
+        </div>
+        <div className="space-y-4">
+          <h1 className="text-3xl font-bold text-red-600">Error</h1>
+          <p className="text-muted-foreground text-lg">Loading error details...</p>
+        </div>
+      </div>
+    }>
+      <ErrorContent />
+    </Suspense>
   )
 }

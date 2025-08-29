@@ -14,7 +14,7 @@ const nextConfig = {
     serverComponentsExternalPackages: ['pino', 'pino-pretty'],
   },
   // Increase build timeout for static generation
-  staticPageGenerationTimeout: 120,
+  staticPageGenerationTimeout: 300,
   // Improve build performance
   swcMinify: true,
   compiler: {
