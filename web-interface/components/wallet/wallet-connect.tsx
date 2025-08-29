@@ -13,7 +13,7 @@ export function WalletConnect() {
   const { switchChain } = useSwitchChain()
 
   // Check if connected to wrong network
-  const isWrongNetwork = isConnected && chain?.id !== megaeth.id
+  const isWrongNetwork = isConnected && chain && chain.id !== megaeth.id
 
   // Handle MetaMask connection
   const handleConnect = async () => {
