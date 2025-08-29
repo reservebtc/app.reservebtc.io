@@ -12,31 +12,15 @@ export function WalletConnect() {
   const { disconnect } = useDisconnect()
   const { switchChain } = useSwitchChain()
 
-  // Check if connected to wrong network
-  const isWrongNetwork = isConnected && chain && chain.id !== megaeth.id
+  // Check if connected to wrong network (simplified)
+  const isWrongNetwork = isConnected && chain?.id !== megaeth.id
 
-  // Handle MetaMask connection
-  const handleConnect = async () => {
-    try {
-      setIsConnecting(true)
-      
-      // First try MetaMask directly
-      const metaMaskConnector = connectors.find(c => 
-        c.id === 'metaMask' || c.name.toLowerCase().includes('metamask')
-      )
-      
-      if (metaMaskConnector) {
-        connect({ connector: metaMaskConnector })
-      } else {
-        // Fallback to injected connector
-        const injectedConnector = connectors.find(c => c.id === 'injected')
-        if (injectedConnector) {
-          connect({ connector: injectedConnector })
-        }
-      }
-    } catch (err) {
-      console.error('Connection failed:', err)
-      setIsConnecting(false)
+  // Simplified connection
+  const handleConnect = () => {
+    setIsConnecting(true)
+    const connector = connectors[0] // Just use first available connector
+    if (connector) {
+      connect({ connector })
     }
   }
 
@@ -47,22 +31,10 @@ export function WalletConnect() {
     }
   }, [isConnected, error])
 
-  // Handle network switching
+  // Simplified network switching
   const handleSwitchNetwork = () => {
-    if (switchChain) {
-      switchChain({ chainId: megaeth.id })
-    }
+    switchChain?.({ chainId: megaeth.id })
   }
-
-  // Auto-detect MetaMask
-  const [hasMetaMask, setHasMetaMask] = useState(false)
-  
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.ethereum) {
-      setHasMetaMask(true)
-      console.log('MetaMask detected')
-    }
-  }, [])
 
   if (isConnected && address) {
     return (
