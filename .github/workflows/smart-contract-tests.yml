@@ -24,7 +24,7 @@ jobs:
     - name: E2E Tests - Register, Sync, Multi-user
       run: |
         cd contracts
-        forge test test/E2E_*.t.sol --verbosity 2
+        forge test --match-path "test/E2E_*.t.sol" --verbosity 2
 
   all-contract-tests:
     name: All Smart Contract Tests (206 tests)
@@ -56,7 +56,7 @@ jobs:
     - name: Test FeePolicy contracts
       run: |
         cd contracts
-        forge test test/FeePolicy*.t.sol --verbosity 1
+        forge test --match-path "test/FeePolicy*.t.sol" --verbosity 1
 
   feevault-tests:
     name: FeeVault Tests  
@@ -72,7 +72,7 @@ jobs:
     - name: Test FeeVault contracts
       run: |
         cd contracts  
-        forge test test/FeeVault*.t.sol --verbosity 1
+        forge test --match-path "test/FeeVault*.t.sol" --verbosity 1
 
   oracle-tests:
     name: Oracle Tests
@@ -88,7 +88,7 @@ jobs:
     - name: Test Oracle contracts
       run: |
         cd contracts
-        forge test test/Oracle*.t.sol --verbosity 1
+        forge test --match-path "test/Oracle*.t.sol" --verbosity 1
 
   gas-report:
     name: Gas Usage Report
