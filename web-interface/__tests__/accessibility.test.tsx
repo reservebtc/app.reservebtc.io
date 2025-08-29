@@ -23,10 +23,6 @@ jest.mock('wagmi', () => ({
   }),
 }))
 
-// Mock the megaeth chain
-jest.mock('@/lib/chains/megaeth', () => ({
-  megaeth: { id: 70532, name: 'MegaETH Testnet' }
-}))
 
 describe('Accessibility Tests', () => {
   test('WalletConnect renders without accessibility errors', () => {

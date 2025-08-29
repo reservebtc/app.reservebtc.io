@@ -263,31 +263,55 @@ body {
 
 /* Social links */
 .social-links {
-    display: flex;
-    justify-content: center;
+    margin-top: 4rem;
+    text-align: center;
+}
+
+.social-links-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 2rem;
+    color: #ffffff;
+}
+
+.social-links-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1.5rem;
-    margin-top: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
 }
 
 .social-link {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: white;
     text-decoration: none;
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
+    font-weight: 500;
 }
 
 .social-link:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.social-link .icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.social-link span {
+    font-size: 0.9rem;
 }
 
 /* Animations */
@@ -330,6 +354,148 @@ body {
     50% { 
         opacity: 0.8;
         transform: translate(-50%, -50%) scale(1.05);
+    }
+}
+
+/* Text highlighting styles */
+.highlight-orange {
+    background: linear-gradient(45deg, #ff6600, #ff0066);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+}
+
+.highlight-blue {
+    background: linear-gradient(45deg, #0066ff, #6633ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+}
+
+.text-white {
+    color: #ffffff;
+}
+
+.text-gray-400 {
+    color: #9ca3af;
+}
+
+/* TestNet Badge */
+.testnet-badge {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.5rem;
+}
+
+.testnet-badge > div {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.pulse-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    background: #3b82f6;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Security Section Styles */
+.security-section {
+    margin: 4rem 0;
+}
+
+.security-card {
+    background: rgba(0, 20, 40, 0.8);
+    border: 1px solid rgba(0, 255, 136, 0.2);
+    border-radius: 1rem;
+    padding: 3rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.security-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(0, 255, 136, 0.1), rgba(0, 136, 255, 0.1));
+    opacity: 0.5;
+    z-index: -1;
+}
+
+.security-icon {
+    margin-bottom: 1.5rem;
+}
+
+.security-icon .icon {
+    width: 4rem;
+    height: 4rem;
+    color: #00ff88;
+    filter: drop-shadow(0 0 10px rgba(0, 255, 136, 0.5));
+}
+
+.security-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(45deg, #00ff88, #0088ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+    animation: securityGlow 4s ease-in-out infinite;
+}
+
+.security-description {
+    font-size: 1.25rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.security-features {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: #00ff88;
+}
+
+.security-features .icon {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+@keyframes securityGlow {
+    0%, 100% { 
+        filter: brightness(1);
+        transform: scale(1);
+    }
+    50% { 
+        filter: brightness(1.2);
+        transform: scale(1.02);
     }
 }
 

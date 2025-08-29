@@ -10,6 +10,76 @@ function launchApp() {
     }, 150);
 }
 
+// MetaMask connection function
+async function connectMetaMask() {
+    const button = document.getElementById('connectWalletBtn');
+    const buttonText = button.querySelector('.button-text');
+    const originalText = buttonText.textContent;
+    
+    try {
+        // Check if MetaMask is installed
+        if (typeof window.ethereum === 'undefined') {
+            alert('MetaMask not detected! Please install MetaMask browser extension.');
+            return;
+        }
+        
+        buttonText.textContent = 'Connecting...';
+        button.disabled = true;
+        
+        // Request account access
+        const accounts = await window.ethereum.request({ 
+            method: 'eth_requestAccounts' 
+        });
+        
+        // Switch to MegaETH Testnet
+        try {
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: '0x11364' }], // 70532 in hex
+            });
+        } catch (switchError) {
+            // Add network if it doesn't exist
+            if (switchError.code === 4902) {
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: '0x11364',
+                        chainName: 'MegaETH Testnet',
+                        nativeCurrency: {
+                            name: 'ETH',
+                            symbol: 'ETH',
+                            decimals: 18
+                        },
+                        rpcUrls: ['https://rpc-testnet.megaeth.systems'],
+                        blockExplorerUrls: ['https://explorer-testnet.megaeth.systems']
+                    }]
+                });
+            }
+        }
+        
+        if (accounts.length > 0) {
+            buttonText.textContent = '✅ Connected';
+            // Redirect to verification page after connection
+            setTimeout(() => {
+                window.open('https://app.reservebtc.io/verify', '_blank');
+            }, 1000);
+        }
+        
+    } catch (error) {
+        console.error('Connection failed:', error);
+        buttonText.textContent = '❌ Connection Failed';
+        setTimeout(() => {
+            buttonText.textContent = originalText;
+            button.disabled = false;
+        }, 2000);
+    }
+    
+    setTimeout(() => {
+        buttonText.textContent = originalText;
+        button.disabled = false;
+    }, 3000);
+}
+
 // Add keyboard navigation
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') {

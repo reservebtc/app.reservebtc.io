@@ -14,10 +14,6 @@ jest.mock('wagmi', () => ({
   useSwitchChain: () => mockUseSwitchChain(),
 }))
 
-// Mock the megaeth chain
-jest.mock('@/lib/chains/megaeth', () => ({
-  megaeth: { id: 70532, name: 'MegaETH Testnet' }
-}))
 
 describe('WalletConnect Component', () => {
   const mockConnect = jest.fn()

@@ -4,21 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ReserveBTC - On-Chain Proof-of-Reserves for Bitcoin</title>
-    <meta name="description" content="Decentralized, verifiable Bitcoin reserves on-chain. Mint 1:1 backed rBTC tokens while your Bitcoin stays securely in your wallet. Built on MegaETH.">
+    <meta name="description" content="Mint 1:1 backed rBTC tokens on MegaETH. Your Bitcoin stays secure in your wallet while accessing DeFi.">
     <meta name="keywords" content="Bitcoin reserves, proof of reserves, rBTC, decentralized Bitcoin, Bitcoin DeFi, MegaETH, BIP-322, non-custodial Bitcoin">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://reservebtc.io/">
     <meta property="og:title" content="ReserveBTC - On-Chain Proof-of-Reserves for Bitcoin">
-    <meta property="og:description" content="Decentralized, verifiable Bitcoin reserves. Your Bitcoin stays in your wallet while accessing DeFi.">
+    <meta property="og:description" content="Mint 1:1 backed rBTC tokens on MegaETH. Your Bitcoin stays secure in your wallet.">
     <meta property="og:image" content="https://reservebtc.io/og-image.jpg">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://reservebtc.io/">
     <meta property="twitter:title" content="ReserveBTC - On-Chain Proof-of-Reserves for Bitcoin">
-    <meta property="twitter:description" content="Decentralized, verifiable Bitcoin reserves. Your Bitcoin stays in your wallet.">
+    <meta property="twitter:description" content="Mint 1:1 backed rBTC tokens on MegaETH. Your Bitcoin stays secure in your wallet.">
     <meta property="twitter:image" content="https://reservebtc.io/og-image.jpg">
 
     <!-- Fonts -->
@@ -32,74 +32,136 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="main-container">
-        <!-- Background Elements -->
-        <div class="background-gradient"></div>
-        <div class="torus-container">
-            <div class="torus"></div>
-        </div>
-        
-        <!-- Content -->
-        <div class="content">
-            <!-- Logo and Title -->
-            <div class="header">
-                <div class="logo">
-                    <div class="logo-circle">
-                        <span class="btc-symbol">₿</span>
+    <div class="container">
+        <!-- Hero Section -->
+        <header class="hero">
+            <h1 class="hero-title">ReserveBTC</h1>
+            <div class="hero-content">
+                <p class="hero-main-text">
+                    <span class="text-white">Mint 1:1 backed </span>
+                    <span class="highlight-orange">rBTC tokens</span>
+                    <span class="text-white"> on </span>
+                    <span class="highlight-blue">MegaETH</span>
+                    <span class="text-gray-400">.</span>
+                </p>
+                <p class="hero-security">
+                    <span class="shield">🛡️</span>
+                    <span>Your Bitcoin stays secure in your wallet</span>
+                </p>
+            </div>
+        </header>
+
+        <!-- Main Actions -->
+        <main class="main-actions">
+            <div class="action-card verify-card">
+                <div class="card-header">
+                    <div class="card-icon verify-icon">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M9 12l2 2 4-4"/>
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
                     </div>
-                    <h1 class="brand-title">ReserveBTC</h1>
+                    <div class="card-title-group">
+                        <h3 class="card-title">Verify Bitcoin Wallet</h3>
+                        <p class="card-subtitle">Use BIP-322 Signatures</p>
+                    </div>
+                </div>
+                <p class="card-description">
+                    Prove ownership of your Bitcoin address using cryptographic signatures.
+                </p>
+                <button id="connectWalletBtn" class="action-button primary-button" onclick="connectMetaMask()">
+                    <span class="button-text">🦊 Connect MetaMask</span>
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="m9 18 6-6-6-6"/>
+                    </svg>
+                </button>
+                <div class="testnet-badge">
+                    <div class="pulse-dot"></div>
+                    <span>TestNet</span>
                 </div>
             </div>
 
-            <!-- Main Content -->
-            <div class="main-content">
-                <h2 class="main-title">On-Chain Proof-of-Reserves<br>for Bitcoin</h2>
-                <p class="subtitle">Decentralized, verifiable reserves — your Bitcoin stays in your wallet</p>
-
-                <!-- Features -->
-                <div class="features">
-                    <div class="feature">
-                        <div class="feature-icon">✓</div>
-                        <span class="feature-text">Decentralized</span>
+            <div class="action-card mint-card">
+                <div class="card-header">
+                    <div class="card-icon mint-icon">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="m9 18 6-6-6-6"/>
+                        </svg>
                     </div>
-                    <div class="feature">
-                        <div class="feature-icon">✓</div>
-                        <span class="feature-text">Proof-of-Reserves</span>
-                    </div>
-                    <div class="feature">
-                        <div class="feature-icon">₿</div>
-                        <span class="feature-text">Wallet</span>
+                    <div class="card-title-group">
+                        <h3 class="card-title">Mint rBTC Token</h3>
+                        <p class="card-subtitle">Deposit Bitcoin to mint 1:1 backed rBTC</p>
                     </div>
                 </div>
-
-                <!-- CTA Button -->
-                <button class="launch-button" onclick="launchApp()">Launch App</button>
+                <div class="card-info">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="m9 9 1.5 1.5L18 3"/>
+                    </svg>
+                    <span>Requires wallet connection and verification</span>
+                </div>
+                <a href="https://app.reservebtc.io/mint" class="action-button secondary-button">
+                    <span>Begin Mint</span>
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="m9 18 6-6-6-6"/>
+                    </svg>
+                </a>
             </div>
+        </main>
 
-            <!-- Social Links -->
-            <div class="social-links">
-                <a href="https://x.com/reserveBTC" target="_blank" rel="noopener noreferrer" class="social-link">
-                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+        <!-- Security Guarantee -->
+        <section class="security-section">
+            <div class="security-card">
+                <div class="security-icon">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M9 12l2 2 4-4"/>
+                        <circle cx="12" cy="12" r="10"/>
+                    </svg>
+                </div>
+                <h3 class="security-title">🛡️ Your Bitcoin Never Leaves Your Wallet</h3>
+                <p class="security-description">
+                    ReserveBTC uses advanced cryptographic proofs to ensure your Bitcoin remains completely secure while you access DeFi on MegaETH.
+                </p>
+                <div class="security-features">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M9 12l2 2 4-4"/>
+                        <circle cx="12" cy="12" r="10"/>
+                    </svg>
+                    <span>Non-custodial • Zero Trust • Cryptographically Secure</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Social Links -->
+        <footer class="social-links">
+            <div class="social-links-title">Connect with ReserveBTC</div>
+            <div class="social-links-grid">
+                <a href="https://x.com/reserveBTC" target="_blank" rel="noopener noreferrer" class="social-link" title="Follow us on X (Twitter)">
+                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                     </svg>
+                    <span>X (Twitter)</span>
                 </a>
-                <a href="https://github.com/reservebtc" target="_blank" rel="noopener noreferrer" class="social-link">
-                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                <a href="https://github.com/reservebtc" target="_blank" rel="noopener noreferrer" class="social-link" title="View source code on GitHub">
+                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                     </svg>
+                    <span>GitHub</span>
                 </a>
-                <a href="mailto:reservebtcproof@gmail.com" class="social-link">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <a href="mailto:reservebtcproof@gmail.com" class="social-link" title="Send us an email">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                     </svg>
+                    <span>Email Support</span>
                 </a>
-                <a href="https://chatgpt.com/g/g-68a3e198b3348191bf4be2ce6e06ba0b-reservebtc-agent-support-docs" target="_blank" rel="noopener noreferrer" class="social-link">
-                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                <a href="https://chatgpt.com/g/g-68a3e198b3348191bf4be2ce6e06ba0b-reservebtc-agent-support-docs" target="_blank" rel="noopener noreferrer" class="social-link" title="Get help from our AI Assistant">
+                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/>
                     </svg>
+                    <span>AI Assistant</span>
                 </a>
             </div>
-        </div>
+        </footer>
     </div>
 
     <script src="script.js"></script>
