@@ -179,13 +179,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// Mobile detection and auto-redirect
+const isMobileDevice = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+           window.innerWidth <= 768 || 
+           ('ontouchstart' in window);
+};
+
+// Auto-redirect to mobile version on mobile devices
+if (isMobileDevice() && !window.location.pathname.includes('mobile.html')) {
+    window.location.href = 'mobile.html';
+}
+
 // Performance optimization: reduce animation on low-end devices
 const isLowEndDevice = () => {
     return navigator.hardwareConcurrency <= 4 || 
            /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 };
 
-if (isLowEndDevice()) {
+if (isLowEndDevice() && !window.location.pathname.includes('mobile.html')) {
     document.documentElement.style.setProperty('--animation-duration', '60s');
     const torus = document.querySelector('.torus');
     if (torus) {

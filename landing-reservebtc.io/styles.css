@@ -314,7 +314,7 @@ body {
     font-size: 0.9rem;
 }
 
-/* Animations */
+/* Animations - Reduced for mobile performance */
 @keyframes gradientShift {
     0% {
         background: radial-gradient(ellipse 150% 100% at 50% 50%, 
@@ -354,6 +354,28 @@ body {
     50% { 
         opacity: 0.8;
         transform: translate(-50%, -50%) scale(1.05);
+    }
+}
+
+/* Disable heavy animations on mobile */
+@media (max-width: 768px) {
+    .background-gradient {
+        animation: none;
+    }
+    
+    .torus {
+        animation: rotateTorus 60s linear infinite;
+        will-change: transform;
+    }
+    
+    .torus::before {
+        animation: pulseGlow 8s ease-in-out infinite;
+        will-change: opacity, transform;
+    }
+    
+    .logo-circle {
+        animation: rotateIcon 16s linear infinite;
+        will-change: transform;
     }
 }
 
@@ -521,42 +543,63 @@ body {
 }
 
 @media (max-width: 768px) {
+    body {
+        overflow-x: hidden;
+    }
+    
     .content {
-        padding: 1rem;
+        padding: 1rem 0.75rem;
+        width: 100%;
+        max-width: 100vw;
+        box-sizing: border-box;
     }
     
     .torus-container {
-        width: 400px;
-        height: 400px;
+        width: 300px;
+        height: 300px;
+        opacity: 0.4;
     }
     
     .torus::before {
-        width: 300px;
-        height: 300px;
+        width: 220px;
+        height: 220px;
     }
     
     .main-title {
-        font-size: 2.5rem;
+        font-size: 2rem;
         line-height: 1.2;
+        word-wrap: break-word;
+        hyphens: auto;
+        margin-bottom: 1rem;
     }
     
     .subtitle {
-        font-size: 1.25rem;
+        font-size: 1rem;
+        line-height: 1.4;
+        padding: 0 0.5rem;
     }
     
     .brand-title {
-        font-size: 2rem;
+        font-size: 1.8rem;
+        word-break: keep-all;
     }
     
     .features {
-        gap: 2rem;
+        gap: 1.5rem;
         flex-direction: column;
         align-items: center;
+        width: 100%;
+    }
+    
+    .feature {
+        width: 100%;
+        max-width: 300px;
     }
     
     .logo {
         flex-direction: column;
         gap: 1rem;
+        width: 100%;
     }
     
     .logo-circle {
@@ -567,42 +610,104 @@ body {
     .btc-symbol {
         font-size: 20px;
     }
+    
+    .launch-button {
+        width: 100%;
+        max-width: 300px;
+    }
+    
+    .social-links-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        width: 100%;
+        max-width: 320px;
+    }
 }
 
 @media (max-width: 480px) {
+    body {
+        overflow-x: auto;
+    }
+    
+    .content {
+        padding: 1rem 0.5rem;
+        min-height: auto;
+    }
+    
     .main-title {
-        font-size: 2rem;
+        font-size: 1.8rem;
+        line-height: 1.3;
+        margin-bottom: 1rem;
     }
     
     .subtitle {
-        font-size: 1rem;
+        font-size: 0.9rem;
+        margin-bottom: 2rem;
+        padding: 0 0.5rem;
     }
     
     .brand-title {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
     }
     
     .torus-container {
-        width: 300px;
-        height: 300px;
+        width: 250px;
+        height: 250px;
+        position: fixed;
+        top: 20%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        opacity: 0.6;
     }
     
     .torus::before {
-        width: 225px;
-        height: 225px;
+        width: 180px;
+        height: 180px;
     }
     
     .launch-button {
-        padding: 0.75rem 2rem;
+        padding: 0.75rem 1.5rem;
+        font-size: 0.95rem;
+        width: 100%;
+        max-width: 280px;
+    }
+    
+    .features {
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .feature {
+        justify-content: center;
+    }
+    
+    .feature-text {
         font-size: 1rem;
     }
     
-    .social-links {
-        gap: 1rem;
+    .social-links-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        max-width: 300px;
     }
     
     .social-link {
-        width: 40px;
-        height: 40px;
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+    }
+    
+    .social-link .icon {
+        width: 20px;
+        height: 20px;
+    }
+    
+    /* Reduce animations further on small screens */
+    .torus {
+        animation: none;
+    }
+    
+    .logo-circle {
+        animation: rotateIcon 20s linear infinite;
     }
 }
