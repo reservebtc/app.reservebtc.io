@@ -2,8 +2,6 @@ name: Smart Contract Test Suite
 on:
   push:
     branches: [ main, develop ]
-    paths:
-      - 'contracts/**'
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -95,7 +93,7 @@ jobs:
   gas-report:
     name: Gas Usage Report
     runs-on: ubuntu-latest
-    needs: [e2e-scenarios, feepolicy-comprehensive-security, feevault-comprehensive-security, oracle-comprehensive-security]
+    needs: [e2e-scenarios, all-contract-tests, feepolicy-tests, feevault-tests, oracle-tests]
     steps:
     - uses: actions/checkout@v4
       with:
