@@ -13,6 +13,13 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['pino', 'pino-pretty'],
   },
+  // Increase build timeout for static generation
+  staticPageGenerationTimeout: 120,
+  // Improve build performance
+  swcMinify: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
 }
 
 module.exports = nextConfig

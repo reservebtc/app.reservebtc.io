@@ -73,6 +73,9 @@ describe('/api/verify-wallet', () => {
   })
 
   test('should handle malformed JSON', async () => {
+    // Suppress console.error for this test
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    
     const request = new NextRequest('http://localhost:3000/api/verify-wallet', {
       method: 'POST',
       body: 'invalid-json',
@@ -80,5 +83,7 @@ describe('/api/verify-wallet', () => {
 
     const response = await POST(request)
     expect(response.status).toBe(500)
+    
+    consoleSpy.mockRestore()
   })
 })
