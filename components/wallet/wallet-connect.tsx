@@ -48,10 +48,10 @@ export function WalletConnect() {
     <button
       onClick={handleConnect}
       disabled={isConnecting || isPending}
-      className="flex items-center justify-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-2.5 h-10 rounded-lg font-medium transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+      className="flex items-center justify-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 sm:px-6 py-2.5 h-10 rounded-lg font-medium transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
     >
       <Wallet className="h-5 w-5" />
-      <span>
+      <span className="text-sm sm:text-base">
         {isConnecting || isPending ? 'Connecting...' : '🦊 Connect MetaMask'}
       </span>
     </button>
