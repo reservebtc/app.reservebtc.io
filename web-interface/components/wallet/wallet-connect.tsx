@@ -13,7 +13,10 @@ export function WalletConnect() {
       onMutate() {
         setIsConnecting(true)
       },
-      onSettled() {
+      onSuccess() {
+        setIsConnecting(false)
+      },
+      onError() {
         setIsConnecting(false)
       },
     },
