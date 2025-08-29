@@ -54,10 +54,6 @@ fi
 git config user.name "ReserveBTC"
 git config user.email "reservebtcproof@gmail.com"
 
-# TEMPORARY: Clean up wrong author commits
-echo "🧹 Cleaning up incorrect author history..."
-./rewrite-git-history.sh
-
 # Pull latest changes to avoid conflicts
 echo "🔄 Pulling latest changes..."
 if git pull origin main --rebase || true; then
