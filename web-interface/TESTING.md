@@ -6,6 +6,7 @@
 [![Coverage](https://img.shields.io/badge/Coverage-90%2B%25-brightgreen)](#coverage-report)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict%20Mode-blue)](#typescript)
 
+
 ## 🧪 Test Suite Overview
 
 Comprehensive testing suite for the ReserveBTC web interface, covering:
