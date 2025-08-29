@@ -63,4 +63,8 @@
   .transition-colors {
     transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out, border-color 0.3s ease-in-out;
   }
+  
+  .animate-spin-slow {
+    animation: spin 8s linear infinite;
+  }
 }

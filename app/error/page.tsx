@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { AlertCircle, RefreshCw, Home, HelpCircle } from 'lucide-react'
 import Link from 'next/link'
 
-function ErrorContent() {
+function ErrorPageContent() {
   const searchParams = useSearchParams()
   const type = searchParams.get('type') || 'general'
   const message = searchParams.get('message')
@@ -70,24 +70,27 @@ function ErrorContent() {
 
   return (
     <div className="max-w-2xl mx-auto text-center space-y-8">
-      <div className="p-6 bg-red-100 dark:bg-red-900/20 rounded-full w-24 h-24 mx-auto flex items-center justify-center mb-8">
-        <AlertCircle className="h-12 w-12 text-red-600" />
+      <div className="animate-in zoom-in-0 duration-700 delay-200">
+        <div className="p-6 bg-red-100 dark:bg-red-900/20 rounded-full w-24 h-24 mx-auto flex items-center justify-center mb-8">
+          <AlertCircle className="h-12 w-12 text-red-600" />
+        </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
         <h1 className="text-3xl font-bold text-red-600">{content.title}</h1>
         <p className="text-muted-foreground text-lg">{content.description}</p>
       </div>
 
       {code && (
-        <div className="bg-card border rounded-xl p-4">
+        <div className="bg-card border rounded-xl p-4 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-600">
           <div className="text-sm text-muted-foreground">
             Error Code: <span className="font-mono">{code}</span>
           </div>
         </div>
       )}
 
-      <div className="bg-card border rounded-xl p-6 text-left space-y-4">
+      {/* Suggestions */}
+      <div className="bg-card border rounded-xl p-6 text-left space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-600">
         <h3 className="font-semibold flex items-center space-x-2">
           <HelpCircle className="h-5 w-5" />
           <span>What you can try:</span>
@@ -102,10 +105,10 @@ function ErrorContent() {
         </ul>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in fade-in slide-in-from-bottom-4 duration-500 delay-800">
         <button
           onClick={() => window.location.reload()}
-          className="flex items-center justify-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-medium transition-colors"
+          className="flex items-center justify-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-medium transition-all hover:scale-105 active:scale-95"
         >
           <RefreshCw className="h-4 w-4" />
           <span>Try Again</span>
@@ -113,7 +116,7 @@ function ErrorContent() {
 
         <Link
           href="/"
-          className="flex items-center justify-center space-x-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 px-6 py-3 rounded-lg font-medium transition-colors"
+          className="flex items-center justify-center space-x-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 px-6 py-3 rounded-lg font-medium transition-all hover:scale-105 active:scale-95"
         >
           <Home className="h-4 w-4" />
           <span>Go Home</span>
@@ -121,7 +124,7 @@ function ErrorContent() {
 
         <Link
           href="/faq"
-          className="flex items-center justify-center space-x-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground px-6 py-3 rounded-lg font-medium transition-colors"
+          className="flex items-center justify-center space-x-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground px-6 py-3 rounded-lg font-medium transition-all hover:scale-105 active:scale-95"
         >
           <HelpCircle className="h-4 w-4" />
           <span>Get Help</span>
@@ -133,18 +136,8 @@ function ErrorContent() {
 
 export default function ErrorPage() {
   return (
-    <Suspense fallback={
-      <div className="max-w-2xl mx-auto text-center space-y-8">
-        <div className="p-6 bg-red-100 dark:bg-red-900/20 rounded-full w-24 h-24 mx-auto flex items-center justify-center mb-8">
-          <AlertCircle className="h-12 w-12 text-red-600" />
-        </div>
-        <div className="space-y-4">
-          <h1 className="text-3xl font-bold text-red-600">Error</h1>
-          <p className="text-muted-foreground text-lg">Loading error details...</p>
-        </div>
-      </div>
-    }>
-      <ErrorContent />
+    <Suspense fallback={<div className="max-w-2xl mx-auto text-center space-y-8 py-16">Loading...</div>}>
+      <ErrorPageContent />
     </Suspense>
   )
 }

@@ -14,10 +14,6 @@ jest.mock('wagmi', () => ({
   useSwitchChain: () => mockUseSwitchChain(),
 }))
 
-// Mock the megaeth chain
-jest.mock('@/web-interface/lib/chains/megaeth', () => ({
-  megaeth: { id: 70532, name: 'MegaETH Testnet' }
-}))
 
 describe('WalletConnect Component', () => {
   const mockConnect = jest.fn()
@@ -54,7 +50,7 @@ describe('WalletConnect Component', () => {
 
     render(<WalletConnect />)
     
-    const connectButton = screen.getByRole('button', { name: /connect wallet/i })
+    const connectButton = screen.getByRole('button', { name: /connect metamask/i })
     expect(connectButton).toBeInTheDocument()
   })
 

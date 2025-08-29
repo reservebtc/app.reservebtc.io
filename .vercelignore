@@ -1,0 +1,4 @@
+# Disable automatic deployment from GitHub pushes
+*
+!web-interface/
+web-interface/vercel.json

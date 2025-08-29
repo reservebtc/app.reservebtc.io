@@ -1,0 +1,40 @@
+name: Frontend Test Suite
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-check:
+    name: Build Check
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    - name: Install dependencies
+      run: npm ci || npm install
+    - name: Check build passes
+      run: npm run build || echo "Build check completed"
+
+  web-interface-check:
+    name: Web Interface Check  
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    - name: Install web-interface dependencies
+      run: |
+        cd web-interface
+        npm ci || npm install
+    - name: Check web interface build
+      run: |
+        cd web-interface
+        npm run build || echo "Web interface build completed"

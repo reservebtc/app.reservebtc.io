@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { motion } from 'framer-motion'
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 import { walletVerificationSchema, WalletVerificationForm } from '@/lib/validation-schemas'
 import { validateBitcoinAddress, getBitcoinAddressTypeLabel } from '@/lib/bitcoin-validation'
@@ -65,11 +64,7 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="max-w-2xl mx-auto space-y-8"
-    >
+    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="text-center space-y-4">
         <div className="p-3 bg-primary/20 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
           <CheckCircle className="h-8 w-8 text-primary" />
@@ -98,14 +93,10 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
               </div>
             )}
             {errors.bitcoinAddress && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex items-center space-x-2 text-sm text-destructive"
-              >
+              <div className="flex items-center space-x-2 text-sm text-destructive animate-in fade-in slide-in-from-left-2 duration-200">
                 <AlertCircle className="h-4 w-4" />
                 <span>{errors.bitcoinAddress.message}</span>
-              </motion.div>
+              </div>
             )}
           </div>
 
@@ -120,14 +111,10 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
               readOnly={!!address}
             />
             {errors.ethereumAddress && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex items-center space-x-2 text-sm text-destructive"
-              >
+              <div className="flex items-center space-x-2 text-sm text-destructive animate-in fade-in slide-in-from-left-2 duration-200">
                 <AlertCircle className="h-4 w-4" />
                 <span>{errors.ethereumAddress.message}</span>
-              </motion.div>
+              </div>
             )}
           </div>
 
@@ -140,14 +127,10 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
               className="w-full px-4 py-3 border rounded-lg bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors h-24 resize-none"
             />
             {errors.message && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex items-center space-x-2 text-sm text-destructive"
-              >
+              <div className="flex items-center space-x-2 text-sm text-destructive animate-in fade-in slide-in-from-left-2 duration-200">
                 <AlertCircle className="h-4 w-4" />
                 <span>{errors.message.message}</span>
-              </motion.div>
+              </div>
             )}
           </div>
 
@@ -160,14 +143,10 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
               className="w-full px-4 py-3 border rounded-lg bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors h-32 resize-none font-mono text-sm"
             />
             {errors.signature && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex items-center space-x-2 text-sm text-destructive"
-              >
+              <div className="flex items-center space-x-2 text-sm text-destructive animate-in fade-in slide-in-from-left-2 duration-200">
                 <AlertCircle className="h-4 w-4" />
                 <span>{errors.signature.message}</span>
-              </motion.div>
+              </div>
             )}
           </div>
 
@@ -189,39 +168,151 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
 
           {/* Status Messages */}
           {verificationStatus === 'success' && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center space-x-2 text-green-600 bg-green-50 dark:bg-green-900/20 p-4 rounded-lg"
-            >
+            <div className="flex items-center space-x-2 text-green-600 bg-green-50 dark:bg-green-900/20 p-4 rounded-lg animate-in fade-in zoom-in-95 duration-300">
               <CheckCircle className="h-5 w-5" />
               <span>Wallet verification successful!</span>
-            </motion.div>
+            </div>
           )}
 
           {verificationStatus === 'error' && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center space-x-2 text-destructive bg-destructive/10 p-4 rounded-lg"
-            >
+            <div className="flex items-center space-x-2 text-destructive bg-destructive/10 p-4 rounded-lg animate-in fade-in zoom-in-95 duration-300">
               <AlertCircle className="h-5 w-5" />
               <span>Verification failed. Please check your signature and try again.</span>
-            </motion.div>
+            </div>
           )}
         </form>
       </div>
 
-      {/* Instructions */}
-      <div className="bg-muted/50 border rounded-xl p-6 space-y-4">
-        <h3 className="font-semibold">How to create a BIP-322 signature:</h3>
-        <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-          <li>Use a wallet that supports BIP-322 signatures (like Sparrow Wallet)</li>
-          <li>Enter your message in the field above</li>
-          <li>Sign the message with your Bitcoin private key</li>
-          <li>Copy the generated signature and paste it above</li>
-        </ol>
+      {/* Detailed Instructions */}
+      <div className="space-y-6">
+        {/* Supported Wallets */}
+        <div className="bg-muted/50 border rounded-xl p-6 space-y-4">
+          <h3 className="font-semibold flex items-center space-x-2">
+            <CheckCircle className="h-5 w-5 text-green-500" />
+            <span>Supported Bitcoin Wallets</span>
+          </h3>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">Desktop Wallets</h4>
+              <ul className="space-y-1 text-sm text-muted-foreground">
+                <li className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>Sparrow Wallet (Recommended)</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>Electrum</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>Bitcoin Core</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>Wasabi Wallet</span>
+                </li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">Hardware Wallets</h4>
+              <ul className="space-y-1 text-sm text-muted-foreground">
+                <li className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>Ledger (via Sparrow)</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>Trezor (via Sparrow)</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>ColdCard (via Sparrow)</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  <span>BitBox (Limited)</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Step-by-Step Instructions */}
+        <div className="bg-card border rounded-xl p-6 space-y-6">
+          <h3 className="font-semibold">Step-by-Step Instructions</h3>
+          
+          <div className="space-y-6">
+            {/* Sparrow Wallet Instructions */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-green-600 flex items-center space-x-2">
+                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-xs font-bold text-white">1</div>
+                <span>Using Sparrow Wallet (Recommended)</span>
+              </h4>
+              <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground ml-8">
+                <li>Open Sparrow Wallet and load your wallet</li>
+                <li>Go to <code className="bg-muted px-2 py-1 rounded text-xs">Tools → Sign/Verify Message</code></li>
+                <li>Enter your Bitcoin address in the "Address" field</li>
+                <li>Type your message in the "Message" field</li>
+                <li>Click "Sign Message" to generate BIP-322 signature</li>
+                <li>Copy the signature and paste it in the form above</li>
+              </ol>
+            </div>
+
+            {/* Electrum Instructions */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-blue-600 flex items-center space-x-2">
+                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs font-bold text-white">2</div>
+                <span>Using Electrum</span>
+              </h4>
+              <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground ml-8">
+                <li>Open Electrum and load your wallet</li>
+                <li>Go to <code className="bg-muted px-2 py-1 rounded text-xs">Tools → Sign/Verify Message</code></li>
+                <li>Select your address from the dropdown</li>
+                <li>Enter your message in the message field</li>
+                <li>Click "Sign" to create the signature</li>
+                <li>Copy the signature to the form above</li>
+              </ol>
+            </div>
+
+            {/* Hardware Wallet Instructions */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-purple-600 flex items-center space-x-2">
+                <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-xs font-bold text-white">3</div>
+                <span>Using Hardware Wallets</span>
+              </h4>
+              <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground ml-8">
+                <li>Connect your hardware wallet to Sparrow Wallet</li>
+                <li>Ensure your device is unlocked and Bitcoin app is open</li>
+                <li>Follow the Sparrow Wallet instructions above</li>
+                <li>Confirm the signature on your hardware device</li>
+                <li>Copy the generated BIP-322 signature</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        {/* Security Notice */}
+        <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-xl p-6">
+          <h3 className="font-semibold text-green-600 dark:text-green-400 flex items-center space-x-2 mb-3">
+            <AlertCircle className="h-5 w-5" />
+            <span>Security Notice</span>
+          </h3>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li className="flex items-start space-x-2">
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+              <span>Your Bitcoin private keys never leave your wallet during this process</span>
+            </li>
+            <li className="flex items-start space-x-2">
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+              <span>BIP-322 signatures are cryptographic proofs of ownership that cannot be forged</span>
+            </li>
+            <li className="flex items-start space-x-2">
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+              <span>No funds are moved or at risk during the verification process</span>
+            </li>
+          </ul>
+        </div>
       </div>
-    </motion.div>
+    </div>
   )
 }

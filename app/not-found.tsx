@@ -1,10 +1,12 @@
+'use client'
+
 import { Home, Search, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 export default function NotFound() {
   return (
     <div className="max-w-2xl mx-auto text-center space-y-8 py-16">
-      <div className="space-y-6">
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="text-8xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
           404
         </div>
@@ -15,25 +17,34 @@ export default function NotFound() {
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
         <Link
           href="/"
-          className="flex items-center justify-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-medium transition-colors"
+          className="flex items-center justify-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-medium transition-all hover:scale-105 active:scale-95"
         >
           <Home className="h-4 w-4" />
           <span>Go Home</span>
         </Link>
 
+        <button
+          onClick={() => window.history.back()}
+          className="flex items-center justify-center space-x-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 px-6 py-3 rounded-lg font-medium transition-all hover:scale-105 active:scale-95"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Go Back</span>
+        </button>
+
         <Link
           href="/docs"
-          className="flex items-center justify-center space-x-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground px-6 py-3 rounded-lg font-medium transition-colors"
+          className="flex items-center justify-center space-x-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground px-6 py-3 rounded-lg font-medium transition-all hover:scale-105 active:scale-95"
         >
           <Search className="h-4 w-4" />
           <span>Browse Docs</span>
         </Link>
       </div>
 
-      <div className="bg-card border rounded-xl p-8 space-y-4">
+      {/* Suggested Pages */}
+      <div className="bg-card border rounded-xl p-8 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
         <h2 className="font-semibold">Popular Pages</h2>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <Link href="/verify" className="text-primary hover:underline">
