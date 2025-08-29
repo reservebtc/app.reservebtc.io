@@ -9,16 +9,14 @@ export function WalletConnect() {
   const [isConnecting, setIsConnecting] = useState(false)
   const { address, isConnected, chain } = useAccount()
   const { connect, connectors, error, isPending } = useConnect({
-    mutation: {
-      onMutate() {
-        setIsConnecting(true)
-      },
-      onSuccess() {
-        setIsConnecting(false)
-      },
-      onError() {
-        setIsConnecting(false)
-      },
+    onMutate() {
+      setIsConnecting(true)
+    },
+    onSuccess() {
+      setIsConnecting(false)
+    },
+    onError() {
+      setIsConnecting(false)
     },
   })
   const { disconnect } = useDisconnect()
