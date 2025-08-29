@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
 import { TrendingUp, Users, Clock, Bitcoin } from 'lucide-react'
 
 interface StatisticsData {
@@ -96,21 +95,12 @@ export function StatisticsWidget() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="bg-card border rounded-xl p-8 space-y-6"
-    >
+    <div className="bg-card border rounded-xl p-8 space-y-6 animate-in fade-in duration-500">
       <h3 className="text-xl font-semibold text-center">Live Statistics</h3>
       
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {/* Total rBTC Minted */}
-        <motion.div 
-          className="text-center space-y-2"
-          initial={{ scale: 0.9 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.3 }}
+        <div className="text-center space-y-2"
         >
           <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg w-12 h-12 mx-auto flex items-center justify-center">
             <Bitcoin className="h-6 w-6 text-orange-600" />
@@ -119,14 +109,10 @@ export function StatisticsWidget() {
             {formatBTC(stats.totalRBTCMinted)}
           </div>
           <div className="text-sm text-muted-foreground">Total rBTC Minted</div>
-        </motion.div>
+        </div>
 
         {/* Verified Wallets */}
-        <motion.div 
-          className="text-center space-y-2"
-          initial={{ scale: 0.9 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
+        <div className="text-center space-y-2"
         >
           <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg w-12 h-12 mx-auto flex items-center justify-center">
             <Users className="h-6 w-6 text-blue-600" />
@@ -135,14 +121,10 @@ export function StatisticsWidget() {
             {stats.verifiedWallets.toLocaleString()}
           </div>
           <div className="text-sm text-muted-foreground">Verified Wallets</div>
-        </motion.div>
+        </div>
 
         {/* Total Value Locked */}
-        <motion.div 
-          className="text-center space-y-2"
-          initial={{ scale: 0.9 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
+        <div className="text-center space-y-2"
         >
           <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg w-12 h-12 mx-auto flex items-center justify-center">
             <TrendingUp className="h-6 w-6 text-green-600" />
@@ -151,14 +133,10 @@ export function StatisticsWidget() {
             {formatUSD(stats.totalValueLocked)}
           </div>
           <div className="text-sm text-muted-foreground">Total Value Locked</div>
-        </motion.div>
+        </div>
 
         {/* Last Sync */}
-        <motion.div 
-          className="text-center space-y-2"
-          initial={{ scale: 0.9 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
+        <div className="text-center space-y-2"
         >
           <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg w-12 h-12 mx-auto flex items-center justify-center">
             <Clock className="h-6 w-6 text-purple-600" />
@@ -167,7 +145,7 @@ export function StatisticsWidget() {
             {timeAgo(stats.lastSyncTimestamp)}
           </div>
           <div className="text-sm text-muted-foreground">Last Sync</div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Additional Metrics */}
@@ -188,6 +166,6 @@ export function StatisticsWidget() {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }

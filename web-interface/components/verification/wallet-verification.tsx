@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { motion } from 'framer-motion'
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 import { walletVerificationSchema, WalletVerificationForm } from '@/lib/validation-schemas'
 import { validateBitcoinAddress, getBitcoinAddressTypeLabel } from '@/lib/bitcoin-validation'
@@ -65,11 +64,7 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="max-w-2xl mx-auto space-y-8"
-    >
+    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="text-center space-y-4">
         <div className="p-3 bg-primary/20 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
           <CheckCircle className="h-8 w-8 text-primary" />
@@ -98,14 +93,10 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
               </div>
             )}
             {errors.bitcoinAddress && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex items-center space-x-2 text-sm text-destructive"
-              >
+              <div className="flex items-center space-x-2 text-sm text-destructive animate-in fade-in slide-in-from-left-2 duration-200">
                 <AlertCircle className="h-4 w-4" />
                 <span>{errors.bitcoinAddress.message}</span>
-              </motion.div>
+              </div>
             )}
           </div>
 
@@ -120,14 +111,10 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
               readOnly={!!address}
             />
             {errors.ethereumAddress && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex items-center space-x-2 text-sm text-destructive"
-              >
+              <div className="flex items-center space-x-2 text-sm text-destructive animate-in fade-in slide-in-from-left-2 duration-200">
                 <AlertCircle className="h-4 w-4" />
                 <span>{errors.ethereumAddress.message}</span>
-              </motion.div>
+              </div>
             )}
           </div>
 
@@ -140,14 +127,10 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
               className="w-full px-4 py-3 border rounded-lg bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors h-24 resize-none"
             />
             {errors.message && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex items-center space-x-2 text-sm text-destructive"
-              >
+              <div className="flex items-center space-x-2 text-sm text-destructive animate-in fade-in slide-in-from-left-2 duration-200">
                 <AlertCircle className="h-4 w-4" />
                 <span>{errors.message.message}</span>
-              </motion.div>
+              </div>
             )}
           </div>
 
@@ -160,14 +143,10 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
               className="w-full px-4 py-3 border rounded-lg bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors h-32 resize-none font-mono text-sm"
             />
             {errors.signature && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex items-center space-x-2 text-sm text-destructive"
-              >
+              <div className="flex items-center space-x-2 text-sm text-destructive animate-in fade-in slide-in-from-left-2 duration-200">
                 <AlertCircle className="h-4 w-4" />
                 <span>{errors.signature.message}</span>
-              </motion.div>
+              </div>
             )}
           </div>
 
@@ -189,25 +168,17 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
 
           {/* Status Messages */}
           {verificationStatus === 'success' && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center space-x-2 text-green-600 bg-green-50 dark:bg-green-900/20 p-4 rounded-lg"
-            >
+            <div className="flex items-center space-x-2 text-green-600 bg-green-50 dark:bg-green-900/20 p-4 rounded-lg animate-in fade-in zoom-in-95 duration-300">
               <CheckCircle className="h-5 w-5" />
               <span>Wallet verification successful!</span>
-            </motion.div>
+            </div>
           )}
 
           {verificationStatus === 'error' && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center space-x-2 text-destructive bg-destructive/10 p-4 rounded-lg"
-            >
+            <div className="flex items-center space-x-2 text-destructive bg-destructive/10 p-4 rounded-lg animate-in fade-in zoom-in-95 duration-300">
               <AlertCircle className="h-5 w-5" />
               <span>Verification failed. Please check your signature and try again.</span>
-            </motion.div>
+            </div>
           )}
         </form>
       </div>
@@ -222,6 +193,6 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
           <li>Copy the generated signature and paste it above</li>
         </ol>
       </div>
-    </motion.div>
+    </div>
   )
 }

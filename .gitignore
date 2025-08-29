@@ -79,3 +79,4 @@ hardhat-local.config.js
 *.bak
 *.orig
 *~
+.vercel

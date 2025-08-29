@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 
 interface FAQItem {
@@ -110,12 +109,10 @@ export default function FAQPage() {
       {/* FAQ Items */}
       <div className="space-y-4">
         {filteredFAQ.map((item, index) => (
-          <motion.div
+          <div
             key={item.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
-            className="bg-card border rounded-xl overflow-hidden"
+            className="bg-card border rounded-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300"
+            style={{ animationDelay: `${index * 0.1}s` }}
           >
             <button
               onClick={() => toggleItem(item.id)}
@@ -130,17 +127,11 @@ export default function FAQPage() {
             </button>
             
             {openItems.has(item.id) && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="px-6 pb-4 text-muted-foreground"
-              >
+              <div className="px-6 pb-4 text-muted-foreground animate-in fade-in duration-300">
                 {item.answer}
-              </motion.div>
+              </div>
             )}
-          </motion.div>
+          </div>
         ))}
       </div>
 

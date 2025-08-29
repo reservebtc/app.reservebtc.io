@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { motion } from 'framer-motion'
 import { ArrowRight, AlertCircle, Loader2, CheckCircle, Info } from 'lucide-react'
 import { mintFormSchema, MintForm } from '@/lib/validation-schemas'
 import { validateBitcoinAddress, getBitcoinAddressTypeLabel } from '@/lib/bitcoin-validation'
@@ -75,11 +74,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
 
   if (!isConnected) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-2xl mx-auto text-center space-y-6"
-      >
+      <div className="max-w-2xl mx-auto text-center space-y-6 animate-in fade-in duration-500">
         <div className="p-3 bg-destructive/20 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
           <AlertCircle className="h-8 w-8 text-destructive" />
         </div>
@@ -87,16 +82,12 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         <p className="text-muted-foreground">
           Please connect your wallet to continue with the minting process.
         </p>
-      </motion.div>
+      </div>
     )
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="max-w-2xl mx-auto space-y-8"
-    >
+    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="text-center space-y-4">
         <div className="p-3 bg-primary/20 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
           <ArrowRight className="h-8 w-8 text-primary" />
@@ -131,14 +122,10 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                 </div>
               )}
               {errors.amount && (
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center space-x-2 text-sm text-destructive"
-                >
+                <div className="flex items-center space-x-2 text-sm text-destructive animate-in fade-in slide-in-from-left-2 duration-200">
                   <AlertCircle className="h-4 w-4" />
                   <span>{errors.amount.message}</span>
-                </motion.div>
+                </div>
               )}
             </div>
 
@@ -158,14 +145,10 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                 </div>
               )}
               {errors.bitcoinAddress && (
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center space-x-2 text-sm text-destructive"
-                >
+                <div className="flex items-center space-x-2 text-sm text-destructive animate-in fade-in slide-in-from-left-2 duration-200">
                   <AlertCircle className="h-4 w-4" />
                   <span>{errors.bitcoinAddress.message}</span>
-                </motion.div>
+                </div>
               )}
             </div>
 
@@ -210,11 +193,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       )}
 
       {mintStatus === 'pending' && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-card border rounded-xl p-8 text-center space-y-6"
-        >
+        <div className="bg-card border rounded-xl p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
           <div className="p-4 bg-yellow-100 dark:bg-yellow-900/20 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
             <Loader2 className="h-10 w-10 text-yellow-600 animate-spin" />
           </div>
@@ -224,15 +203,11 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               Your mint transaction is being processed on MegaETH...
             </p>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {mintStatus === 'success' && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-card border rounded-xl p-8 text-center space-y-6"
-        >
+        <div className="bg-card border rounded-xl p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
           <div className="p-4 bg-green-100 dark:bg-green-900/20 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
             <CheckCircle className="h-10 w-10 text-green-600" />
           </div>
@@ -247,15 +222,11 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               </div>
             )}
           </div>
-        </motion.div>
+        </div>
       )}
 
       {mintStatus === 'error' && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-card border rounded-xl p-8 text-center space-y-6"
-        >
+        <div className="bg-card border rounded-xl p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
           <div className="p-4 bg-red-100 dark:bg-red-900/20 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
             <AlertCircle className="h-10 w-10 text-red-600" />
           </div>
@@ -274,7 +245,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           >
             Try Again
           </button>
-        </motion.div>
+        </div>
       )}
 
       {/* Important Notice */}
@@ -292,6 +263,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }

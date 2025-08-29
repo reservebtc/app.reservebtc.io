@@ -1,16 +1,12 @@
-import { motion } from 'framer-motion'
+'use client'
+
 import { Home, Search, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 export default function NotFound() {
   return (
     <div className="max-w-2xl mx-auto text-center space-y-8 py-16">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="space-y-6"
-      >
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="text-8xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
           404
         </div>
@@ -19,14 +15,9 @@ export default function NotFound() {
           Sorry, we couldn't find the page you're looking for. 
           It might have been moved, deleted, or you entered the wrong URL.
         </p>
-      </motion.div>
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="flex flex-col sm:flex-row gap-4 justify-center"
-      >
+      <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
         <Link
           href="/"
           className="flex items-center justify-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-medium transition-all hover:scale-105 active:scale-95"
@@ -50,15 +41,10 @@ export default function NotFound() {
           <Search className="h-4 w-4" />
           <span>Browse Docs</span>
         </Link>
-      </motion.div>
+      </div>
 
       {/* Suggested Pages */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
-        className="bg-card border rounded-xl p-8 space-y-4"
-      >
+      <div className="bg-card border rounded-xl p-8 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
         <h2 className="font-semibold">Popular Pages</h2>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <Link href="/verify" className="text-primary hover:underline">
@@ -74,7 +60,7 @@ export default function NotFound() {
             FAQ
           </Link>
         </div>
-      </motion.div>
+      </div>
     </div>
   )
 }

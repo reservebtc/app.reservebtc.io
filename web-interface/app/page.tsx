@@ -1,6 +1,5 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import { CheckCircle, ArrowRight, Info } from 'lucide-react'
 import Link from 'next/link'
 import { useAccount } from 'wagmi'
@@ -12,29 +11,19 @@ export default function HomePage() {
   return (
     <div className="space-y-12">
       {/* Hero Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="text-center space-y-6"
-      >
+      <div className="text-center space-y-6 animate-in fade-in duration-500">
         <h2 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
           ReserveBTC
         </h2>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
           Mint 1:1 backed rBTC tokens on MegaETH. Your Bitcoin stays secure in your wallet.
         </p>
-      </motion.div>
+      </div>
 
       {/* Main Actions */}
       <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
         {/* Verify Bitcoin Wallet */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-card border rounded-xl p-8 space-y-6"
-        >
+        <div className="bg-card border rounded-xl p-8 space-y-6 animate-in slide-in-from-left duration-700">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-primary/20 rounded-lg">
               <CheckCircle className="h-6 w-6 text-primary" />
@@ -56,15 +45,10 @@ export default function HomePage() {
             <span>Begin Verification</span>
             <ArrowRight className="h-4 w-4" />
           </Link>
-        </motion.div>
+        </div>
 
         {/* Mint rBTC Token */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="bg-card border rounded-xl p-8 space-y-6"
-        >
+        <div className="bg-card border rounded-xl p-8 space-y-6 animate-in slide-in-from-right duration-700 animation-delay-200">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-secondary/20 rounded-lg">
               <ArrowRight className="h-6 w-6 text-foreground" />
@@ -91,31 +75,21 @@ export default function HomePage() {
             <span>Begin Mint</span>
             <ArrowRight className="h-4 w-4" />
           </Link>
-        </motion.div>
+        </div>
       </div>
 
       {/* Statistics Widget */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.6 }}
-        className="max-w-4xl mx-auto"
-      >
+      <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom duration-700 animation-delay-600">
         <StatisticsWidget />
-      </motion.div>
+      </div>
 
       {/* Bottom Message */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.8 }}
-        className="text-center"
-      >
+      <div className="text-center animate-in fade-in duration-700 animation-delay-800">
         <h4 className="text-2xl font-semibold mb-4">Bitcoin stays in your wallet</h4>
         <p className="text-muted-foreground">
           ReserveBTC uses advanced cryptographic proofs to ensure your Bitcoin remains secure while you access DeFi on MegaETH.
         </p>
-      </motion.div>
+      </div>
     </div>
   )
 }
