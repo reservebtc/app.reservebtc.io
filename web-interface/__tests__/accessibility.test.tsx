@@ -13,9 +13,13 @@ jest.mock('wagmi', () => ({
     connect: jest.fn(),
     connectors: [{ id: 'metaMask', name: 'MetaMask' }],
     error: null,
+    isPending: false,
   }),
   useDisconnect: () => ({
     disconnect: jest.fn(),
+  }),
+  useSwitchChain: () => ({
+    switchChain: jest.fn(),
   }),
 }))
 

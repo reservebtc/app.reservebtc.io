@@ -3,7 +3,7 @@
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { useState } from 'react'
 import { Wallet, ChevronDown } from 'lucide-react'
-import { megaeth } from '@/lib/chains/megaeth'
+import { megaeth } from '@/web-interface/lib/chains/megaeth'
 
 export function WalletConnect() {
   const [isConnecting, setIsConnecting] = useState(false)

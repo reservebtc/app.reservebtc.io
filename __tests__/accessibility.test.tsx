@@ -13,14 +13,18 @@ jest.mock('wagmi', () => ({
     connect: jest.fn(),
     connectors: [{ id: 'metaMask', name: 'MetaMask' }],
     error: null,
+    isPending: false,
   }),
   useDisconnect: () => ({
     disconnect: jest.fn(),
   }),
+  useSwitchChain: () => ({
+    switchChain: jest.fn(),
+  }),
 }))
 
 // Mock the megaeth chain
-jest.mock('@/lib/chains/megaeth', () => ({
+jest.mock('@/web-interface/lib/chains/megaeth', () => ({
   megaeth: { id: 70532, name: 'MegaETH Testnet' }
 }))
 

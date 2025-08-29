@@ -5,11 +5,13 @@ import { WalletConnect } from '../wallet-connect'
 const mockUseAccount = jest.fn()
 const mockUseConnect = jest.fn()
 const mockUseDisconnect = jest.fn()
+const mockUseSwitchChain = jest.fn()
 
 jest.mock('wagmi', () => ({
   useAccount: () => mockUseAccount(),
   useConnect: () => mockUseConnect(),
   useDisconnect: () => mockUseDisconnect(),
+  useSwitchChain: () => mockUseSwitchChain(),
 }))
 
 // Mock the megaeth chain
@@ -31,10 +33,15 @@ describe('WalletConnect Component', () => {
       connect: mockConnect,
       connectors: mockConnectors,
       error: null,
+      isPending: false,
     })
     
     mockUseDisconnect.mockReturnValue({
       disconnect: mockDisconnect,
+    })
+    
+    mockUseSwitchChain.mockReturnValue({
+      switchChain: jest.fn(),
     })
   })
 
@@ -47,7 +54,7 @@ describe('WalletConnect Component', () => {
 
     render(<WalletConnect />)
     
-    const connectButton = screen.getByRole('button', { name: /connect wallet/i })
+    const connectButton = screen.getByRole('button', { name: /connect metamask/i })
     expect(connectButton).toBeInTheDocument()
   })
 
@@ -73,6 +80,6 @@ describe('WalletConnect Component', () => {
 
     render(<WalletConnect />)
     
-    expect(screen.getByText(/wrong network/i)).toBeInTheDocument()
+    expect(screen.getByText(/switch to megaeth/i)).toBeInTheDocument()
   })
 })
