@@ -4,6 +4,11 @@
   "framework": "nextjs",
   "installCommand": "npm install",
   "devCommand": "npm run dev",
+  "git": {
+    "deploymentEnabled": {
+      "main": false
+    }
+  },
   "functions": {
     "app/api/verify-wallet/route.ts": {
       "maxDuration": 30
