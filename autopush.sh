@@ -95,6 +95,12 @@ $(git diff --cached --name-only | head -10)
 📊 Coverage: Maintained at 85.7%
 "
 
+# Clean git history occasionally to keep repo lightweight
+if [ $(git rev-list --count HEAD) -gt 100 ]; then
+  echo "🧹 Cleaning git history to keep repository lightweight..."
+  ./rewrite-git-history.sh
+fi
+
 # Push changes
 echo "🚀 Pushing changes to GitHub..."
 if git push origin main; then
