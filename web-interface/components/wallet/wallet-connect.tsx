@@ -8,17 +8,7 @@ import { megaeth } from '@/lib/chains/megaeth'
 export function WalletConnect() {
   const [isConnecting, setIsConnecting] = useState(false)
   const { address, isConnected, chain } = useAccount()
-  const { connect, connectors, error, isPending } = useConnect({
-    onMutate() {
-      setIsConnecting(true)
-    },
-    onSuccess() {
-      setIsConnecting(false)
-    },
-    onError() {
-      setIsConnecting(false)
-    },
-  })
+  const { connect, connectors, error, isPending } = useConnect()
   const { disconnect } = useDisconnect()
   const { switchChain } = useSwitchChain()
 
@@ -28,6 +18,8 @@ export function WalletConnect() {
   // Handle MetaMask connection
   const handleConnect = async () => {
     try {
+      setIsConnecting(true)
+      
       // First try MetaMask directly
       const metaMaskConnector = connectors.find(c => 
         c.id === 'metaMask' || c.name.toLowerCase().includes('metamask')
@@ -44,8 +36,16 @@ export function WalletConnect() {
       }
     } catch (err) {
       console.error('Connection failed:', err)
+      setIsConnecting(false)
     }
   }
+
+  // Reset connecting state when connection changes
+  useEffect(() => {
+    if (isConnected || error) {
+      setIsConnecting(false)
+    }
+  }, [isConnected, error])
 
   // Handle network switching
   const handleSwitchNetwork = () => {
