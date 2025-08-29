@@ -10,6 +10,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata = {
   title: 'ReserveBTC - Mint 1:1 backed rBTC tokens',
   description: 'Deposit Bitcoin to mint 1:1 backed rBTC tokens on MegaETH',
+  icons: {
+    icon: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({
@@ -27,24 +30,24 @@ export default function RootLayout({
           <div className="min-h-screen bg-background">
             {/* Header */}
             <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-              <div className="container mx-auto px-4 py-4">
-                <div className="flex justify-between items-start md:items-center">
-                  <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                    <div className="w-10 h-10 rounded-full relative overflow-hidden">
+              <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
+                <div className="flex flex-col space-y-3 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+                  <Link href="/" className="flex items-center space-x-2 sm:space-x-3 hover:opacity-80 transition-opacity">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full relative overflow-hidden">
                       <div className="absolute inset-0 bg-gradient-to-r from-orange-500 via-red-500 via-purple-500 via-blue-500 to-green-500 animate-spin-slow"></div>
                       <div className="absolute inset-[2px] rounded-full bg-background flex items-center justify-center">
-                        <span className="text-foreground font-bold text-lg">₿</span>
+                        <span className="text-foreground font-bold text-base sm:text-lg">₿</span>
                       </div>
                     </div>
-                    <h1 className="text-2xl font-bold">ReserveBTC</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold">ReserveBTC</h1>
                   </Link>
                   
-                  <div className="flex flex-col space-y-2 md:flex-row md:space-y-0 md:items-center md:space-x-4">
-                    <div className="inline-flex items-center space-x-1 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-medium w-fit ml-auto md:ml-0">
+                  <div className="flex items-center justify-between sm:justify-end space-x-2 sm:space-x-4">
+                    <div className="inline-flex items-center space-x-1 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 px-2 sm:px-3 py-1 rounded-full text-xs font-medium">
                       <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                       <span>TestNet</span>
                     </div>
-                    <div className="flex items-center space-x-2 justify-end md:justify-start">
+                    <div className="flex items-center space-x-1 sm:space-x-2">
                       <ThemeToggle />
                       <WalletConnect />
                     </div>
