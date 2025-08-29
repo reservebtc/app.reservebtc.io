@@ -199,7 +199,7 @@ export default function AuditPage() {
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-8 text-center space-y-4">
         <h2 className="text-xl font-semibold">Bug Bounty Program</h2>
         <p className="text-muted-foreground">
-          Help us keep ReserveBTC secure. Report vulnerabilities and earn rewards up to $100,000.
+          Help us keep ReserveBTC secure. Report vulnerabilities and earn rewards up to $.
         </p>
         <a 
           href="/bug-bounty"

@@ -1,4 +1,19 @@
 import { ExternalLink, Book, Shield, Code, Zap } from 'lucide-react'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Documentation | ReserveBTC - Protocol Guides & API Reference',
+  description: 'Complete documentation for ReserveBTC protocol including API reference, security guides, BIP-322 signatures, and developer resources.',
+  keywords: 'ReserveBTC documentation, API reference, BIP-322 guide, Bitcoin DeFi docs, smart contract documentation, developer guide',
+  openGraph: {
+    title: 'Documentation - ReserveBTC',
+    description: 'Comprehensive documentation for the ReserveBTC Bitcoin-backed synthetic assets protocol',
+    type: 'website'
+  },
+  alternates: {
+    canonical: '/docs'
+  }
+}
 
 export default function DocsPage() {
   const documentationSections = [
