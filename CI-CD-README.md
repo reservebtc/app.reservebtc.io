@@ -1,85 +1,85 @@
 # 🚀 CI/CD Documentation - ReserveBTC
 
-## Профессиональная настройка тестирования
+## Professional Testing Setup
 
-### 📁 Структура файлов
+### 📁 File Structure
 
 ```
 .
 ├── .github/workflows/
-│   ├── ci.yml                    # 🚀 Основной CI/CD pipeline
-│   ├── frontend-test-suite.yml   # 🎯 Frontend тесты
-│   ├── security-tests.yml        # 🔒 Security тесты
-│   └── smart-contract-tests.yml  # ⛓️  Smart contract тесты
+│   ├── ci.yml                    # 🚀 Main CI/CD pipeline
+│   ├── frontend-test-suite.yml   # 🎯 Frontend tests
+│   ├── security-tests.yml        # 🔒 Security tests
+│   └── smart-contract-tests.yml  # ⛓️  Smart contract tests
 ├── scripts/
-│   └── test-ci-locally.sh        # 🐳 Локальное воспроизведение CI
-├── Dockerfile.test               # 🐳 Docker для тестов
-├── docker-compose.test.yml       # 🐳 Docker Compose конфигурация
-├── .nvmrc                        # 📌 Версия Node.js
-├── .npmrc                        # 📌 Настройки npm
-└── CI-CD-README.md              # 📚 Эта документация
+│   └── test-ci-locally.sh        # 🐳 Local CI reproduction
+├── Dockerfile.test               # 🐳 Docker for tests
+├── docker-compose.test.yml       # 🐳 Docker Compose configuration
+├── .nvmrc                        # 📌 Node.js version
+├── .npmrc                        # 📌 npm settings
+└── CI-CD-README.md              # 📚 This documentation
 ```
 
-### 🎯 Автоматическое тестирование
+### 🎯 Automated Testing
 
-**Триггеры:**
-- ✅ Push в `main` или `develop`
-- ✅ Pull Request в `main`
-- ✅ Ручной запуск (workflow_dispatch)
+**Triggers:**
+- ✅ Push to `main` or `develop`
+- ✅ Pull Request to `main`
+- ✅ Manual run (workflow_dispatch)
 
-**Этапы CI/CD:**
+**CI/CD Stages:**
 
 1. **🔍 Code Quality Check**
-   - TypeScript проверка
-   - ESLint проверка
-   - Проверка изменений
+   - TypeScript validation
+   - ESLint check
+   - Change detection
 
 2. **🧪 Test Suite (Matrix Strategy)**
-   - Unit тесты
-   - Component тесты
-   - API тесты
-   - Accessibility тесты
+   - Unit tests
+   - Component tests
+   - API tests
+   - Accessibility tests
 
 3. **🔒 Security Audit**
    - NPM security audit
-   - Security тесты
+   - Security tests
 
 4. **🏗️ Build Check**
-   - Production сборка
-   - Проверка артефактов
+   - Production build
+   - Artifact verification
 
-### 🐳 Локальное воспроизведение CI
+### 🐳 Local CI Reproduction
 
 ```bash
-# Полный набор тестов (как в GitHub Actions)
+# Full test suite (as in GitHub Actions)
 ./scripts/test-ci-locally.sh
 
-# Отдельные виды тестов
+# Individual test types
 ./scripts/test-ci-locally.sh unit
 ./scripts/test-ci-locally.sh components
 ./scripts/test-ci-locally.sh api
 
-# Интерактивный режим
+# Interactive mode
 ./scripts/test-ci-locally.sh watch
 
-# Проверка окружения
+# Environment check
 ./scripts/test-ci-locally.sh env
 
-# Docker команды
-./scripts/test-ci-locally.sh build  # Пересобрать
-./scripts/test-ci-locally.sh clean  # Очистить
+# Docker commands
+./scripts/test-ci-locally.sh build  # Rebuild
+./scripts/test-ci-locally.sh clean  # Clean up
 ```
 
-### 📌 Фиксация версий
+### 📌 Version Locking
 
-**Строгое соответствие версий:**
-- `Node.js`: 22.14.0 (фиксировано в `.nvmrc`)
-- `NPM`: 10.9.2 (фиксировано в `package.json` engines)
-- Зависимости: точные версии (`--exact` в `.npmrc`)
+**Strict version compliance:**
+- `Node.js`: 22.14.0 (locked in `.nvmrc`)
+- `NPM`: 10.9.2 (locked in `package.json` engines)
+- Dependencies: exact versions (`--exact` in `.npmrc`)
 
-### 🔧 Переменные окружения
+### 🔧 Environment Variables
 
-**В CI (GitHub Actions):**
+**In CI (GitHub Actions):**
 ```yaml
 env:
   NODE_ENV: test
@@ -87,72 +87,72 @@ env:
   FORCE_COLOR: 3
 ```
 
-**В Docker:**
+**In Docker:**
 ```dockerfile
 ENV NODE_ENV=test
 ENV CI=true
 ENV FORCE_COLOR=3
 ```
 
-### 📊 Мониторинг и артефакты
+### 📊 Monitoring and Artifacts
 
-**Загружаемые артефакты:**
-- 📊 Результаты тестов
-- 📈 Coverage отчеты
-- 🏗️ Build файлы
+**Uploaded artifacts:**
+- 📊 Test results
+- 📈 Coverage reports
+- 🏗️ Build files
 
-**Срок хранения:** 7 дней
+**Retention period:** 7 days
 
-### 🎯 Статусы сборки
+### 🎯 Build Status
 
-Все workflow возвращают статус:
-- ✅ **Success**: все тесты прошли
-- ❌ **Failure**: есть проблемы
-- 🟡 **Cancelled**: отменено
+All workflows return status:
+- ✅ **Success**: all tests passed
+- ❌ **Failure**: issues found
+- 🟡 **Cancelled**: canceled
 
-### 🛠️ Отладка
+### 🛠️ Debugging
 
-**Включить отладку:**
+**Enable debugging:**
 ```bash
-# В GitHub Actions с tmate debugging
-# Используй input "debug_enabled: true"
+# In GitHub Actions with tmate debugging
+# Use input "debug_enabled: true"
 ```
 
-**Локальная отладка:**
+**Local debugging:**
 ```bash
-# Проверить окружение
+# Check environment
 ./scripts/test-ci-locally.sh env
 
-# Интерактивный режим
+# Interactive mode
 ./scripts/test-ci-locally.sh watch
 ```
 
-### 🚫 Важные правила
+### 🚫 Important Rules
 
-1. **НЕ ТРОГАТЬ тестовые файлы** - они работают идеально
-2. **Настраивать только окружение** под существующие тесты
-3. **Использовать точные версии** во всех средах
-4. **Тестировать локально** перед push
+1. **DO NOT TOUCH test files** - they work perfectly
+2. **Only configure environment** to match existing tests
+3. **Use exact versions** in all environments
+4. **Test locally** before push
 
-### 📈 Метрики качества
+### 📈 Quality Metrics
 
-**Цель:** 100% успешность тестов
-**Текущий статус:** 7/7 (100%) ✅
+**Target:** 100% test success rate
+**Current status:** 7/7 (100%) ✅
 
-**Типы тестов:**
-- Unit Tests: 39 тестов ✅
-- Component Tests: 6 тестов ✅  
-- API Tests: 6 тестов ✅
+**Test types:**
+- Unit Tests: 39 tests ✅
+- Component Tests: 6 tests ✅  
+- API Tests: 6 tests ✅
 - Accessibility Tests: ✅
 - Security Tests: ✅
 
-### 🎉 Результат
+### 🎉 Result
 
-Профессиональная CI/CD система с:
-- ✅ Идентичностью локальной и CI среды
-- ✅ Автоматическим запуском на push/PR
-- ✅ Возможностью локального воспроизведения
-- ✅ Строгим контролем версий
-- ✅ Безопасностью и аудитом
+Professional CI/CD system with:
+- ✅ Local and CI environment parity
+- ✅ Automatic execution on push/PR
+- ✅ Local reproduction capability
+- ✅ Strict version control
+- ✅ Security and audit
 
-**Больше никаких различий между локальной и CI средой!** 🚀
+**No more differences between local and CI environments!** 🚀
