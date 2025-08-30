@@ -40,7 +40,7 @@ jobs:
     - name: Install dependencies
       run: |
         cd contracts
-        forge install --no-commit
+        forge install
     - name: Run E2E tests
       run: |
         cd contracts

@@ -60,7 +60,13 @@ function runTest(testSuite) {
     const output = execSync(testSuite.command, { 
       encoding: 'utf8', 
       stdio: 'pipe',
-      timeout: 60000 // 60 second timeout
+      timeout: process.env.CI ? 120000 : 60000, // 120s in CI, 60s locally
+      maxBuffer: 1024 * 1024 * 10, // 10MB buffer
+      env: {
+        ...process.env,
+        NODE_OPTIONS: '--max_old_space_size=4096',
+        FORCE_COLOR: '0'
+      }
     })
     
     console.log('✅ PASSED')
@@ -109,7 +115,14 @@ function generateCoverageReport() {
   try {
     const coverageOutput = execSync('npx jest --coverage --coverageReporters=text-summary', { 
       encoding: 'utf8',
-      stdio: 'pipe'
+      stdio: 'pipe',
+      timeout: process.env.CI ? 180000 : 120000, // 3min in CI, 2min locally
+      maxBuffer: 1024 * 1024 * 10,
+      env: {
+        ...process.env,
+        NODE_OPTIONS: '--max_old_space_size=4096',
+        FORCE_COLOR: '0'
+      }
     })
     
     console.log('✅ Coverage Report Generated')

@@ -97,6 +97,9 @@ jobs:
           esac
         env:
           NODE_ENV: test
+          CI: true
+          NODE_OPTIONS: --max_old_space_size=4096
+          JEST_WORKERS: 2
       
       - name: 📊 Upload test results
         if: always()
