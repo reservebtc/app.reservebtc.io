@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useWriteContract } from 'wagmi';
 import { CONTRACTS, CONTRACT_ABIS } from '@/app/lib/contracts';
 import { parseEther } from 'viem';
 

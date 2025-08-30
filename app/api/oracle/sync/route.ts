@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPublicClient, createWalletClient, http, parseEther } from 'viem';
+import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { CONTRACTS, CONTRACT_ABIS } from '@/app/lib/contracts';
 import { megaeth } from '@/lib/chains/megaeth';
@@ -7,22 +7,32 @@ import { megaeth } from '@/lib/chains/megaeth';
 // Oracle private key (in production, use environment variables)
 const ORACLE_PRIVATE_KEY = process.env.ORACLE_PRIVATE_KEY as `0x${string}`;
 
-if (!ORACLE_PRIVATE_KEY) {
-  throw new Error('ORACLE_PRIVATE_KEY environment variable is required');
+// Initialize clients only when environment variable is available
+let account: ReturnType<typeof privateKeyToAccount> | null = null;
+let publicClient: ReturnType<typeof createPublicClient> | null = null;
+let walletClient: ReturnType<typeof createWalletClient> | null = null;
+
+// Initialize clients function
+function initializeClients() {
+  if (!ORACLE_PRIVATE_KEY) {
+    return false;
+  }
+  
+  if (!account) {
+    account = privateKeyToAccount(ORACLE_PRIVATE_KEY);
+    publicClient = createPublicClient({
+      chain: megaeth,
+      transport: http(),
+    });
+    walletClient = createWalletClient({
+      account,
+      chain: megaeth,
+      transport: http(),
+    });
+  }
+  
+  return true;
 }
-
-const account = privateKeyToAccount(ORACLE_PRIVATE_KEY);
-
-const publicClient = createPublicClient({
-  chain: megaeth,
-  transport: http(),
-});
-
-const walletClient = createWalletClient({
-  account,
-  chain: megaeth,
-  transport: http(),
-});
 
 export interface SyncRequest {
   userAddress: string;
@@ -40,6 +50,14 @@ export interface SyncResponse {
 
 export async function POST(request: NextRequest): Promise<NextResponse<SyncResponse>> {
   try {
+    // Check if Oracle is configured
+    if (!initializeClients()) {
+      return NextResponse.json({
+        success: false,
+        error: 'Oracle not configured - ORACLE_PRIVATE_KEY environment variable required'
+      }, { status: 500 });
+    }
+
     const body: SyncRequest = await request.json();
     const { userAddress, btcBalance, blockHeight, timestamp } = body;
 
@@ -64,13 +82,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncRespo
     const syncTimestamp = timestamp || Math.floor(Date.now() / 1000);
 
     // Check if oracle is authorized
-    const committeeAddress = await publicClient.readContract({
+    const committeeAddress = await publicClient!.readContract({
       address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
       abi: CONTRACT_ABIS.ORACLE_AGGREGATOR,
       functionName: 'committee',
     });
 
-    if ((committeeAddress as string).toLowerCase() !== account.address.toLowerCase()) {
+    if ((committeeAddress as string).toLowerCase() !== account!.address.toLowerCase()) {
       return NextResponse.json({
         success: false,
         error: 'Unauthorized: not oracle committee member'
@@ -79,8 +97,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncRespo
 
     // Simulate the transaction first to check for errors
     try {
-      await publicClient.simulateContract({
-        account,
+      await publicClient!.simulateContract({
+        account: account!,
         address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
         abi: CONTRACT_ABIS.ORACLE_AGGREGATOR,
         functionName: 'sync',
@@ -100,7 +118,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncRespo
     }
 
     // Execute the transaction
-    const hash = await walletClient.writeContract({
+    const hash = await walletClient!.writeContract({
       address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
       abi: CONTRACT_ABIS.ORACLE_AGGREGATOR,
       functionName: 'sync',
@@ -113,7 +131,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncRespo
     });
 
     // Wait for transaction confirmation
-    const receipt = await publicClient.waitForTransactionReceipt({
+    const receipt = await publicClient!.waitForTransactionReceipt({
       hash,
       confirmations: 1,
     });
@@ -137,18 +155,26 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncRespo
 // GET endpoint for oracle status
 export async function GET(): Promise<NextResponse> {
   try {
+    // Check if Oracle is configured
+    if (!initializeClients()) {
+      return NextResponse.json({
+        success: false,
+        error: 'Oracle not configured - ORACLE_PRIVATE_KEY environment variable required'
+      }, { status: 500 });
+    }
+
     const [committee, minConfirmations, maxFeePerSync] = await Promise.all([
-      publicClient.readContract({
+      publicClient!.readContract({
         address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
         abi: CONTRACT_ABIS.ORACLE_AGGREGATOR,
         functionName: 'committee',
       }),
-      publicClient.readContract({
+      publicClient!.readContract({
         address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
         abi: CONTRACT_ABIS.ORACLE_AGGREGATOR,
         functionName: 'minConfirmations',
       }),
-      publicClient.readContract({
+      publicClient!.readContract({
         address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
         abi: CONTRACT_ABIS.ORACLE_AGGREGATOR,
         functionName: 'maxFeePerSyncWei',
