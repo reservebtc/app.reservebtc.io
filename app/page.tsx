@@ -24,13 +24,13 @@ export default function HomePage() {
             <span className="text-muted-foreground">.</span>
           </p>
           {/* Security Badge */}
-          <div className="mt-6 inline-flex items-center justify-center">
-            <div className="backdrop-blur-sm bg-green-500/10 border border-green-500/20 rounded-full px-6 py-3 shadow-lg">
-              <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-green-500/20 rounded-full">
-                  <span className="text-lg">🛡️</span>
+          <div className="mt-6 flex items-center justify-center px-4">
+            <div className="backdrop-blur-sm bg-green-500/10 border border-green-500/20 rounded-full px-3 sm:px-6 py-2 sm:py-3 shadow-lg max-w-full">
+              <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+                <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center bg-green-500/20 rounded-full">
+                  <span className="text-sm sm:text-lg">🛡️</span>
                 </div>
-                <span className="text-base md:text-lg font-semibold text-green-600 dark:text-green-400 whitespace-nowrap">
+                <span className="text-sm sm:text-base md:text-lg font-semibold text-green-600 dark:text-green-400 truncate">
                   Your Bitcoin stays secure in your wallet
                 </span>
               </div>
