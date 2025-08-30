@@ -4,7 +4,16 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # manual trigger option available  
+    inputs:
+      test_description:
+        description: 'Test run description'
+        required: false
+        default: 'Manual frontend tests run'
+
+env:
+  NODE_ENV: test
+  CI: true
 
 jobs:
   build-check:
@@ -14,10 +23,12 @@ jobs:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '22.14.0'  # exact version like local
         cache: 'npm'
     - name: Install dependencies
-      run: npm ci
+      run: npm ci --exact
+    - name: Run tests
+      run: npm run test:all
     - name: Run Next.js build
       run: npm run build
     - name: Verify build output

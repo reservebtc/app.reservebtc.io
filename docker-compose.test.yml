@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # Main testing service
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: reservebtc-tests
+    environment:
+      - NODE_ENV=test
+      - CI=true
+      - FORCE_COLOR=3
+    volumes:
+      - .:/app
+      - /app/node_modules  # prevent node_modules overwrite
+    working_dir: /app
+    command: npm run test:all
+
+  # Service for specific test types
+  unit-tests:
+    extends: test-runner
+    container_name: reservebtc-unit-tests
+    command: npm run test:unit
+
+  component-tests:
+    extends: test-runner
+    container_name: reservebtc-component-tests  
+    command: npm run test:components
+
+  api-tests:
+    extends: test-runner
+    container_name: reservebtc-api-tests
+    command: npm run test:api
+
+  # Interactive development mode
+  test-dev:
+    extends: test-runner
+    container_name: reservebtc-test-dev
+    command: npm run test:watch
+    stdin_open: true
+    tty: true
+
+  # Environment check service
+  env-check:
+    extends: test-runner
+    container_name: reservebtc-env-check
+    command: |
+      sh -c "
+        echo '=== Environment Check ===';
+        echo 'Node.js: '$(node --version);
+        echo 'NPM: '$(npm --version);
+        echo 'Working dir: '$(pwd);
+        echo 'NODE_ENV: '$NODE_ENV;
+        echo 'CI: '$CI;
+        echo '=== Dependencies ===';
+        npm list --depth=0;
+        echo '=== Test Files ===';
+        find . -name '*.test.*' -type f;
+        echo '=== Configuration Files ===';
+        ls -la jest.* .swcrc .npmrc .nvmrc;
+      "

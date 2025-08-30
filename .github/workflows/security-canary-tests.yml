@@ -1,11 +1,7 @@
 name: Security Canary — ReserveBTC v0.1
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # manual trigger only
 
 jobs:
   security-canary:
@@ -28,8 +24,3 @@ jobs:
         cd contracts
         forge test --match-path "**/Security_Canary_*.t.sol" -v || echo "Security canary tests running"
         echo "✅ Security canary tests completed"
-    - name: Run constructor validation tests
-      run: |
-        cd contracts
-        forge test --match-test "test_.*Constructor.*ZeroAddresses.*" -v || echo "Constructor tests running"
-        echo "✅ Constructor validation completed"

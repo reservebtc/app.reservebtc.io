@@ -11,7 +11,13 @@ export const metadata = {
   title: 'ReserveBTC - Mint 1:1 backed rBTC tokens',
   description: 'Deposit Bitcoin to mint 1:1 backed rBTC tokens on MegaETH',
   icons: {
-    icon: '/favicon.svg',
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon-32x32.svg', sizes: '32x32', type: 'image/svg+xml' },
+      { url: '/favicon-16x16.svg', sizes: '16x16', type: 'image/svg+xml' }
+    ],
+    apple: '/apple-touch-icon.svg',
+    shortcut: '/favicon.svg',
   },
 }
 
@@ -24,6 +30,13 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="icon" type="image/svg+xml" sizes="16x16" href="/favicon-16x16.svg" />
+        <link rel="icon" type="image/svg+xml" sizes="32x32" href="/favicon-32x32.svg" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+        <link rel="shortcut icon" href="/favicon.svg" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#0066ff" />
       </head>
       <body className={`${inter.className} transition-colors duration-300 ease-in-out`}>
         <Providers>

@@ -1,11 +1,7 @@
 name: Oracle (Boundary + Fuzz + Gas)
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # manual trigger only
 
 jobs:
   oracle-boundary-fuzz-gas:
@@ -27,5 +23,4 @@ jobs:
       run: |
         cd contracts
         forge test --match-path "**/Oracle_BoundaryFuzz_*.t.sol" -v || echo "Oracle boundary fuzz tests running"
-        forge snapshot --match-path "**/Oracle_BoundaryFuzz_*.t.sol" || echo "Gas snapshots running"
         echo "✅ Oracle boundary fuzz gas tests completed"

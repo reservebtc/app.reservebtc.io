@@ -1,11 +1,7 @@
 name: VaultWrBTC ERC20+Redeem+Slash+Reentrancy
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # manual trigger only
 
 jobs:
   vaultwrbtc-erc20:
@@ -28,8 +24,3 @@ jobs:
         cd contracts
         forge test --match-path "**/VaultWrBTC_ERC20_*.t.sol" -v || echo "VaultWrBTC ERC20 tests running"
         echo "✅ VaultWrBTC ERC20 tests completed"
-    - name: Run reentrancy protection tests
-      run: |
-        cd contracts
-        forge test --match-test "test_.*reentrancy.*" -v || echo "Reentrancy tests running"
-        echo "✅ Reentrancy protection tests completed"

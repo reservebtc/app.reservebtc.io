@@ -1,22 +1,6 @@
 import '@testing-library/jest-dom'
 
-// Mock IntersectionObserver
-global.IntersectionObserver = class IntersectionObserver {
-  constructor() {}
-  disconnect() {}
-  observe() {}
-  unobserve() {}
-}
-
-// Mock ResizeObserver
-global.ResizeObserver = class ResizeObserver {
-  constructor() {}
-  disconnect() {}
-  observe() {}
-  unobserve() {}
-}
-
-// Mock matchMedia (only in browser environment)
+// Mock window.matchMedia only in jsdom environment
 if (typeof window !== 'undefined') {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
@@ -33,38 +17,47 @@ if (typeof window !== 'undefined') {
   })
 }
 
-// Mock localStorage (only in browser environment)
-if (typeof window !== 'undefined') {
-  const localStorageMock = {
-    getItem: jest.fn(),
-    setItem: jest.fn(),
-    removeItem: jest.fn(),
-    clear: jest.fn(),
-    length: 0,
-    key: jest.fn(),
-  }
-  global.localStorage = localStorageMock
-}
+// Mock ResizeObserver
+global.ResizeObserver = jest.fn().mockImplementation(() => ({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
+}))
 
-// Mock window.crypto (only in browser environment)
-if (typeof window !== 'undefined') {
-  Object.defineProperty(window, 'crypto', {
-    value: {
-      getRandomValues: jest.fn(() => new Uint32Array(10))
+// Mock next/router
+jest.mock('next/router', () => ({
+  useRouter() {
+    return {
+      route: '/',
+      pathname: '/',
+      query: {},
+      asPath: '/',
+      push: jest.fn(),
+      pop: jest.fn(),
+      reload: jest.fn(),
+      back: jest.fn(),
+      prefetch: jest.fn().mockResolvedValue(undefined),
+      beforePopState: jest.fn(),
+      events: {
+        on: jest.fn(),
+        off: jest.fn(),
+        emit: jest.fn(),
+      },
     }
-  })
-} else {
-  // For Node.js environment
-  global.crypto = {
-    getRandomValues: jest.fn(() => new Uint32Array(10))
-  }
-}
+  },
+}))
 
-// Suppress console warnings in tests
-const originalWarn = console.warn
-console.warn = (...args) => {
-  if (args[0]?.includes?.('Warning: ReactDOM.render is no longer supported')) {
-    return
-  }
-  originalWarn.call(console, ...args)
-}
+// Mock wagmi hooks
+jest.mock('wagmi', () => ({
+  useConnect: () => ({
+    connect: jest.fn(),
+    connectors: [],
+  }),
+  useAccount: () => ({
+    isConnected: false,
+    address: undefined,
+  }),
+  useDisconnect: () => ({
+    disconnect: jest.fn(),
+  }),
+}))

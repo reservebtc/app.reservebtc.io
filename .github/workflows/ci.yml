@@ -1,0 +1,204 @@
+name: 🚀 CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: 'Run the build with tmate debugging enabled'
+        required: false
+        default: false
+
+env:
+  NODE_ENV: test
+  CI: true
+  FORCE_COLOR: 3
+
+jobs:
+  # 📊 Code quality check
+  quality-check:
+    name: 🔍 Code Quality Check
+    runs-on: ubuntu-latest
+    outputs:
+      should_run_tests: ${{ steps.changes.outputs.should_run }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
+      
+      - name: 🔧 Install dependencies
+        run: npm ci --exact --frozen-lockfile
+      
+      - name: 🎯 TypeScript check
+        run: npm run type-check
+      
+      - name: 🧹 Lint check
+        run: npm run lint
+      
+      - name: 🔍 Check for changes
+        id: changes
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          fi
+
+  # 🧪 Testing suite
+  test-suite:
+    name: 🧪 Test Suite
+    runs-on: ubuntu-latest
+    needs: quality-check
+    if: needs.quality-check.outputs.should_run_tests == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        test-type: ['unit', 'components', 'api', 'accessibility']
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'npm'
+      
+      - name: 🔧 Install dependencies
+        run: npm ci --exact --frozen-lockfile
+      
+      - name: 🧪 Run ${{ matrix.test-type }} tests
+        run: |
+          case "${{ matrix.test-type }}" in
+            "unit")
+              npm run test:unit
+              ;;
+            "components")
+              npm run test:components
+              ;;
+            "api")
+              npm run test:api
+              ;;
+            "accessibility")
+              npm run test:accessibility
+              ;;
+          esac
+        env:
+          NODE_ENV: test
+      
+      - name: 📊 Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.test-type }}
+          path: |
+            coverage/
+            test-results/
+          retention-days: 7
+
+  # 🔒 Security and audit
+  security-audit:
+    name: 🔒 Security Audit
+    runs-on: ubuntu-latest
+    needs: quality-check
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'npm'
+      
+      - name: 🔧 Install dependencies
+        run: npm ci --exact --frozen-lockfile
+      
+      - name: 🔍 NPM Security Audit
+        run: npm audit --audit-level=moderate
+      
+      - name: 🛡️ Run security tests
+        run: npm run test:security
+
+  # 🏗️ Build and verification
+  build-check:
+    name: 🏗️ Build Check
+    runs-on: ubuntu-latest
+    needs: [quality-check, test-suite]
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'npm'
+      
+      - name: 🔧 Install dependencies
+        run: npm ci --exact --frozen-lockfile
+      
+      - name: 🏗️ Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
+      
+      - name: ✅ Verify build
+        run: |
+          ls -la .next/
+          echo "✅ Build completed successfully"
+      
+      - name: 📦 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-files
+          path: |
+            .next/
+            out/
+          retention-days: 7
+
+  # 🎯 Final status check
+  final-status:
+    name: 🎯 Final Status
+    runs-on: ubuntu-latest
+    needs: [quality-check, test-suite, security-audit, build-check]
+    if: always()
+    steps:
+      - name: ✅ All checks passed
+        if: |
+          needs.quality-check.result == 'success' &&
+          needs.test-suite.result == 'success' &&
+          needs.security-audit.result == 'success' &&
+          needs.build-check.result == 'success'
+        run: |
+          echo "🎉 All checks passed! Ready for deployment."
+          echo "✅ Quality: ${{ needs.quality-check.result }}"
+          echo "✅ Tests: ${{ needs.test-suite.result }}"
+          echo "✅ Security: ${{ needs.security-audit.result }}"
+          echo "✅ Build: ${{ needs.build-check.result }}"
+      
+      - name: ❌ Some checks failed
+        if: |
+          needs.quality-check.result != 'success' ||
+          needs.test-suite.result != 'success' ||
+          needs.security-audit.result != 'success' ||
+          needs.build-check.result != 'success'
+        run: |
+          echo "❌ Some checks failed. Please review:"
+          echo "Quality: ${{ needs.quality-check.result }}"
+          echo "Tests: ${{ needs.test-suite.result }}"
+          echo "Security: ${{ needs.security-audit.result }}"
+          echo "Build: ${{ needs.build-check.result }}"
+          exit 1

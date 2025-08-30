@@ -4,7 +4,12 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # manual trigger option
+    inputs:
+      test_description:
+        description: 'Test run description'
+        required: false
+        default: 'Manual smart contract tests run'
 
 env:
   FOUNDRY_DISABLE_NIGHTLY_WARNING: true

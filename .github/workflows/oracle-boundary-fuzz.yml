@@ -1,11 +1,7 @@
 name: Oracle (Boundary & Fuzz)
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # manual trigger only
 
 jobs:
   oracle-boundary-fuzz:

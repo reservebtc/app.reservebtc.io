@@ -52,7 +52,7 @@ describe('/api/verify-wallet (Simplified)', () => {
 
   test('request validation logic', () => {
     // Mock validation function
-    const validateRequest = (data: typeof mockValidationData) => {
+    const validateRequest = (data: any) => {
       if (!data.bitcoinAddress || !data.ethereumAddress) {
         return { isValid: false, error: 'Missing addresses' }
       }

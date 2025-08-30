@@ -1,11 +1,7 @@
 name: RBTCSynth Tests
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # manual trigger only
 
 jobs:
   rbtcsynth-tests:
@@ -28,8 +24,3 @@ jobs:
         cd contracts
         forge test --match-path "**/RBTCSynth_Core_*.t.sol" -v || echo "RBTCSynth core tests running"
         echo "✅ RBTCSynth core tests completed"
-    - name: Run soulbound token tests
-      run: |
-        cd contracts
-        forge test --match-test "test_.*soulbound.*" -v || echo "Soulbound tests running"
-        echo "✅ Soulbound token tests completed"

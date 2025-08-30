@@ -1,12 +1,11 @@
 name: Bitcoin Provider Tests
 on:
-  push:
-    branches: [ main, develop ]
-    paths:
-      - 'backend/bitcoin-provider/**'
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # manual trigger only
+    inputs:
+      test_description:
+        description: 'Test run description'
+        required: false
+        default: 'Manual bitcoin provider tests run'
 
 # Integration tests require Bitcoin RPC server (regtest:18443) which is not available in GitHub Actions
 # Only unit tests are executed to verify core functionality

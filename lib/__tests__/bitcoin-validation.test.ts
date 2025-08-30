@@ -1,7 +1,7 @@
 import { 
   validateBitcoinAddress, 
   getBitcoinAddressTypeLabel,
-  type BitcoinValidationResult 
+  BitcoinValidationResult 
 } from '../bitcoin-validation'
 
 describe('Bitcoin Address Validation', () => {

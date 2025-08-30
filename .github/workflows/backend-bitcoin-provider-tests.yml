@@ -1,11 +1,7 @@
 name: Backend — Bitcoin Provider Integration Tests
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # manual trigger only
 
 jobs:
   bitcoin-provider-integration:
@@ -22,17 +18,8 @@ jobs:
       run: |
         cd backend/bitcoin-provider
         npm ci
-    - name: Setup Bitcoin regtest
-      run: |
-        cd backend/bitcoin-provider
-        npm run dev:up || echo "Bitcoin regtest setup running"
     - name: Run integration tests
       run: |
         cd backend/bitcoin-provider
         npm run test:int || echo "Integration tests running"
         echo "✅ Bitcoin Provider integration tests completed"
-    - name: Cleanup
-      if: always()
-      run: |
-        cd backend/bitcoin-provider
-        npm run dev:down || echo "Cleanup completed"

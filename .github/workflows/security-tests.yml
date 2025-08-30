@@ -9,7 +9,16 @@ on:
       - 'middleware.ts'
   pull_request:
     branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # manual trigger option
+    inputs:
+      test_description:
+        description: 'Test run description'
+        required: false
+        default: 'Manual security tests run'
+
+env:
+  NODE_ENV: test
+  CI: true
 
 jobs:
   xss-prevention:

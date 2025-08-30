@@ -44,7 +44,7 @@ describe('Validation Schemas', () => {
     test('should validate valid Ethereum addresses', () => {
       const validAddresses = [
         '0x742d35cc6435c0532925a3b8c17890c5e4e6f4b0',
-        '0x8ba1f109551bd432803012645aac136c04123456', // исправлен невалидный hex символ H
+        '0x8ba1f109551bd432803012645aac136c04123456', // fixed invalid hex symbol H
         '0x0000000000000000000000000000000000000000'
       ]
 
@@ -254,11 +254,11 @@ describe('Validation Schemas', () => {
         ethereumAddress: '0x742d35cc6435c0532925a3b8c17890c5e4e6f4b0',
         message: 'test',
         signature: 'SGVsbG8gV29ybGQ=',
-        '__proto__': { isAdmin: true }
+        ['__proto__']: { isAdmin: true }
       }
 
       const result = walletVerificationSchema.safeParse(pollutionAttempt)
-      expect((result as any).isAdmin).toBeUndefined()
+      expect(result.isAdmin).toBeUndefined()
     })
 
     test('should handle extremely large inputs gracefully', () => {

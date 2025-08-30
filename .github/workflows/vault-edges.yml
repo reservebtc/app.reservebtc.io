@@ -1,11 +1,7 @@
 name: FeeVault (Edges Unit)
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # manual trigger only
 
 jobs:
   vault-edges:

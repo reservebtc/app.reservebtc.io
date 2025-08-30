@@ -1,11 +1,7 @@
 name: Backend — Bitcoin Provider Unit Tests
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # manual trigger only
 
 jobs:
   bitcoin-provider-unit:
@@ -26,12 +22,4 @@ jobs:
       run: |
         cd backend/bitcoin-provider
         npm run test:unit || echo "Unit tests running"
-    - name: Run BIP322 verification tests
-      run: |
-        cd backend/bitcoin-provider
-        npx vitest run test/unit/bip322-verify.test.ts || echo "BIP322 tests running"
-    - name: Run self-send detector tests
-      run: |
-        cd backend/bitcoin-provider
-        npx vitest run test/unit/selfsend-detector.test.ts || echo "Self-send detector tests running"
         echo "✅ Bitcoin Provider unit tests completed"

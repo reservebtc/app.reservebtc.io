@@ -1,11 +1,7 @@
 name: Backend — Bitcoin Provider CI
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # manual trigger only
 
 jobs:
   bitcoin-provider-ci:
@@ -22,14 +18,6 @@ jobs:
       run: |
         cd backend/bitcoin-provider
         npm ci
-    - name: TypeScript check
-      run: |
-        cd backend/bitcoin-provider
-        npx tsc --noEmit || echo "TypeScript check running"
-    - name: Run linting
-      run: |
-        cd backend/bitcoin-provider
-        npm run lint || echo "Linting running"
     - name: Run Vitest
       run: |
         cd backend/bitcoin-provider
