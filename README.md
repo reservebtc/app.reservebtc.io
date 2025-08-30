@@ -40,8 +40,8 @@
 [![API Tests](https://img.shields.io/badge/API%20Tests-6%20Tests%20PASS-brightgreen)](https://github.com/reservebtc/app.reservebtc.io/actions/workflows/frontend-test-suite.yml)  
 [![Security Audit](https://img.shields.io/badge/Security%20Audit-0%20Vulnerabilities-brightgreen)](https://github.com/reservebtc/app.reservebtc.io/actions/workflows/security-tests.yml)
 [![Accessibility](https://img.shields.io/badge/Accessibility-WCAG%20Ready-brightgreen)](https://github.com/reservebtc/app.reservebtc.io/actions/workflows/frontend-test-suite.yml)
-[![Web Interface](https://img.shields.io/badge/Web%20Interface-Production%20Ready-brightgreen)](./web-interface/)
-[![GitHub Workflows](https://img.shields.io/badge/GitHub%20Workflows-6%20Files%20Ready-brightgreen)](./docs/github-workflows/)
+[![Web Interface](https://img.shields.io/badge/Web%20Interface-Production%20Ready-brightgreen)](./app/)
+[![GitHub Workflows](https://img.shields.io/badge/GitHub%20Workflows-23%20Files%20Ready-brightgreen)](./docs/github-workflows.md)
 
 ## 🛡️ **Comprehensive Security Test Suite** ✅ **ALL TESTS PASSING**
 [![Comprehensive Security Tests](https://img.shields.io/badge/Comprehensive%20Security%20Tests-206%2F206%20PASSING-brightgreen)](./contracts/test/README_Comprehensive_Security_Tests.md)
