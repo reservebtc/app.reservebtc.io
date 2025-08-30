@@ -1,6 +1,6 @@
 # Comprehensive Security Test Suite Summary
 
-[![Comprehensive Security Tests](https://img.shields.io/badge/Comprehensive%20Security%20Tests-PASSING-brightgreen)](./README_Comprehensive_Security_Tests.md)
+[![Comprehensive Security Tests](https://img.shields.io/badge/Comprehensive%20Security%20Tests-PASSING-brightgreen)](./FeeVault_Comprehensive_Security.t.sol)
 
 ## Overview
 
