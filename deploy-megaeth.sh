@@ -48,11 +48,11 @@ echo "✅ Foundry found: $(forge --version)"
 
 echo ""
 echo "📦 Installing contract dependencies..."
-forge install --no-commit
+forge install
 
 echo ""
 echo "🧪 Running pre-deployment tests..."
-forge test --no-match-test "testFuzz" --no-match-test "invariant" -q
+forge test --no-match-test "testFuzz|invariant" -q
 
 if [ $? -ne 0 ]; then
     echo "❌ Tests failed. Aborting deployment."

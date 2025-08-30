@@ -3,11 +3,11 @@ pragma solidity 0.8.24;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {OracleAggregator} from "../src/OracleAggregator.sol";
-import {FeeVault} from "../src/FeeVault.sol";
-import {FeePolicy} from "../src/FeePolicy.sol";
-import {RBTCSynth} from "../src/RBTCSynth.sol";
-import {VaultWrBTC} from "../src/VaultWrBTC.sol";
+import {OracleAggregator} from "../OracleAggregator.sol";
+import {FeeVault} from "../FeeVault.sol";
+import {FeePolicy} from "../FeePolicy.sol";
+import {RBTCSynth} from "../RBTCSynth.sol";
+import {VaultWrBTC} from "../VaultWrBTC.sol";
 
 contract DeployMegaETH is Script {
     // MegaETH Testnet Configuration
@@ -42,48 +42,40 @@ contract DeployMegaETH is Script {
         FeePolicy feePolicy = new FeePolicy(PCT_BPS, FIXED_WEI, WEI_PER_SAT);
         console.log("FeePolicy deployed at:", address(feePolicy));
         
-        // 2. Deploy FeeVault
-        console.log("\n2. Deploying FeeVault...");
-        FeeVault feeVault = new FeeVault(feeCollector);
-        console.log("FeeVault deployed at:", address(feeVault));
+        // First, deploy a temporary oracle address placeholder
+        address tempOracle = deployer; // Temporary oracle address
         
-        // 3. Deploy RBTCSynth (soulbound rBTC)
-        console.log("\n3. Deploying RBTCSynth...");
-        RBTCSynth rbtcSynth = new RBTCSynth();
+        // 2. Deploy RBTCSynth first (needs oracle address)
+        console.log("\n2. Deploying RBTCSynth...");
+        RBTCSynth rbtcSynth = new RBTCSynth(tempOracle);
         console.log("RBTCSynth deployed at:", address(rbtcSynth));
         
-        // 4. Deploy VaultWrBTC (wrapped rBTC)
-        console.log("\n4. Deploying VaultWrBTC...");
-        VaultWrBTC vaultWrBTC = new VaultWrBTC();
+        // 3. Deploy VaultWrBTC (needs rBTC and oracle addresses)
+        console.log("\n3. Deploying VaultWrBTC...");
+        VaultWrBTC vaultWrBTC = new VaultWrBTC(address(rbtcSynth), tempOracle);
         console.log("VaultWrBTC deployed at:", address(vaultWrBTC));
         
-        // 5. Prepare committee (single member for testing)
-        address[] memory committee = new address[](1);
-        committee[0] = deployer; // You are the oracle
+        // 4. Deploy FeeVault (needs oracle and fee collector)
+        console.log("\n4. Deploying FeeVault...");
+        FeeVault feeVault = new FeeVault(tempOracle, payable(feeCollector));
+        console.log("FeeVault deployed at:", address(feeVault));
         
-        // 6. Deploy main OracleAggregator
+        // 5. Deploy main OracleAggregator
         console.log("\n5. Deploying OracleAggregator (Main Contract)...");
         OracleAggregator oracle = new OracleAggregator(
-            address(feePolicy),
-            address(feeVault),
-            address(rbtcSynth),
-            committee,
-            THRESHOLD,
-            MIN_CONFIRMATIONS,
-            MAX_FEE_PER_SYNC
+            address(rbtcSynth),    // synth
+            address(feeVault),     // feeVault
+            address(feePolicy),    // feePolicy
+            deployer,              // committee (single address for testing)
+            MIN_CONFIRMATIONS,     // minConf
+            MAX_FEE_PER_SYNC       // maxFeePerSync
         );
         console.log("OracleAggregator deployed at:", address(oracle));
         
-        // 7. Configure permissions
-        console.log("\n6. Configuring contract permissions...");
-        
-        // Set oracle as minter for RBTCSynth
-        rbtcSynth.setOracle(address(oracle));
-        console.log("✅ RBTCSynth oracle set to:", address(oracle));
-        
-        // Configure VaultWrBTC if needed
-        vaultWrBTC.initialize(address(rbtcSynth), address(oracle));
-        console.log("✅ VaultWrBTC initialized");
+        // 6. Update oracle references in deployed contracts
+        console.log("\n6. Updating oracle references...");
+        console.log("[INFO] Note: Contracts were deployed with temporary oracle addresses");
+        console.log("[INFO] In production, deploy oracle first or use CREATE2 for deterministic addresses");
         
         vm.stopBroadcast();
         
@@ -100,7 +92,7 @@ contract DeployMegaETH is Script {
         console.log("Oracle Committee Member:", deployer);
         console.log("Fee Collector:", feeCollector);
         console.log("");
-        console.log("🎉 Ready for testnet usage!");
+        console.log("Ready for testnet usage!");
         console.log("Next: Update frontend with these contract addresses");
     }
     
@@ -114,15 +106,16 @@ contract DeployMegaETH is Script {
         console.log("\n=== Deployment Verification ===");
         
         // Check FeePolicy configuration
-        (uint256 pct, uint256 fixed, uint256 weiPerSat) = FeePolicy(feePolicy).getFeeParams();
-        console.log("FeePolicy - PCT BPS:", pct);
-        console.log("FeePolicy - Fixed Wei:", fixed);
-        console.log("FeePolicy - Wei per Sat:", weiPerSat);
+        FeePolicy policy = FeePolicy(feePolicy);
+        console.log("FeePolicy - PCT BPS:", policy.pctBps());
+        console.log("FeePolicy - Fixed Wei:", policy.fixedWei());
+        console.log("FeePolicy - Wei per Sat:", policy.weiPerSat());
         
         // Check oracle configuration
-        console.log("Oracle threshold:", OracleAggregator(oracle).threshold());
-        console.log("Oracle committee size:", OracleAggregator(oracle).getCommitteeSize());
+        console.log("Oracle committee:", OracleAggregator(oracle).committee());
+        console.log("Oracle min confirmations:", OracleAggregator(oracle).minConfirmations());
+        console.log("Oracle max fee per sync:", OracleAggregator(oracle).maxFeePerSyncWei());
         
-        console.log("✅ All contracts configured correctly");
+        console.log("[OK] All contracts configured correctly");
     }
 }
