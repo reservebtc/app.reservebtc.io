@@ -14,23 +14,37 @@ on:
 env:
   NODE_ENV: test
   CI: true
+  NODE_OPTIONS: --max_old_space_size=4096 --unhandled-rejections=strict
+  FORCE_COLOR: 0
+  JEST_WORKERS: 2
 
 jobs:
   build-check:
     name: Build Check
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
     - uses: actions/checkout@v4
+    - name: Setup system
+      run: |
+        sudo sysctl fs.inotify.max_user_watches=524288
+        sudo sysctl fs.file-max=2097152
+        ulimit -n 65536
     - uses: actions/setup-node@v4
       with:
         node-version: '22.14.0'  # exact version like local
         cache: 'npm'
     - name: Install dependencies
-      run: npm ci --exact
+      run: npm ci --exact --no-audit --no-fund
     - name: Run tests
-      run: npm run test:all
+      run: |
+        export NODE_OPTIONS="--max_old_space_size=4096 --unhandled-rejections=strict"
+        export JEST_WORKERS=2
+        npm run test -- --maxWorkers=2 --forceExit --detectOpenHandles
+      timeout-minutes: 10
     - name: Run Next.js build
       run: npm run build
+      timeout-minutes: 5
     - name: Verify build output
       run: |
         ls -la .next/
@@ -39,16 +53,23 @@ jobs:
   web-interface-check:
     name: Web Interface Check  
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
     - uses: actions/checkout@v4
+    - name: Setup system
+      run: |
+        sudo sysctl fs.inotify.max_user_watches=524288
+        sudo sysctl fs.file-max=2097152
+        ulimit -n 65536
     - uses: actions/setup-node@v4
       with:
         node-version: '22.14.0'
         cache: 'npm'
     - name: Install dependencies
-      run: npm ci
+      run: npm ci --no-audit --no-fund
     - name: TypeScript check
       run: npm run type-check
+      timeout-minutes: 3
     - name: Check components exist
       run: |
         ls -la components/wallet/wallet-connect.tsx

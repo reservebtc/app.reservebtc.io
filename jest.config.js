@@ -8,6 +8,11 @@ const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testEnvironment: 'jest-environment-jsdom',
   
+  // CI optimizations
+  maxWorkers: process.env.CI ? 2 : '50%',
+  workerIdleMemoryLimit: process.env.CI ? '512MB' : undefined,
+  verbose: !process.env.CI,
+  
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
