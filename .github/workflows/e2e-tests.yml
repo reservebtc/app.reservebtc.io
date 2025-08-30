@@ -1,7 +1,17 @@
 name: E2E Tests — ReserveBTC v0.1 
 
 on:
-  workflow_dispatch:  # manual trigger only 
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/e2e-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/e2e-tests.yml'
+  workflow_dispatch:  # manual trigger 
 
 env:
   FOUNDRY_PROFILE: ci

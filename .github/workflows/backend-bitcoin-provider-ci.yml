@@ -1,7 +1,17 @@
 name: Backend — Bitcoin Provider CI 
 
 on:
-  workflow_dispatch:  # manual trigger only 
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/bitcoin-provider/**'
+      - '.github/workflows/backend-bitcoin-provider-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/bitcoin-provider/**'
+      - '.github/workflows/backend-bitcoin-provider-ci.yml'
+  workflow_dispatch:  # manual trigger 
 
 env:
   NODE_ENV: test

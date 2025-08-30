@@ -1,7 +1,17 @@
 name: Oracle Gas Report 
 
 on:
-  workflow_dispatch:  # manual trigger only 
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/oracle-gas.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/oracle-gas.yml'
+  workflow_dispatch:  # manual trigger 
 
 jobs:
   oracle-gas-report:

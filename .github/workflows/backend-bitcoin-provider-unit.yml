@@ -1,7 +1,17 @@
 name: Backend — Bitcoin Provider Unit Tests 
 
 on:
-  workflow_dispatch:  # manual trigger only 
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/bitcoin-provider/**'
+      - '.github/workflows/backend-bitcoin-provider-unit.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/bitcoin-provider/**'
+      - '.github/workflows/backend-bitcoin-provider-unit.yml'
+  workflow_dispatch:  # manual trigger 
 
 env:
   NODE_ENV: test

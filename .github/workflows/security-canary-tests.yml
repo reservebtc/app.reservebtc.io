@@ -1,7 +1,17 @@
 name: Security Canary — ReserveBTC v0.1 
 
 on:
-  workflow_dispatch:  # manual trigger only 
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/security-canary-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/security-canary-tests.yml'
+  workflow_dispatch:  # manual trigger 
 
 jobs:
   security-canary:

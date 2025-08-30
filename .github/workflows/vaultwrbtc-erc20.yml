@@ -1,7 +1,17 @@
 name: VaultWrBTC ERC20+Redeem+Slash+Reentrancy 
 
 on:
-  workflow_dispatch:  # manual trigger only 
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/vaultwrbtc-erc20.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/vaultwrbtc-erc20.yml'
+  workflow_dispatch:  # manual trigger 
 
 jobs:
   vaultwrbtc-erc20:

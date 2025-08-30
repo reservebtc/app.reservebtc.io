@@ -1,5 +1,8 @@
 import '@testing-library/jest-dom'
 
+// Set global test timeout - prevent hanging tests
+jest.setTimeout(process.env.CI ? 30000 : 15000)
+
 // Mock window.matchMedia only in jsdom environment
 if (typeof window !== 'undefined') {
   Object.defineProperty(window, 'matchMedia', {

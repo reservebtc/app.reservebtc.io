@@ -1,7 +1,17 @@
 name: Backend — Bitcoin Provider Integration Tests 
 
 on:
-  workflow_dispatch:  # manual trigger only 
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/bitcoin-provider/**'
+      - '.github/workflows/backend-bitcoin-provider-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/bitcoin-provider/**'
+      - '.github/workflows/backend-bitcoin-provider-tests.yml'
+  workflow_dispatch:  # manual trigger 
     inputs:
       skip_tests:
         description: 'Skip tests to save GitHub Actions minutes'

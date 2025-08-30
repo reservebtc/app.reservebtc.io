@@ -1,7 +1,17 @@
 name: Oracle (Boundary & Fuzz) 
 
 on:
-  workflow_dispatch:  # manual trigger only 
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/oracle-boundary-fuzz.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/oracle-boundary-fuzz.yml'
+  workflow_dispatch:  # manual trigger 
 
 jobs:
   oracle-boundary-fuzz:

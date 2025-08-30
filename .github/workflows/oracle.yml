@@ -1,7 +1,17 @@
 name: Oracle Tests 
 
 on:
-  workflow_dispatch:  # manual trigger only 
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/oracle.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/oracle.yml'
+  workflow_dispatch:  # manual trigger 
 
 jobs:
   oracle-tests:

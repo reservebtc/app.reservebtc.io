@@ -1,7 +1,17 @@
 name: Oracle (Negative Delta) 
 
 on:
-  workflow_dispatch:  # manual trigger only 
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/oracle-negative-delta.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/oracle-negative-delta.yml'
+  workflow_dispatch:  # manual trigger 
 
 jobs:
   oracle-negative-delta:
