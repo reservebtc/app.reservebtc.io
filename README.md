@@ -52,227 +52,235 @@
 [![BIP-322 Verification Module](https://img.shields.io/badge/BIP--322%20Module-IMPLEMENTED-success)](./backend/bitcoin-provider/src/bip322-verify.ts)
 [![Self-Send Detector Module](https://img.shields.io/badge/SelfSend%20Module-IMPLEMENTED-success)](./backend/bitcoin-provider/src/selfsend-detector.ts)
 
-**Security Status: 🟢 PRODUCTION READY** — 206 tests, 30 test suites, ALL PASSING ✨
+## 🚀 Live Deployment - MegaETH Testnet
 
-## 🚀 Overview
+**Website**: [app.reservebtc.io](https://app.reservebtc.io)
 
-ReserveBTC is a decentralized protocol for Bitcoin-backed synthetic assets with cryptographic proof-of-reserves. The protocol enables users to deposit Bitcoin into verified wallets and receive rBTC tokens backed 1:1 by real Bitcoin, with transparent on-chain verification of reserves.
+### 📋 Deployed Smart Contracts (MegaETH Testnet - Chain ID: 6342)
+
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| **OracleAggregator** | `0x717D12a23Bb46743b15019a52184DF7F250B061a` | Core Oracle system |
+| **RBTCSynth** | `0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB` | rBTC-SYNTH (soulbound) |
+| **VaultWrBTC** | `0xa10FC332f12d102Dddf431F8136E4E89279EFF87` | wrBTC (transferable) |
+| **FeeVault** | `0x298b3746B593df83E5bB2122cb80d17bdE2AB5fF` | Fee management |
+| **FeePolicy** | `0x2F0f48EA3dD5bCff86A178F20f9c4AB2860CD468` | Fee calculation |
+
+**Network Configuration:**
+- **RPC URL**: `https://carrot.megaeth.com/rpc`
+- **Chain ID**: `6342`
+- **Block Explorer**: [MegaETH Explorer](https://megaexplorer.xyz)
+
+## 🌟 Overview
+
+ReserveBTC is the first Bitcoin-backed synthetic asset protocol built on MegaETH, enabling users to mint synthetic Bitcoin tokens (rBTC-SYNTH and wrBTC) that are fully backed by real Bitcoin holdings verified through BIP-322 signatures.
 
 ### Key Features
 
-- **🔐 Cryptographic Proof-of-Reserves**: Real-time verification of Bitcoin backing through BIP-322 signatures
-- **⚡ Cross-Chain Compatibility**: Deploy rBTC on any EVM-compatible network while maintaining Bitcoin reserves
-- **🏛️ Committee-Based Oracle**: Multi-signature committee ensures decentralized reserve updates
-- **💰 Fair Fee Structure**: Transparent fee model with user-controlled prepaid ETH vault
-- **🛡️ Battle-Tested Security**: 206 comprehensive security tests covering all attack vectors
-- **🌐 Full-Stack Implementation**: Complete dApp with smart contracts and Bitcoin infrastructure
+- **🔐 Oracle-Based Architecture**: Automated balance synchronization between Bitcoin and MegaETH
+- **₿ BIP-322 Verification**: Cryptographic proof of Bitcoin ownership without custody transfer
+- **⚡ MegaETH Integration**: Ultra-fast transactions with institutional-grade performance
+- **🔒 Self-Custody**: Users maintain full control of their Bitcoin while participating in DeFi
+- **🛡️ Security First**: Comprehensive testing with E2E, security canary, and resilience tests
+- **📱 Complete dApp**: Modern responsive web interface with comprehensive documentation
 
 ## 📋 Protocol Architecture
+
+### Oracle-Based System
+
+ReserveBTC uses an innovative Oracle-based architecture where token minting/burning is **automatically managed** by monitoring Bitcoin address balances, not through direct user calls.
+
+**How It Works:**
+1. **User Verification**: Users prove Bitcoin ownership via BIP-322 signatures through web interface
+2. **Oracle Monitoring**: Automated Oracle server monitors Bitcoin addresses via BlockCypher API  
+3. **Balance Sync**: Oracle detects Bitcoin balance changes and calls `sync()` function
+4. **Automatic Tokens**: rBTC-SYNTH tokens automatically minted/burned based on Bitcoin balance
 
 ### Smart Contract Components
 
 | Contract | Purpose | Key Functions |
 |----------|---------|---------------|
-| **OracleAggregator** | Core protocol logic | `sync()`, `registerAndPrepay()` |
-| **FeeVault** | User fee management | `depositETH()`, `spendFrom()`, `withdrawUnused()` |
-| **FeePolicy** | Fee calculation | `quoteFees(deltaSats)` |
-| **RBTCSynth** | rBTC token contract | `mint()`, `burn()` (soulbound) |
-| **VaultWrBTC** | Wrapped rBTC | Standard ERC-20 with redeem/slash |
+| **OracleAggregator** | Core Oracle system | `sync()`, `lastSats()`, `committee()` |
+| **RBTCSynth** | Soulbound rBTC tokens | `oracleMint()`, `oracleBurn()` (Oracle-only) |
+| **VaultWrBTC** | Transferable wrBTC | Standard ERC-20 backed by rBTC-SYNTH |
+| **FeeVault** | Fee management | `depositETH()`, `balances()` |
+| **FeePolicy** | Fee calculation | `quoteFees()`, `pctBps()`, `weiPerSat()` |
 
-### Backend Infrastructure
+### Oracle Server (`oracle-server.js`)
 
-| Module | Purpose | Implementation |
-|--------|---------|----------------|
-| **BIP-322 Verifier** | Bitcoin signature verification | Complete BIP-322 implementation |
-| **Self-Send Detector** | Address ownership proof | Bitcoin transaction monitoring |
-| **Bitcoin Provider** | Blockchain integration | RPC client with mempool watching |
-| **Oracle Infrastructure** | Reserve synchronization | Committee consensus mechanism |
+Real production Oracle server with CLI interface:
+- **Bitcoin Monitoring**: Tracks Bitcoin testnet addresses via BlockCypher API
+- **Balance Sync**: Automatically calls `sync()` when Bitcoin balances change  
+- **Fee Management**: Handles fee deduction from user's prepaid ETH
+- **CLI Commands**: `add`, `remove`, `list`, `sync`, `status` commands
+- **Resilience**: Handles +1/-1 noise deltas and large spike validation
 
-## 🔄 Protocol Flow
+## 🔄 How It Works
 
-### 1. User Registration & Prepayment
-```
-User → registerAndPrepay() → FeeVault.depositETH()
-├─ Checksum: keccak256(ETH_addr || BTC_witness || VRF_salt || "reservebtc:v1")
-├─ BIP-322 signature verification
-└─ ETH deposited for future fees
-```
+### Step 1: User Verification (Web Interface)
+1. **Connect EVM Wallet**: MetaMask/WalletConnect on MegaETH network
+2. **Enter Bitcoin Address**: User provides their Bitcoin address  
+3. **BIP-322 Signature**: Sign message proving Bitcoin address ownership
+4. **Oracle Registration**: Oracle server adds address to monitoring list
 
-### 2. Reserve Synchronization
+### Step 2: Automatic Oracle Monitoring
+```bash
+# Oracle server monitors Bitcoin addresses
+oracle> add 0x... bc1q...  # Add user to tracking
+oracle> sync               # Manual sync trigger
 ```
-Oracle Committee → sync(user, newBalance, proof) → OracleAggregator
-├─ Committee signature verification (t-of-n consensus)
-├─ Fee calculation: (deltaSats * weiPerSat * basisPoints) / 10000
-├─ Fee deduction: FeeVault.spendFrom(user, feeAmount)
-├─ rBTC minting/burning: RBTCSynth.mint/burn(user, amount)
-└─ Events: BalanceSync, FeesCharged
-```
+- **Real-time Monitoring**: Oracle checks Bitcoin balances every 5 minutes
+- **Delta Detection**: Compares current vs last synced balance
+- **Auto-Sync**: Calls `sync()` function when balance changes
+- **Fee Deduction**: Takes fees from user's prepaid ETH balance
 
-### 3. Address Ownership Verification (T2.2)
-```
-Bitcoin Address Verification:
-├─ BIP-322 Message: "ReserveBTC binding: ETH=${addr} BTC=${addr} ..."
-├─ Self-Send Detection: Monitor for 600-2000 sat transactions
-├─ Confirmation Tracking: Wait for required block confirmations
-└─ Ownership Proof: Complete verification pipeline
-```
+### Step 3: Token Management
+- **Positive Delta**: Bitcoin balance increased → mint rBTC-SYNTH tokens
+- **Negative Delta**: Bitcoin balance decreased → burn rBTC-SYNTH tokens  
+- **1:1 Backing**: All tokens backed by real Bitcoin holdings
+- **Soulbound**: rBTC-SYNTH cannot be transferred (tied to user)
 
 ## 🧪 Testing & Security
 
-### Comprehensive Test Suite (206 Tests)
-- **E2E Scenarios**: Full user journey testing with realistic data
-- **Security Tests**: Reentrancy, access control, overflow protection
-- **Boundary Testing**: Edge cases, maximum values, gas limits
-- **Fuzz Testing**: Random input validation across all functions
-- **Integration Tests**: Cross-contract interaction verification
-- **Bitcoin Provider Tests**: 45 tests for BIP-322 and self-send modules
+### Test Suite Status: 7/7 (100%) ✅
+- **Unit Tests**: 39 tests - Bitcoin validation, schemas, utilities
+- **Component Tests**: 6 tests - React components, UI interactions  
+- **API Tests**: 6 tests - Verification endpoints, minting routes
+- **Security Tests**: All passing - Access control, edge cases
+- **Accessibility Tests**: WCAG compliance verified
 
-### Security Audit Results
-- **Overall Rating**: HIGH (Production Ready)
-- **Critical Issues**: 0
-- **Medium Issues**: 0
-- **Low Issues**: 0
-- **Gas Optimization**: Optimized for production deployment
+### Smart Contract Security
+- **E2E Integration Tests**: Complete user flow validation
+- **Security Canary Tests**: Self-destruct resilience, zero-address protection
+- **Oracle Resilience Tests**: Stress testing with noise deltas and spikes  
+- **Multi-user Invariants**: Balance consistency across multiple users
+- **Fee Cap Enforcement**: Protection against excessive fees
 
 ## 📁 Repository Structure
 
 ```
 app.reservebtc.io/
-├── contracts/                      # Smart contracts (Solidity 0.8.24)
-│   ├── src/
-│   │   ├── OracleAggregator.sol    # Main protocol contract
-│   │   ├── FeeVault.sol            # User fee management
-│   │   ├── FeePolicy.sol           # Fee calculation logic
-│   │   ├── RBTCSynth.sol           # rBTC token (soulbound)
-│   │   └── VaultWrBTC.sol          # Wrapped rBTC (ERC-20)
-│   ├── interfaces/                 # Contract interfaces
-│   ├── test/                       # 206 comprehensive tests
-│   ├── script/                     # Deployment scripts
-│   ├── abis/                       # Generated ABIs for frontend
-│   └── addresses/                  # Network deployment addresses
-├── backend/
-│   └── bitcoin-provider/           # Bitcoin infrastructure
-│       ├── src/
-│       │   ├── bip322-verify.ts    # BIP-322 verification
-│       │   ├── selfsend-detector.ts # Address ownership
-│       │   ├── bitcoin-rpc.ts      # Bitcoin node client
-│       │   └── bitcoin-indexer.ts  # Mempool monitoring
-│       └── test/                   # 45 backend tests
-├── app/                            # Next.js 14 Web Application
-│   ├── api/                        # API routes for BIP-322 verification
-│   ├── verify/                     # Bitcoin wallet verification page
-│   ├── mint/                       # rBTC token minting interface
-│   ├── stats/                      # Protocol statistics dashboard
-│   ├── faq/                        # Frequently asked questions
-│   ├── docs/                       # Documentation hub
-│   ├── success/                    # Transaction success page
-│   ├── error/                      # Error handling page
-│   └── audit/                      # Security audit reports
-├── components/                     # React UI Components
-│   ├── ui/                         # Theme toggle, buttons
-│   ├── wallet/                     # MetaMask/WalletConnect integration
-│   ├── verification/               # BIP-322 signature verification
-│   ├── mint/                       # rBTC minting flow
-│   └── widgets/                    # Statistics and analytics
-├── lib/                            # Frontend Utilities
-│   ├── chains/megaeth.ts           # MegaETH network configuration
-│   ├── wagmi.ts                    # Web3 wallet integration
-│   ├── bitcoin-validation.ts       # Bitcoin address validation
-│   └── validation-schemas.ts       # Zod form validation schemas
-├── styles/                         # Tailwind CSS styles with dark/light themes
-├── docs/                           # Protocol documentation
-└── .github/workflows/              # CI/CD with 30+ test suites
+├── 📋 Smart Contracts
+│   ├── contracts/src/              # Solidity contracts
+│   │   ├── OracleAggregator.sol    # Core Oracle system  
+│   │   ├── RBTCSynth.sol           # Soulbound rBTC tokens
+│   │   ├── VaultWrBTC.sol          # Transferable wrBTC tokens
+│   │   ├── FeeVault.sol            # ETH fee management
+│   │   └── FeePolicy.sol           # Fee calculation
+│   └── contracts/test/             # E2E, security, resilience tests
+├── 🔮 Oracle Infrastructure  
+│   ├── oracle-server.js            # Production Oracle with CLI
+│   └── oracle-users.json           # Tracked users database
+├── 🌐 Web Application (Next.js 14)
+│   ├── app/                        # App router pages
+│   │   ├── docs/                   # Complete documentation
+│   │   ├── oracle/                 # Oracle management UI
+│   │   ├── api/                    # API endpoints 
+│   │   └── page.tsx                # Landing page
+│   ├── components/                 # React components
+│   │   ├── mint/                   # Token minting UI
+│   │   ├── verification/           # BIP-322 verification
+│   │   ├── wallet/                 # Wallet connection
+│   │   └── widgets/                # Statistics widgets
+│   └── lib/                        # Utilities & configurations
+├── 🧪 Testing & CI/CD
+│   ├── __tests__/                  # Frontend tests
+│   ├── .github/workflows/          # GitHub Actions CI/CD  
+│   ├── CI-CD-README.md            # Testing documentation
+│   └── scripts/test-ci-locally.sh  # Local CI reproduction
+└── 📚 Documentation
+    ├── README.md                   # This file
+    └── docs/                       # Additional documentation
 ```
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Node.js 18+
-- Foundry (forge, cast, anvil)
-- Bitcoin Core node (for backend)
-- Docker (optional, for local Bitcoin testnet)
+### For Users
+1. **Visit Website**: [app.reservebtc.io](https://app.reservebtc.io)
+2. **Connect Wallet**: Use MetaMask with MegaETH Testnet  
+3. **Verify Bitcoin Address**: Prove ownership via BIP-322 signature
+4. **Get Tokens**: Oracle automatically mints rBTC-SYNTH based on Bitcoin balance
 
-### Installation & Testing
+### For Developers
+
+#### Prerequisites
+- Node.js 22+ (locked in `.nvmrc`)
+- npm 10+ (locked in `package.json`)
+
+#### Installation & Testing
 ```bash
-# Clone repository
+# Clone and install
 git clone https://github.com/reservebtc/app.reservebtc.io.git
 cd app.reservebtc.io
-
-# Install dependencies
 npm install
 
-# Smart Contract Testing
-cd contracts
-forge install
-forge test -vv                    # Run all 206 tests
-forge snapshot                    # Gas usage report
-slither . --filter-paths lib      # Static analysis
+# Run all tests (7/7 passing)
+npm run test:all
 
-# Backend Testing  
-cd ../backend/bitcoin-provider
-npm install
-npm run test:int                  # Run 45 backend tests
+# Individual test suites  
+npm run test:unit          # 39 unit tests
+npm run test:components    # 6 component tests
+npm run test:api           # 6 API tests
+npm run test:accessibility # WCAG tests
+npm run test:security      # Security audit
 
-# Frontend Development
-cd ../../
-npm run dev                       # Start Next.js development server
-npm run build                     # Production build
-npm run lint                      # ESLint checking
-npm run type-check                # TypeScript type checking
-
-# Frontend Testing
-npm run test:all                  # Run complete test suite (160 tests)
-npm run test:unit                 # Run unit tests only
-npm run test:components           # Run component tests only  
-npm run test:api                  # Run API tests only
-npm run test:accessibility        # Run accessibility tests
-npm run test:security            # Run security audit + tests
-npm run test:coverage            # Generate coverage report
+# Development server
+npm run dev                # http://localhost:3000
+npm run build              # Production build
+npm run type-check         # TypeScript validation
 ```
 
-### Contract Deployment
+#### Oracle Server
 ```bash
-# Set environment variables
-export RPC_URL="https://your-rpc-endpoint"
-export PRIVATE_KEY="0x..."
-export COMMITTEE_ADDRESS="0x..."
-export FEE_COLLECTOR="0x..."
+# Start Oracle monitoring
+node oracle-server.js
 
-# Deploy contracts
-cd contracts
-forge script script/DeployAll.s.sol \
-    --rpc-url $RPC_URL \
-    --private-key $PRIVATE_KEY \
-    --broadcast \
-    --verify
+# CLI commands
+oracle> add 0x123... bc1q...  # Add user to tracking
+oracle> list                  # Show tracked users  
+oracle> sync                  # Manual balance sync
+oracle> status                # Oracle system status
 ```
 
-## 🔧 Configuration
+## ⚙️ Configuration
 
-### Fee Policy Parameters
-```solidity
-uint256 pctBps = 10;              // 0.1% fee on positive deltas
-uint256 fixedWei = 0;             // No fixed fee
-uint256 weiPerSat = 1_000_000_000; // 1 gwei per satoshi
+### MegaETH Network Setup
+```javascript
+// Add MegaETH Testnet to MetaMask
+const megaethTestnet = {
+  chainId: '0x18C6',  // 6342 in hex
+  chainName: 'MegaETH Testnet',
+  nativeCurrency: {
+    name: 'Ether',
+    symbol: 'ETH', 
+    decimals: 18
+  },
+  rpcUrls: ['https://carrot.megaeth.com/rpc'],
+  blockExplorerUrls: ['https://megaexplorer.xyz']
+}
 ```
 
-### Oracle Committee Setup
-```solidity
-uint256 threshold = 3;            // 3-of-5 multisig
-address[] committee = [...];      // Committee member addresses
-uint256 minConfirmations = 6;     // Bitcoin confirmation requirement
-uint256 maxFeePerSync = 0.01 ether; // Maximum fee cap
+### Fee Configuration (Current Testnet)
+```javascript
+// From contracts.ts
+export const FEE_CONFIG = {
+  PCT_BPS: 10,                    // 0.1% fee in basis points
+  FIXED_WEI: 0,                   // No fixed fee
+  WEI_PER_SAT: 1_000_000_000,     // 1 gwei per satoshi
+  MIN_CONFIRMATIONS: 1,           // Testnet: faster confirmations
+  MAX_FEE_PER_SYNC: '0.01'        // 0.01 ETH max fee cap
+}
 ```
 
-### Bitcoin Provider Configuration
-```typescript
-const config = {
-  rpcUrl: "http://localhost:8332",
-  network: "regtest",
-  minConfirmations: 6,
-  selfSendAmountRange: [600, 2000], // Satoshis
-  mempoolPollingInterval: 30000,    // 30 seconds
-};
+### Oracle Configuration
+```javascript
+// From oracle-server.js
+const CONFIG = {
+  ORACLE_PRIVATE_KEY: process.env.ORACLE_PRIVATE_KEY,
+  MEGAETH_RPC: 'https://carrot.megaeth.com/rpc',
+  SYNC_INTERVAL: 300,             // 5 minutes
+  CONTRACT_ADDRESS: '0x717D12a23Bb46743b15019a52184DF7F250B061a'
+}
 ```
 
 ## 📖 API Documentation
@@ -347,15 +355,15 @@ POST /api/track-selfsend
 1. Fork the repository
 2. Create feature branch: `git checkout -b feature/amazing-feature`
 3. Write comprehensive tests for new functionality
-4. Ensure all 206 tests pass: `forge test -vv`
-5. Run static analysis: `slither . --filter-paths lib`
+4. Ensure all 7 test suites pass: `npm run test:all`
+5. Run TypeScript validation: `npm run type-check`
 6. Submit pull request with detailed description
 
 ### Testing Standards
 - All new smart contract features require comprehensive security tests
-- Backend modules need unit tests with >90% coverage
+- Frontend modules need unit tests with component testing
 - E2E tests for complete user journeys
-- Gas optimization benchmarks for contract changes
+- Oracle resilience testing for balance sync operations
 - Integration tests for cross-component interactions
 
 ## 📄 License
@@ -364,11 +372,11 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🔗 Links
 
-- **Website**: [reservebtc.io](https://reservebtc.io)
-- **Documentation**: [docs/PROTOCOL_V1.md](docs/PROTOCOL_V1.md)
-- **Security Audit**: [contracts/SECURITY_AUDIT_REPORT.md](contracts/SECURITY_AUDIT_REPORT.md)
-- **API Documentation**: [backend/bitcoin-provider/README_API.md](backend/bitcoin-provider/README_API.md)
-- **Smart Contract ABIs**: [contracts/abis/](contracts/abis/)
+- **Website**: [app.reservebtc.io](https://app.reservebtc.io)
+- **Documentation**: [Complete Documentation](https://app.reservebtc.io/docs)
+- **Testing Guide**: [CI-CD-README.md](CI-CD-README.md)
+- **Smart Contract Tests**: [E2E Test Summary](./contracts/test/README_Test_Summary_E2E.md)
+- **Security Tests**: [Security Canary Report](./contracts/test/README_Test_Summary_SecurityCanary.md)
 
 ---
 
