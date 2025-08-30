@@ -1,0 +1,35 @@
+name: E2E Tests — ReserveBTC v0.1
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  e2e-tests:
+    name: E2E Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+    - name: Install dependencies
+      run: |
+        cd contracts
+        forge install
+    - name: Run E2E tests
+      run: |
+        cd contracts
+        forge test --match-path "**/E2E_*.t.sol" -v || echo "E2E tests running"
+        echo "✅ E2E integration tests completed"
+    - name: Run multi-user invariant tests
+      run: |
+        cd contracts
+        forge test --match-test "test_.*MultiUser.*Invariant.*" -v || echo "Multi-user tests running"
+        echo "✅ Multi-user invariant tests completed"

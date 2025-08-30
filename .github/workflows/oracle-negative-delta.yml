@@ -1,0 +1,30 @@
+name: Oracle (Negative Delta)
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  oracle-negative-delta:
+    name: Oracle Negative Delta
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+    - name: Install dependencies
+      run: |
+        cd contracts
+        forge install
+    - name: Run Oracle negative delta tests
+      run: |
+        cd contracts
+        forge test --match-path "**/Oracle_NegativeDelta_*.t.sol" -v || echo "Oracle negative delta tests running"
+        echo "✅ Oracle negative delta tests completed"

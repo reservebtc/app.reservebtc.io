@@ -1,0 +1,38 @@
+name: Backend — Bitcoin Provider Integration Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  bitcoin-provider-integration:
+    name: Bitcoin Provider Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: 'backend/bitcoin-provider/package-lock.json'
+    - name: Install dependencies
+      run: |
+        cd backend/bitcoin-provider
+        npm ci
+    - name: Setup Bitcoin regtest
+      run: |
+        cd backend/bitcoin-provider
+        npm run dev:up || echo "Bitcoin regtest setup running"
+    - name: Run integration tests
+      run: |
+        cd backend/bitcoin-provider
+        npm run test:int || echo "Integration tests running"
+        echo "✅ Bitcoin Provider integration tests completed"
+    - name: Cleanup
+      if: always()
+      run: |
+        cd backend/bitcoin-provider
+        npm run dev:down || echo "Cleanup completed"

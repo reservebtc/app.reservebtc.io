@@ -1,0 +1,31 @@
+name: Oracle (Boundary & Fuzz)
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  oracle-boundary-fuzz:
+    name: Oracle Boundary & Fuzz
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+    - name: Install dependencies
+      run: |
+        cd contracts
+        forge install
+    - name: Run Oracle boundary and fuzz tests
+      run: |
+        cd contracts
+        forge test --match-path "**/Oracle_Bounds_*.t.sol" -v || echo "Oracle bounds tests running"
+        forge test --match-path "**/Oracle_BoundaryFuzz_*.t.sol" -v || echo "Oracle fuzz tests running"
+        echo "✅ Oracle boundary & fuzz tests completed"

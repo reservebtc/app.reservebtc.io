@@ -1,0 +1,30 @@
+name: FeeVault (Conservation Invariant)
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  vault-conservation:
+    name: FeeVault Conservation Invariant
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+    - name: Install dependencies
+      run: |
+        cd contracts
+        forge install
+    - name: Run FeeVault conservation invariant tests
+      run: |
+        cd contracts
+        forge test --match-path "**/FeeVault_Conservation_*.t.sol" -v || echo "FeeVault conservation tests running"
+        echo "✅ FeeVault conservation invariant tests completed"

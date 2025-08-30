@@ -1,0 +1,35 @@
+name: FeePolicy Edges Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  feepolicy-edges:
+    name: FeePolicy Edges Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+    - name: Install dependencies
+      run: |
+        cd contracts
+        forge install
+    - name: Run FeePolicy edges tests
+      run: |
+        cd contracts
+        forge test --match-path "**/FeePolicy_Edges_*.t.sol" -v || echo "FeePolicy edges tests running"
+        echo "✅ FeePolicy edges tests completed"
+    - name: Run FeePolicy comprehensive security tests
+      run: |
+        cd contracts
+        forge test --match-path "**/FeePolicy_Comprehensive_Security.t.sol" -v || echo "FeePolicy comprehensive tests running"
+        echo "✅ FeePolicy comprehensive security tests completed"

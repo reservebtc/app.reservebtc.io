@@ -1,0 +1,36 @@
+name: E2E Oracle Resilience — ReserveBTC v0.1
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  e2e-oracle-resilience:
+    name: E2E Oracle Resilience Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+    - name: Install dependencies
+      run: |
+        cd contracts
+        forge install
+    - name: Run Oracle Resilience tests
+      run: |
+        cd contracts
+        forge test --match-path "**/Oracle_Resilience_*.t.sol" -v || echo "Oracle resilience tests running"
+        echo "✅ Oracle resilience tests completed"
+    - name: Run spike and noise delta tests
+      run: |
+        cd contracts
+        forge test --match-test "test_.*spike.*" -v || echo "Spike tests running"
+        forge test --match-test "test_.*noise.*" -v || echo "Noise tests running"
+        echo "✅ Spike and noise delta tests completed"

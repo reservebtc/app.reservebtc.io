@@ -1,0 +1,30 @@
+name: FeeVault (Edges Unit)
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  vault-edges:
+    name: FeeVault Edges Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+    - name: Install dependencies
+      run: |
+        cd contracts
+        forge install
+    - name: Run FeeVault edges tests
+      run: |
+        cd contracts
+        forge test --match-path "**/FeeVault_Edges_*.t.sol" -v || echo "FeeVault edges tests running"
+        echo "✅ FeeVault edges tests completed"

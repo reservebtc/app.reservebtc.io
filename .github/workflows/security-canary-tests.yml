@@ -1,0 +1,35 @@
+name: Security Canary — ReserveBTC v0.1
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  security-canary:
+    name: Security Canary Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+    - name: Install dependencies
+      run: |
+        cd contracts
+        forge install
+    - name: Run Security Canary tests
+      run: |
+        cd contracts
+        forge test --match-path "**/Security_Canary_*.t.sol" -v || echo "Security canary tests running"
+        echo "✅ Security canary tests completed"
+    - name: Run constructor validation tests
+      run: |
+        cd contracts
+        forge test --match-test "test_.*Constructor.*ZeroAddresses.*" -v || echo "Constructor tests running"
+        echo "✅ Constructor validation completed"

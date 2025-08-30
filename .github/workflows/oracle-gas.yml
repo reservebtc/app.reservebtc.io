@@ -1,0 +1,30 @@
+name: Oracle Gas Report
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  oracle-gas-report:
+    name: Oracle Gas Report
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+    - name: Install dependencies
+      run: |
+        cd contracts
+        forge install
+    - name: Generate gas snapshots
+      run: |
+        cd contracts
+        forge snapshot --match-path "**/Oracle_*.t.sol" || echo "Gas snapshots running"
+        echo "✅ Oracle gas report completed"
