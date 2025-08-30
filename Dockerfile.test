@@ -6,6 +6,13 @@ LABEL maintainer="ReserveBTC Team"
 LABEL description="Identical testing environment for ReserveBTC"
 LABEL version="1.0.0"
 
+# Install build dependencies for native modules
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    && ln -sf python3 /usr/bin/python
+
 # Install exact npm version
 RUN npm install -g npm@10.9.2
 
@@ -16,8 +23,8 @@ WORKDIR /app
 COPY .nvmrc .npmrc package*.json ./
 COPY jest.config.js jest.setup.js .swcrc ./
 
-# Install dependencies with exact versions
-RUN npm ci --exact --frozen-lockfile
+# Install dependencies with exact versions (skip optional deps that need native compilation)
+RUN npm ci --exact --frozen-lockfile --no-optional
 
 # Copy source code
 COPY . .

@@ -1,7 +1,7 @@
-name: Backend — Bitcoin Provider Integration Tests
+name: Backend — Bitcoin Provider Integration Tests 
 
 on:
-  workflow_dispatch:  # manual trigger only
+  workflow_dispatch:  # manual trigger only 
     inputs:
       skip_tests:
         description: 'Skip tests to save GitHub Actions minutes'

@@ -1,7 +1,7 @@
-name: Backend — Bitcoin Provider CI
+name: Backend — Bitcoin Provider CI 
 
 on:
-  workflow_dispatch:  # manual trigger only
+  workflow_dispatch:  # manual trigger only 
 
 env:
   NODE_ENV: test

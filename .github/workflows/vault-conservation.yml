@@ -1,7 +1,7 @@
-name: FeeVault (Conservation Invariant)
+name: FeeVault (Conservation Invariant) 
 
 on:
-  workflow_dispatch:  # manual trigger only
+  workflow_dispatch:  # manual trigger only 
 
 jobs:
   vault-conservation:

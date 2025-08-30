@@ -1,7 +1,7 @@
-name: VaultWrBTC ERC20+Redeem+Slash+Reentrancy
+name: VaultWrBTC ERC20+Redeem+Slash+Reentrancy 
 
 on:
-  workflow_dispatch:  # manual trigger only
+  workflow_dispatch:  # manual trigger only 
 
 jobs:
   vaultwrbtc-erc20:

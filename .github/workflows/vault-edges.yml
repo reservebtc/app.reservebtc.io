@@ -1,7 +1,7 @@
-name: FeeVault (Edges Unit)
+name: FeeVault (Edges Unit) 
 
 on:
-  workflow_dispatch:  # manual trigger only
+  workflow_dispatch:  # manual trigger only 
 
 jobs:
   vault-edges:

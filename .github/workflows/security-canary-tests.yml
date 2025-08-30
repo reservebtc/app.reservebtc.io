@@ -1,7 +1,7 @@
-name: Security Canary — ReserveBTC v0.1
+name: Security Canary — ReserveBTC v0.1 
 
 on:
-  workflow_dispatch:  # manual trigger only
+  workflow_dispatch:  # manual trigger only 
 
 jobs:
   security-canary:

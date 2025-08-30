@@ -1,7 +1,7 @@
-name: E2E Tests — ReserveBTC v0.1
+name: E2E Tests — ReserveBTC v0.1 
 
 on:
-  workflow_dispatch:  # manual trigger only
+  workflow_dispatch:  # manual trigger only 
 
 env:
   FOUNDRY_PROFILE: ci
