@@ -70,7 +70,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncRespo
       functionName: 'committee',
     });
 
-    if (committeeAddress.toLowerCase() !== account.address.toLowerCase()) {
+    if ((committeeAddress as string).toLowerCase() !== account.address.toLowerCase()) {
       return NextResponse.json({
         success: false,
         error: 'Unauthorized: not oracle committee member'
@@ -159,8 +159,8 @@ export async function GET(): Promise<NextResponse> {
       success: true,
       data: {
         committee,
-        minConfirmations: minConfirmations.toString(),
-        maxFeePerSync: maxFeePerSync.toString(),
+        minConfirmations: (minConfirmations as bigint).toString(),
+        maxFeePerSync: (maxFeePerSync as bigint).toString(),
         chainId: megaeth.id,
         contractAddress: CONTRACTS.ORACLE_AGGREGATOR,
       }

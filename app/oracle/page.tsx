@@ -4,11 +4,75 @@ import { useState } from 'react';
 import { useAccount, useBalance } from 'wagmi';
 import { useOracleSync, useUserBTCBalance, useOracleStatus } from '@/app/hooks/useOracleSync';
 import { CONTRACTS } from '@/app/lib/contracts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+// UI Components - simplified implementation
+const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <div className={`bg-card text-card-foreground shadow-sm rounded-lg border ${className}`}>{children}</div>
+);
+
+const CardHeader = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <div className={`flex flex-col space-y-1.5 p-6 ${className}`}>{children}</div>
+);
+
+const CardTitle = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <h3 className={`text-2xl font-semibold leading-none tracking-tight ${className}`}>{children}</h3>
+);
+
+const CardDescription = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <p className={`text-sm text-muted-foreground ${className}`}>{children}</p>
+);
+
+const CardContent = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <div className={`p-6 pt-0 ${className}`}>{children}</div>
+);
+
+const Button = ({ children, onClick, disabled = false, className = '', size = 'default', variant = 'default' }: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  className?: string;
+  size?: 'default' | 'sm' | 'lg';
+  variant?: 'default' | 'ghost';
+}) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 ${className}`}
+  >
+    {children}
+  </button>
+);
+
+const Input = ({ value, onChange, placeholder, type = 'text', id, className = '', step }: {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  type?: string;
+  id?: string;
+  className?: string;
+  step?: string;
+}) => (
+  <input
+    id={id}
+    type={type}
+    step={step}
+    value={value}
+    onChange={onChange}
+    placeholder={placeholder}
+    className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+  />
+);
+
+const Label = ({ children, htmlFor, className = '' }: { children: React.ReactNode; htmlFor?: string; className?: string }) => (
+  <label htmlFor={htmlFor} className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${className}`}>
+    {children}
+  </label>
+);
+
+const Badge = ({ children, variant = 'default', className = '' }: { children: React.ReactNode; variant?: 'default' | 'destructive'; className?: string }) => (
+  <div className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${variant === 'destructive' ? 'border-destructive/50 text-destructive' : 'border-transparent bg-primary text-primary-foreground'} ${className}`}>
+    {children}
+  </div>
+);
 import { AlertCircle, Check, RefreshCw, Zap } from 'lucide-react';
 import { formatEther, parseUnits } from 'viem';
 

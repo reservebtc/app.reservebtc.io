@@ -28,7 +28,7 @@ export function WalletConnect() {
 
   if (isConnected && address) {
     // Check if on wrong network for test environment
-    const isWrongNetwork = chain && chain.id !== 70532 // MegaETH Testnet ID
+    const isWrongNetwork = chain && chain.id !== 6342 // MegaETH Testnet ID
     
     return (
       <div>

@@ -55,7 +55,7 @@ export function useOracleSync() {
       setSyncResult({ 
         isLoading: false, 
         isSuccess: true, 
-        hash 
+        hash: hash as `0x${string}` | undefined
       });
 
       return hash;
