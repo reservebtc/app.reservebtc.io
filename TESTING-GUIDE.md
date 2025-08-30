@@ -46,78 +46,142 @@ If network is missing, add manually:
 
 ## ⚡ **STEP 3: Launch Oracle Server**
 
-### 3.1 Open new terminal:
+### 3.1 Configure Oracle Environment:
+**Option A - Using .env file (Recommended):**
+```bash
+# Create .env file in project root
+echo "ORACLE_PRIVATE_KEY=0xYOUR_PRIVATE_KEY_HERE" > .env
+```
+
+**Option B - Export environment variable:**
+```bash
+export ORACLE_PRIVATE_KEY=0xYOUR_PRIVATE_KEY_HERE
+```
+
+⚠️ **Important:** Private key must include `0x` prefix!
+
+### 3.2 Install Oracle dependencies:
+```bash
+npm install viem
+```
+
+### 3.3 Launch Oracle server:
 ```bash
 node oracle-server.js
 ```
 
-### 3.2 Expected result:
+### 3.4 Expected result:
 ```
 🔮 ReserveBTC Oracle Server Starting...
 Oracle Address: 0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b
+Contract Address: 0x717D12a23Bb46743b15019a52184DF7F250B061a
+Sync Interval: 300 seconds
 ✅ Oracle authorization verified
 🎯 Oracle server is ready!
 oracle> 
 ```
 
-### 3.3 Add yourself to monitoring:
+### 3.5 Add yourself to monitoring:
 ```bash
 oracle> add 0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b tb1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
 ```
-*(Replace addresses with your own)*
+*(Replace addresses with your own - ETH address and BTC testnet address)*
+
+### 3.6 Verify setup:
+```bash
+oracle> list     # Should show your added address
+oracle> status   # Shows Oracle configuration
+```
 
 ---
 
 ## 🪙 **STEP 4: Get Test Tokens**
 
-### 4.1 Get ETH for MegaETH:
-- Need ETH on MegaETH for gas fees
+### 4.1 Get ETH for MegaETH Testnet:
+**Required for gas fees and Oracle transactions**
 - Request test ETH from MegaETH developers
+- Join MegaETH Discord/Telegram for faucet access
+- You need ~0.1 ETH for testing (covers multiple transactions)
+- Verify balance in MetaMask after receiving
 
 ### 4.2 Get BTC Testnet:
-BTC testnet faucet sites:
+**For testing BTC balance synchronization**
+
+**Bitcoin Testnet Faucets:**
 - https://coinfaucet.eu/en/btc-testnet/
 - https://testnet-faucet.mempool.co/
-- Send to your testnet address
+- https://bitcoinfaucet.uo1.net/
+
+**Steps:**
+1. Generate or use existing Bitcoin testnet address
+2. Request testnet BTC from faucet (usually ~0.001-0.01 BTC)
+3. Wait for confirmation (10-30 minutes)
+4. Verify balance on Bitcoin testnet explorer
 
 ---
 
 ## 🔄 **STEP 5: Test Synchronization**
 
-### 5.1 In Oracle panel (`http://localhost:3000/oracle`):
-1. Enter your **BTC balance** (e.g., 0.001)
-2. Enter **Block Height** (any number, e.g., 870000)
-3. Click **"Sync BTC Balance"**
+### 5.1 Manual Sync via Oracle Panel:
+**Open Oracle dashboard:** `http://localhost:3000/oracle`
 
-### 5.2 In Oracle terminal:
+**Manual Balance Sync:**
+1. Connect MetaMask wallet (should show your address)
+2. Enter your actual **BTC balance** from testnet wallet (e.g., 0.001)
+3. Enter current **Block Height** (check Bitcoin testnet explorer or use ~870000)
+4. Click **"Sync BTC Balance"**
+5. Confirm transaction in MetaMask when prompted
+
+### 5.2 Automatic Sync via Oracle Server:
+**Oracle server automatically syncs every 5 minutes for monitored addresses**
+
+Terminal commands:
 ```bash
-oracle> sync
-oracle> list
-oracle> status
+oracle> sync        # Force immediate sync of all users
+oracle> list        # Show all monitored users and their status
+oracle> status      # Display Oracle configuration and status
+oracle> help        # Show all available commands
 ```
 
-### 5.3 Check results:
-- Oracle page should update balance
-- Terminal should show sync logs
-- Transaction should appear on https://megaexplorer.xyz
+### 5.3 Monitor Results:
+**Check multiple places for confirmation:**
+- ✅ Oracle web panel shows updated "Last Synced BTC Balance"
+- ✅ Terminal displays sync transaction logs and gas usage
+- ✅ Transaction appears on https://megaexplorer.xyz
+- ✅ MetaMask shows transaction in activity history
+- ✅ rBTC-SYNTH tokens appear in wallet (may need to add token contract)
 
 ---
 
-## 📊 **STEP 6: Check Tokens**
+## 📊 **STEP 6: Verify Token Balances**
 
-### 6.1 Check rBTC-SYNTH balance:
-In Oracle panel check "Last Synced BTC Balance"
+### 6.1 Check Synchronized Balance:
+**In Oracle dashboard panel:**
+- View "Last Synced BTC Balance" section
+- Should match your actual BTC testnet balance
+- Check timestamp of last synchronization
 
-### 6.2 Add tokens to MetaMask:
-**rBTC-SYNTH (Soulbound):**
-- Address: `0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB`
-- Symbol: rBTC-SYNTH
-- Decimals: 8
+### 6.2 Add ReserveBTC Tokens to MetaMask:
+**You must manually add these tokens to see them in your wallet**
 
-**wrBTC (ERC-20):**
-- Address: `0xa10FC332f12d102Dddf431F8136E4E89279EFF87`  
-- Symbol: wrBTC
-- Decimals: 8
+**rBTC-SYNTH (Soulbound Token):**
+- **Contract Address:** `0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB`
+- **Token Symbol:** rBTC-SYNTH
+- **Decimals:** 8
+- **Type:** Non-transferable (soulbound)
+
+**wrBTC (Tradeable ERC-20):**
+- **Contract Address:** `0xa10FC332f12d102Dddf431F8136E4E89279EFF87`
+- **Token Symbol:** wrBTC  
+- **Decimals:** 8
+- **Type:** Standard ERC-20 (transferable)
+
+**How to add tokens in MetaMask:**
+1. Click "Import tokens" in MetaMask
+2. Paste contract address
+3. Symbol and decimals should auto-fill
+4. Click "Add Custom Token"
+5. Confirm the import
 
 ---
 
@@ -160,22 +224,45 @@ Oracle panel shows all contract addresses at the bottom
 
 ## 🚨 **Common Issues and Solutions**
 
-### "Oracle not authorized"
+### "Oracle not authorized" 
 - Check that `ORACLE_PRIVATE_KEY` matches contract address
+- Ensure private key has `0x` prefix in environment variable
 - Restart oracle server
 
+### "ORACLE_PRIVATE_KEY environment variable is required"
+- Create `.env` file in project root with: `ORACLE_PRIVATE_KEY=0xYOUR_PRIVATE_KEY`
+- Or export environment variable: `export ORACLE_PRIVATE_KEY=0xYOUR_PRIVATE_KEY`
+- Private key must include `0x` prefix
+
 ### "Insufficient funds for gas"
-- Get more ETH on MegaETH testnet
-- Check connection to correct network
+- Get more ETH on MegaETH testnet from developers
+- Check connection to correct network (Chain ID: 6342)
+- Verify RPC URL: `https://carrot.megaeth.com/rpc`
 
-### "Transaction failed"
-- Check all contract addresses
-- Make sure BTC address is correct for testnet
+### "Transaction failed" / "Contract execution failed"
+- Verify all contract addresses are correct
+- Make sure BTC address is correct for testnet (starts with `tb1` or `2`)
+- Check that user has sufficient ETH balance for gas fees
+- Ensure Oracle is properly authorized as committee member
 
-### Balances not updating
-- Wait for transaction confirmation
-- Refresh browser page
-- Check that Oracle server is running
+### "Balance sync failing" / "Network errors"
+- Check MegaETH RPC connectivity
+- Verify Bitcoin API access (using BlockCypher)
+- Restart oracle server if persistent failures
+- Check firewall/network restrictions
+
+### Balances not updating in MetaMask
+- Wait for transaction confirmation (1-2 minutes)
+- Refresh browser page and reconnect wallet
+- Check that Oracle server is running continuously
+- Verify token contracts are added to MetaMask with correct addresses
+- Check transaction status on https://megaexplorer.xyz
+
+### Oracle server crashes or stops
+- Check system resources and memory usage
+- Review oracle logs for specific error messages
+- Ensure stable internet connection for API calls
+- Restart with: `node oracle-server.js`
 
 ---
 
