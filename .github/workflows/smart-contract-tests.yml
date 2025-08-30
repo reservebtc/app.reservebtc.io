@@ -1,4 +1,4 @@
-name: Smart Contract Test Suite
+name: Smart Contract Test Suite 
 on:
   push:
     branches: [ main, develop ]

@@ -47,7 +47,7 @@ jest.mock('next/router', () => ({
   },
 }))
 
-// Mock wagmi hooks
+// Mock wagmi hooks with proper defaults
 jest.mock('wagmi', () => ({
   useConnect: () => ({
     connect: jest.fn(),
@@ -56,8 +56,25 @@ jest.mock('wagmi', () => ({
   useAccount: () => ({
     isConnected: false,
     address: undefined,
+    chain: undefined,
   }),
   useDisconnect: () => ({
     disconnect: jest.fn(),
   }),
+  useSwitchChain: () => ({
+    switchChain: jest.fn(),
+  }),
 }))
+
+// Mock lucide-react icons
+jest.mock('lucide-react', () => ({
+  Wallet: ({ className, ...props }) => <div className={className} data-testid="wallet-icon" {...props} />,
+  ChevronDown: ({ className, ...props }) => <div className={className} data-testid="chevron-down-icon" {...props} />,
+  Sun: ({ className, ...props }) => <div className={className} data-testid="sun-icon" {...props} />,
+  Moon: ({ className, ...props }) => <div className={className} data-testid="moon-icon" {...props} />,
+}))
+
+// Add global test helper for network warnings
+global.testHelpers = {
+  shouldShowNetworkWarning: (chainId) => chainId && chainId !== 70532
+}

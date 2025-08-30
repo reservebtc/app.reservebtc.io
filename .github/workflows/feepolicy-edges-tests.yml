@@ -1,7 +1,7 @@
-name: FeePolicy Edges Tests
+name: FeePolicy Edges Tests 
 
 on:
-  workflow_dispatch:  # manual trigger only
+  workflow_dispatch:  # manual trigger only 
 
 jobs:
   feepolicy-edges:

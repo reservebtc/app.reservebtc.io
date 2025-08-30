@@ -15,6 +15,8 @@ const customJestConfig = {
   
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    // Mock wallet-connect component for tests
+    '^../wallet-connect$': '<rootDir>/components/wallet/__mocks__/wallet-connect',
   },
   
   testPathIgnorePatterns: [

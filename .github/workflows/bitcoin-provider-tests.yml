@@ -1,6 +1,6 @@
-name: Bitcoin Provider Tests
+name: Bitcoin Provider Tests 
 on:
-  workflow_dispatch:  # manual trigger only
+  workflow_dispatch:  # manual trigger only 
     inputs:
       test_description:
         description: 'Test run description'
