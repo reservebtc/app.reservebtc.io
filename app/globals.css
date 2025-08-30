@@ -54,8 +54,16 @@
   * {
     @apply border-border;
   }
+  
+  html {
+    @apply bg-background;
+    overscroll-behavior: none;
+  }
+  
   body {
     @apply bg-background text-foreground;
+    overscroll-behavior: none;
+    -webkit-overscroll-behavior: none;
   }
 }
 

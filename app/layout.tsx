@@ -36,9 +36,10 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
         <link rel="shortcut icon" href="/favicon.svg" />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#0066ff" />
+        <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
       </head>
-      <body className={`${inter.className} transition-colors duration-300 ease-in-out`}>
+      <body className={`${inter.className} transition-colors duration-300 ease-in-out bg-background text-foreground overscroll-none`}>
         <Providers>
           <div className="min-h-screen bg-background">
             {/* Header */}
