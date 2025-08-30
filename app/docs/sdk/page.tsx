@@ -107,7 +107,7 @@ export default function SDKPage() {
             <div>
               <h3 className="font-medium mb-3">Planned API (Preview)</h3>
               <div className="bg-muted/30 rounded-lg p-4">
-                <div className="text-xs text-orange-600 mb-2 font-medium">// Planned SDK API - Not yet available</div>
+                <div className="text-xs text-orange-600 mb-2 font-medium">Planned SDK API - Not yet available</div>
                 <pre className="text-sm text-muted-foreground overflow-x-auto">
 {`import { ReserveBTC } from '@reservebtc/sdk';
 
