@@ -134,6 +134,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncRespo
         blockHeight,
         BigInt(syncTimestamp),
       ],
+      chain: megaeth,
     });
 
     // Wait for transaction confirmation
