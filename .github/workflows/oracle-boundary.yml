@@ -1,7 +1,7 @@
-name: Oracle (Boundary + Fuzz + Gas)
+name: Oracle (Boundary + Fuzz + Gas) 
 
 on:
-  workflow_dispatch:  # manual trigger only
+  workflow_dispatch:  # manual trigger only 
 
 jobs:
   oracle-boundary-fuzz-gas:

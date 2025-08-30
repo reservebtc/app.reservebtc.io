@@ -1,7 +1,7 @@
-name: Oracle Gas Report
+name: Oracle Gas Report 
 
 on:
-  workflow_dispatch:  # manual trigger only
+  workflow_dispatch:  # manual trigger only 
 
 jobs:
   oracle-gas-report:

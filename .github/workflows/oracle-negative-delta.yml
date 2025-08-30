@@ -1,7 +1,7 @@
-name: Oracle (Negative Delta)
+name: Oracle (Negative Delta) 
 
 on:
-  workflow_dispatch:  # manual trigger only
+  workflow_dispatch:  # manual trigger only 
 
 jobs:
   oracle-negative-delta:

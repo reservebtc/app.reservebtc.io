@@ -1,7 +1,7 @@
-name: RBTCSynth Tests
+name: RBTCSynth Tests 
 
 on:
-  workflow_dispatch:  # manual trigger only
+  workflow_dispatch:  # manual trigger only 
 
 jobs:
   rbtcsynth-tests:
