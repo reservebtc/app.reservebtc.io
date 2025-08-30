@@ -138,23 +138,23 @@ export default function HowItWorksPage() {
                 3
               </div>
               <div className="flex-1 space-y-4">
-                <h3 className="text-xl font-semibold">Oracle Balance Verification</h3>
+                <h3 className="text-xl font-semibold">Oracle Monitoring System</h3>
                 <p className="text-muted-foreground">
-                  The Oracle system queries Bitcoin blockchain APIs to verify the current balance 
-                  of the user's Bitcoin address and validates the BIP-322 signature.
+                  The Oracle server continuously monitors Bitcoin addresses via BlockCypher API 
+                  and automatically detects balance changes to trigger token synchronization.
                 </p>
                 <div className="bg-muted/50 rounded-lg p-4">
-                  <h4 className="font-semibold mb-2">Oracle System Features:</h4>
+                  <h4 className="font-semibold mb-2">Oracle Server Features (oracle-server.js):</h4>
                   <div className="grid md:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground">✓ Real-time balance queries</p>
-                      <p className="text-muted-foreground">✓ Multiple API source validation</p>
-                      <p className="text-muted-foreground">✓ Signature verification</p>
+                      <p className="text-muted-foreground">✓ BlockCypher API integration</p>
+                      <p className="text-muted-foreground">✓ 5-minute monitoring intervals</p>
+                      <p className="text-muted-foreground">✓ CLI management interface</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">✓ Automated synchronization</p>
-                      <p className="text-muted-foreground">✓ Fraud prevention mechanisms</p>
-                      <p className="text-muted-foreground">✓ Decentralized architecture</p>
+                      <p className="text-muted-foreground">✓ Automated sync() calls</p>
+                      <p className="text-muted-foreground">✓ Delta detection & validation</p>
+                      <p className="text-muted-foreground">✓ Fee management system</p>
                     </div>
                   </div>
                 </div>
@@ -169,10 +169,10 @@ export default function HowItWorksPage() {
                 4
               </div>
               <div className="flex-1 space-y-4">
-                <h3 className="text-xl font-semibold">Token Minting</h3>
+                <h3 className="text-xl font-semibold">Automatic Token Management</h3>
                 <p className="text-muted-foreground">
-                  Upon successful verification, smart contracts on MegaETH mint synthetic tokens 
-                  representing the user's Bitcoin holdings.
+                  The Oracle automatically calls the sync() function on smart contracts to mint/burn tokens 
+                  based on detected Bitcoin balance changes, without requiring user interaction.
                 </p>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">

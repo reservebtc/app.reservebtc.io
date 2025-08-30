@@ -99,12 +99,12 @@ export default function IntegrationPage() {
                 1
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold mb-2">Install SDK</h3>
+                <h3 className="font-semibold mb-2">Install Web3 Libraries</h3>
                 <p className="text-muted-foreground mb-3">
-                  Add ReserveBTC SDK to your project dependencies
+                  Add ethers.js or viem for smart contract interaction
                 </p>
                 <div className="bg-black rounded-lg p-3">
-                  <code className="text-green-400 text-sm">npm install @reservebtc/sdk</code>
+                  <code className="text-green-400 text-sm">npm install ethers viem wagmi</code>
                 </div>
               </div>
             </div>
@@ -114,18 +114,22 @@ export default function IntegrationPage() {
                 2
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold mb-2">Initialize SDK</h3>
+                <h3 className="font-semibold mb-2">Configure MegaETH Network</h3>
                 <p className="text-muted-foreground mb-3">
-                  Set up ReserveBTC instance with your provider
+                  Set up connection to MegaETH Testnet
                 </p>
                 <div className="bg-muted/30 rounded-lg p-3">
                   <pre className="text-sm text-muted-foreground overflow-x-auto">
-{`import { ReserveBTC } from '@reservebtc/sdk';
+{`import { ethers } from 'ethers';
 
-const reserveBTC = new ReserveBTC({
-  network: 'mainnet',
-  provider: window.ethereum,
-});`}
+const provider = new ethers.JsonRpcProvider(
+  'https://carrot.megaeth.com/rpc'
+);
+
+const megaETHTestnet = {
+  chainId: 6342,
+  name: 'MegaETH Testnet'
+};`}
                   </pre>
                 </div>
               </div>
@@ -144,14 +148,16 @@ const reserveBTC = new ReserveBTC({
                   <pre className="text-sm text-muted-foreground overflow-x-auto">
 {`const tokens = {
   'rBTC-SYNTH': {
-    address: '0x9E8A4F2B7C1d3e6f8b4A5c9D2e7F1b8c3A4d6E9F',
+    address: '0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB',
     decimals: 8,
-    symbol: 'rBTC-SYNTH'
+    symbol: 'rBTC-SYNTH',
+    soulbound: true
   },
   'wrBTC': {
-    address: '0x3B7d4C5e6F8a9B2c1D4e7F9a2B5c8D1e4F7a9C2d',
+    address: '0xa10FC332f12d102Dddf431F8136E4E89279EFF87',
     decimals: 8,
-    symbol: 'wrBTC'
+    symbol: 'wrBTC',
+    transferable: true
   }
 };`}
                   </pre>
@@ -164,21 +170,20 @@ const reserveBTC = new ReserveBTC({
                 4
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold mb-2">Implement Core Features</h3>
+                <h3 className="font-semibold mb-2">Monitor Oracle Events</h3>
                 <p className="text-muted-foreground mb-3">
-                  Add minting, burning, and balance checking functionality
+                  Listen to Oracle sync events for balance updates
                 </p>
                 <div className="bg-muted/30 rounded-lg p-3">
                   <pre className="text-sm text-muted-foreground overflow-x-auto">
-{`// Check balances
-const synthBalance = await reserveBTC.getSynthBalance();
-const wrappedBalance = await reserveBTC.getWrappedBalance();
+{`const oracleContract = new ethers.Contract(
+  '0x717D12a23Bb46743b15019a52184DF7F250B061a',
+  ['event Synced(address indexed, uint64, int64, uint256, uint32, uint64)'],
+  provider
+);
 
-// Mint tokens
-await reserveBTC.mintSynth({
-  btcAddress: userBtcAddress,
-  amount: mintAmount,
-  signature: bip322Signature
+oracleContract.on('Synced', (user, newBalance, delta) => {
+  console.log('Oracle sync:', { user, newBalance, delta });
 });`}
                   </pre>
                 </div>
@@ -343,57 +348,55 @@ function ReserveBTCDashboard() {
               <div className="bg-muted/30 rounded-lg p-4">
                 <pre className="text-sm text-muted-foreground overflow-x-auto">
 {`const express = require('express');
-const { ReserveBTC } = require('@reservebtc/sdk');
+const { ethers } = require('ethers');
 
 const app = express();
 app.use(express.json());
 
-// Initialize SDK with server-side provider
-const reserveBTC = new ReserveBTC({
-  network: 'mainnet',
-  privateKey: process.env.PRIVATE_KEY // For server-side transactions
-});
+// Connect to MegaETH Testnet
+const provider = new ethers.JsonRpcProvider('https://carrot.megaeth.com/rpc');
 
-// API endpoint to get protocol stats
-app.get('/api/stats', async (req, res) => {
+// Contract addresses
+const ORACLE_ADDRESS = '0x717D12a23Bb46743b15019a52184DF7F250B061a';
+const SYNTH_ADDRESS = '0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB';
+const WRBTC_ADDRESS = '0xa10FC332f12d102Dddf431F8136E4E89279EFF87';
+
+// API endpoint to get token balances
+app.get('/api/balance/:address', async (req, res) => {
   try {
-    const stats = {
-      totalSynthSupply: await reserveBTC.getTotalSynthSupply(),
-      totalWrappedSupply: await reserveBTC.getTotalWrappedSupply(),
-      totalUsers: await reserveBTC.getTotalUsers()
-    };
-    res.json(stats);
+    const { address } = req.params;
+    
+    const synthContract = new ethers.Contract(
+      SYNTH_ADDRESS,
+      ['function balanceOf(address) view returns (uint256)'],
+      provider
+    );
+    
+    const balance = await synthContract.balanceOf(address);
+    res.json({ balance: ethers.formatUnits(balance, 8) });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// API endpoint to verify Bitcoin signatures
-app.post('/api/verify-signature', async (req, res) => {
-  const { btcAddress, signature, message } = req.body;
-  
+// API endpoint to get Oracle sync events
+app.get('/api/syncs/:userAddress', async (req, res) => {
   try {
-    const isValid = await reserveBTC.verifyBitcoinSignature({
-      address: btcAddress,
-      signature,
-      message
-    });
-    res.json({ valid: isValid });
+    const { userAddress } = req.params;
+    
+    const oracleContract = new ethers.Contract(
+      ORACLE_ADDRESS,
+      ['event Synced(address indexed, uint64, int64, uint256, uint32, uint64)'],
+      provider
+    );
+    
+    const filter = oracleContract.filters.Synced(userAddress);
+    const events = await oracleContract.queryFilter(filter, -1000);
+    
+    res.json({ events: events.map(e => e.args) });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-});
-
-// Webhook endpoint for transaction monitoring
-app.post('/webhook/transactions', async (req, res) => {
-  const { transactionHash, eventType } = req.body;
-  
-  // Process the transaction event
-  console.log(\`Received \${eventType} event: \${transactionHash}\`);
-  
-  // Update database, send notifications, etc.
-  
-  res.json({ success: true });
 });
 
 app.listen(3000, () => {
@@ -404,38 +407,41 @@ app.listen(3000, () => {
             </div>
 
             <div>
-              <h3 className="font-semibold mb-3">Event Monitoring</h3>
+              <h3 className="font-semibold mb-3">Oracle Event Monitoring</h3>
               <div className="bg-muted/30 rounded-lg p-4">
                 <pre className="text-sm text-muted-foreground overflow-x-auto">
-{`// Set up event listeners for real-time monitoring
-reserveBTC.on('synthMinted', (event) => {
-  console.log('New synthetic tokens minted:', {
-    user: event.user,
-    amount: event.amount,
-    timestamp: event.timestamp
+{`// Set up Oracle event listeners for real-time monitoring
+const oracleContract = new ethers.Contract(
+  '0x717D12a23Bb46743b15019a52184DF7F250B061a',
+  ['event Synced(address indexed, uint64, int64, uint256, uint32, uint64)'],
+  provider
+);
+
+oracleContract.on('Synced', (user, newBalance, delta, feeWei, height, timestamp) => {
+  console.log('Oracle sync event:', {
+    user,
+    newBalance: newBalance.toString(),
+    delta: delta.toString(),
+    feeWei: feeWei.toString(),
+    height,
+    timestamp
   });
   
   // Update analytics, send notifications, etc.
-  updateAnalytics('mint', event);
-  notifyUser(event.user, 'mint_successful', event.amount);
+  updateAnalytics('oracle_sync', { user, newBalance, delta });
+  notifyUser(user, 'balance_synced', newBalance);
 });
 
-reserveBTC.on('synthBurned', (event) => {
-  console.log('Synthetic tokens burned:', event);
-  updateAnalytics('burn', event);
-});
-
-// Historical data analysis
-const getHistoricalMints = async (fromBlock, toBlock) => {
-  const events = await reserveBTC.getMintEvents({
-    fromBlock,
-    toBlock
-  });
+// Historical Oracle sync analysis
+const getHistoricalSyncs = async (fromBlock, toBlock) => {
+  const filter = oracleContract.filters.Synced();
+  const events = await oracleContract.queryFilter(filter, fromBlock, toBlock);
   
   return events.map(event => ({
-    timestamp: new Date(event.timestamp * 1000),
-    amount: event.amount,
-    user: event.user,
+    timestamp: new Date(Number(event.args[5]) * 1000),
+    user: event.args[0],
+    newBalance: event.args[1].toString(),
+    delta: event.args[2].toString(),
     txHash: event.transactionHash
   }));
 };`}
@@ -498,8 +504,8 @@ const getHistoricalMints = async (fromBlock, toBlock) => {
                 <h3 className="font-medium mb-2">Testnet Configuration</h3>
                 <div className="text-sm text-muted-foreground space-y-1">
                   <p>Network: MegaETH Testnet</p>
-                  <p>Chain ID: 123456</p>
-                  <p>RPC URL: https://testnet.megaeth.io</p>
+                  <p>Chain ID: 6342</p>
+                  <p>RPC URL: https://carrot.megaeth.com/rpc</p>
                 </div>
               </div>
               <div className="bg-card rounded-lg p-4">

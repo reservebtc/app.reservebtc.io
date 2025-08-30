@@ -251,28 +251,38 @@ export default function BIP322Page() {
         {/* Implementation in ReserveBTC */}
         <div className="bg-gradient-to-r from-primary/10 to-primary/5 border rounded-xl p-6">
           <h2 className="text-2xl font-semibold mb-4">BIP-322 in ReserveBTC</h2>
+          <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-4">
+            <div className="flex items-center space-x-2 mb-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              <h3 className="font-semibold text-yellow-800 dark:text-yellow-200">Current Implementation Status</h3>
+            </div>
+            <p className="text-sm text-yellow-700 dark:text-yellow-300">
+              BIP-322 signature verification is currently implemented as a mock for testnet purposes. 
+              Full cryptographic verification will be implemented before mainnet deployment.
+            </p>
+          </div>
           <div className="space-y-4">
             <p className="text-muted-foreground">
-              ReserveBTC uses BIP-322 signatures as cryptographic proof of Bitcoin address ownership, 
-              enabling users to mint synthetic tokens without transferring their Bitcoin to smart contracts.
+              ReserveBTC is designed to use BIP-322 signatures for Bitcoin address ownership verification, 
+              enabling users to prove ownership without transferring Bitcoin to smart contracts.
             </p>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="bg-card/50 rounded-lg p-4">
-                <h3 className="font-semibold mb-2">Message Format</h3>
+                <h3 className="font-semibold mb-2">Planned Message Format</h3>
                 <div className="bg-muted rounded text-xs p-2 font-mono">
-                  ReserveBTC Verification<br/>
-                  Address: [your-btc-address]<br/>
-                  EVM: [your-evm-address]<br/>
+                  ReserveBTC Verification Message<br/>
+                  Bitcoin Address: [your-btc-address]<br/>
+                  EVM Address: [your-evm-address]<br/>
                   Timestamp: [unix-timestamp]
                 </div>
               </div>
               <div className="bg-card/50 rounded-lg p-4">
-                <h3 className="font-semibold mb-2">Verification Process</h3>
+                <h3 className="font-semibold mb-2">Oracle-Based Process</h3>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>1. Generate verification message</li>
-                  <li>2. Sign with Bitcoin wallet</li>
-                  <li>3. Submit signature to Oracle</li>
-                  <li>4. Oracle verifies and updates tokens</li>
+                  <li>1. User proves Bitcoin address ownership</li>
+                  <li>2. Oracle adds address to monitoring list</li>
+                  <li>3. Oracle monitors Bitcoin balance changes</li>
+                  <li>4. Tokens auto-minted/burned on balance changes</li>
                 </ul>
               </div>
             </div>

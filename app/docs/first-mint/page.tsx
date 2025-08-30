@@ -20,10 +20,10 @@ export default function FirstMintPage() {
 
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold mb-4">Your First Mint Tutorial</h1>
+          <h1 className="text-3xl font-bold mb-4">Getting Your First Tokens Tutorial</h1>
           <p className="text-lg text-muted-foreground">
-            This tutorial will guide you through minting your first ReserveBTC synthetic tokens. 
-            By the end, you'll have tokens backed by your Bitcoin that you can use in MegaETH DeFi.
+            This tutorial explains how ReserveBTC's Oracle-based system works and how you can 
+            get synthetic tokens automatically minted based on your Bitcoin holdings.
           </p>
         </div>
 
@@ -149,99 +149,109 @@ export default function FirstMintPage() {
           </div>
         </div>
 
-        {/* Minting Process */}
+        {/* Oracle Process */}
         <div className="space-y-6">
-          <h2 className="text-2xl font-semibold">Step 2: Minting Process</h2>
+          <h2 className="text-2xl font-semibold">Step 2: Oracle-Based Token Management</h2>
+          <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
+            <div className="flex items-center space-x-2 mb-2">
+              <AlertCircle className="h-5 w-5 text-yellow-600" />
+              <span className="font-semibold text-yellow-800 dark:text-yellow-200">Important: Automated System</span>
+            </div>
+            <p className="text-sm text-yellow-700 dark:text-yellow-300">
+              ReserveBTC uses an Oracle-based system where tokens are automatically minted and burned 
+              based on your Bitcoin balance changes. You don't manually mint tokens.
+            </p>
+          </div>
 
-          {/* Access Mint Page */}
+          {/* Verification Step */}
           <div className="bg-card border rounded-xl p-6">
             <div className="flex items-start space-x-4">
               <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-lg font-bold">
                 1
               </div>
               <div className="flex-1 space-y-4">
-                <h3 className="text-lg font-semibold">Access the Minting Interface</h3>
+                <h3 className="text-lg font-semibold">Complete Address Verification</h3>
                 <p className="text-muted-foreground">
-                  Navigate to the minting section of the ReserveBTC application.
+                  Prove ownership of your Bitcoin address through the web interface.
                 </p>
                 <div className="bg-muted/50 rounded-lg p-4">
                   <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
                     <li>Go to <Link href="/" className="text-primary hover:underline">app.reservebtc.io</Link></li>
-                    <li>Ensure your wallet is connected</li>
-                    <li>Click on "Mint" in the navigation</li>
-                    <li>Verify your verified Bitcoin addresses are shown</li>
+                    <li>Connect your EVM wallet (MetaMask)</li>
+                    <li>Enter your Bitcoin address</li>
+                    <li>Complete BIP-322 signature verification</li>
                   </ol>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Select Token Type */}
+          {/* Oracle Registration */}
           <div className="bg-card border rounded-xl p-6">
             <div className="flex items-start space-x-4">
               <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-lg font-bold">
                 2
               </div>
               <div className="flex-1 space-y-4">
-                <h3 className="text-lg font-semibold">Select Token Type</h3>
+                <h3 className="text-lg font-semibold">Oracle Registration</h3>
                 <p className="text-muted-foreground">
-                  Choose between rBTC-SYNTH (soulbound) or wrBTC (transferable) based on your needs.
+                  After verification, Oracle server adds your address to monitoring list.
                 </p>
                 <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                   <p className="text-sm text-blue-700 dark:text-blue-300">
-                    💡 <strong>Tip:</strong> You can mint both types if you want. rBTC-SYNTH for personal use 
-                    and wrBTC for trading or advanced DeFi strategies.
+                    💡 <strong>Automated Process:</strong> The Oracle server (oracle-server.js) automatically 
+                    starts monitoring your Bitcoin address every 5 minutes.
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Review Balance */}
+          {/* Balance Monitoring */}
           <div className="bg-card border rounded-xl p-6">
             <div className="flex items-start space-x-4">
               <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-lg font-bold">
                 3
               </div>
               <div className="flex-1 space-y-4">
-                <h3 className="text-lg font-semibold">Review Your Bitcoin Balance</h3>
+                <h3 className="text-lg font-semibold">Automatic Balance Monitoring</h3>
                 <p className="text-muted-foreground">
-                  The interface will show your current Bitcoin balance for the verified address.
+                  Oracle monitors your Bitcoin address and detects balance changes.
                 </p>
                 <div className="bg-muted/50 rounded-lg p-4">
-                  <h4 className="font-semibold mb-2">What You'll See:</h4>
+                  <h4 className="font-semibold mb-2">What Oracle Tracks:</h4>
                   <ul className="space-y-1 text-sm text-muted-foreground">
-                    <li>• Current Bitcoin balance in BTC</li>
-                    <li>• Balance in satoshis (for precision)</li>
-                    <li>• Number of confirmations</li>
+                    <li>• Current Bitcoin balance via BlockCypher API</li>
+                    <li>• Balance changes (deltas) from last sync</li>
+                    <li>• Transaction confirmations</li>
                     <li>• Last sync timestamp</li>
-                    <li>• Maximum tokens you can mint</li>
+                    <li>• Fee calculations for sync operations</li>
                   </ul>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Execute Mint */}
+          {/* Automatic Token Management */}
           <div className="bg-card border rounded-xl p-6">
             <div className="flex items-start space-x-4">
               <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-lg font-bold">
                 4
               </div>
               <div className="flex-1 space-y-4">
-                <h3 className="text-lg font-semibold">Execute the Mint Transaction</h3>
+                <h3 className="text-lg font-semibold">Automatic Token Operations</h3>
                 <p className="text-muted-foreground">
-                  Click the mint button to create your synthetic tokens backed by your Bitcoin.
+                  When balance changes are detected, Oracle automatically calls sync() function.
                 </p>
                 <div className="bg-muted/50 rounded-lg p-4">
-                  <h4 className="font-semibold mb-2">Transaction Details:</h4>
+                  <h4 className="font-semibold mb-2">Automatic Operations:</h4>
                   <div className="grid md:grid-cols-2 gap-4 text-sm">
                     <div>
                       <ul className="space-y-1 text-muted-foreground">
-                        <li>• Gas fee: ~0.001 ETH</li>
-                        <li>• Confirmation time: &lt;1 second</li>
-                        <li>• No Bitcoin transfer required</li>
-                        <li>• Tokens minted to your EVM address</li>
+                        <li>• Positive delta: Mint rBTC-SYNTH tokens</li>
+                        <li>• Negative delta: Burn rBTC-SYNTH tokens</li>
+                        <li>• No user interaction required</li>
+                        <li>• Oracle pays gas fees</li>
                       </ul>
                     </div>
                     <div>

@@ -30,13 +30,13 @@ export default function IntroductionPage() {
         <div className="bg-card border rounded-xl p-6">
           <h2 className="text-xl font-semibold mb-4">What is ReserveBTC?</h2>
           <p className="text-muted-foreground mb-4">
-            ReserveBTC is a protocol that allows Bitcoin holders to mint synthetic assets (rBTC-SYNTH and wrBTC tokens) 
-            that are fully backed by real Bitcoin holdings. The protocol uses cryptographic proof through BIP-322 
-            signatures to verify Bitcoin ownership without requiring users to transfer their Bitcoin to smart contracts.
+            ReserveBTC is the first Bitcoin-backed synthetic asset protocol built on MegaETH that uses an innovative 
+            Oracle-based architecture. Users prove Bitcoin ownership through BIP-322 signatures, and an automated 
+            Oracle server monitors their Bitcoin addresses to mint/burn tokens automatically when balance changes occur.
           </p>
           <p className="text-muted-foreground">
-            This innovative approach maintains the security of Bitcoin self-custody while enabling DeFi functionality 
-            on the high-performance MegaETH network.
+            This approach maintains complete Bitcoin self-custody while enabling DeFi functionality through 
+            rBTC-SYNTH (soulbound) and wrBTC (transferable) tokens on the ultra-fast MegaETH network.
           </p>
         </div>
 
@@ -49,8 +49,8 @@ export default function IntroductionPage() {
               <h3 className="text-lg font-semibold">Bitcoin-Backed</h3>
             </div>
             <p className="text-muted-foreground">
-              Every token is 1:1 backed by real Bitcoin holdings, verified through cryptographic signatures 
-              without requiring custody transfer.
+              Every token is 1:1 backed by real Bitcoin holdings, automatically synchronized by Oracle 
+              monitoring without requiring custody transfer.
             </p>
           </div>
 
@@ -62,8 +62,8 @@ export default function IntroductionPage() {
               <h3 className="text-lg font-semibold">Self-Custody</h3>
             </div>
             <p className="text-muted-foreground">
-              Users maintain full control of their Bitcoin while participating in DeFi activities. 
-              No bridging or wrapping required.
+              Users maintain full control of their Bitcoin while the Oracle automatically manages 
+              token supply based on Bitcoin address balances. No bridging required.
             </p>
           </div>
 
@@ -105,17 +105,17 @@ export default function IntroductionPage() {
               </p>
             </div>
             <div>
-              <h3 className="font-semibold mb-2">⚡ Real-time Oracle System</h3>
+              <h3 className="font-semibold mb-2">⚡ Oracle-Based Architecture</h3>
               <p className="text-muted-foreground">
-                Automated balance synchronization ensures tokens always reflect actual Bitcoin holdings 
-                with minimal delay.
+                Automated Oracle server monitors Bitcoin addresses and synchronizes token balances 
+                without requiring user interaction for minting/burning.
               </p>
             </div>
             <div>
               <h3 className="font-semibold mb-2">🛡️ Security First</h3>
               <p className="text-muted-foreground">
-                Multi-layered security architecture with smart contract audits, formal verification, 
-                and comprehensive testing.
+                Comprehensive testing with 206 security tests passing, E2E validation, 
+                and Oracle resilience testing for production readiness.
               </p>
             </div>
             <div>
@@ -153,8 +153,8 @@ export default function IntroductionPage() {
                 3
               </div>
               <div>
-                <p className="font-medium">Mint Synthetic Assets</p>
-                <p className="text-muted-foreground text-sm">Receive rBTC-SYNTH or wrBTC tokens backed by your Bitcoin</p>
+                <p className="font-medium">Oracle Monitoring</p>
+                <p className="text-muted-foreground text-sm">Oracle server monitors your Bitcoin address and detects balance changes</p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
@@ -162,8 +162,8 @@ export default function IntroductionPage() {
                 4
               </div>
               <div>
-                <p className="font-medium">Participate in DeFi</p>
-                <p className="text-muted-foreground text-sm">Use your tokens in MegaETH DeFi protocols while keeping your Bitcoin</p>
+                <p className="font-medium">Automatic Token Management</p>
+                <p className="text-muted-foreground text-sm">Tokens are automatically minted/burned based on your Bitcoin balance changes</p>
               </div>
             </div>
           </div>

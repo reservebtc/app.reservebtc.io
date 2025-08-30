@@ -47,9 +47,9 @@ export default function SecurityPage() {
               <div className="flex items-start space-x-3">
                 <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
                 <div>
-                  <h3 className="font-semibold">Cryptographic Proofs</h3>
+                  <h3 className="font-semibold">Oracle-Based Architecture</h3>
                   <p className="text-sm text-green-700 dark:text-green-300">
-                    BIP-322 signatures provide mathematical certainty of Bitcoin ownership.
+                    Automated Oracle monitoring provides secure and reliable balance synchronization.
                   </p>
                 </div>
               </div>
@@ -120,10 +120,10 @@ export default function SecurityPage() {
                 <div>
                   <h4 className="font-semibold mb-2 text-blue-700 dark:text-blue-300">Address Verification</h4>
                   <ul className="text-sm text-blue-600 dark:text-blue-400 space-y-1">
-                    <li>• BIP-322 cryptographic signatures</li>
+                    <li>• BIP-322 signatures (planned for mainnet)</li>
                     <li>• All Bitcoin address types supported</li>
-                    <li>• Mathematically provable ownership</li>
-                    <li>• Industry-standard methodology</li>
+                    <li>• Currently mock verification for testnet</li>
+                    <li>• Industry-standard methodology when deployed</li>
                   </ul>
                 </div>
               </div>
@@ -141,10 +141,10 @@ export default function SecurityPage() {
                 <div>
                   <h4 className="font-semibold mb-2 text-purple-700 dark:text-purple-300">Data Integrity</h4>
                   <ul className="text-sm text-purple-600 dark:text-purple-400 space-y-1">
-                    <li>• Multiple Bitcoin API sources</li>
-                    <li>• Cross-validation mechanisms</li>
-                    <li>• Fraud detection algorithms</li>
-                    <li>• Automated anomaly detection</li>
+                    <li>• BlockCypher API integration</li>
+                    <li>• 5-minute monitoring intervals</li>
+                    <li>• Delta validation and noise filtering</li>
+                    <li>• Committee-based authorization</li>
                   </ul>
                 </div>
                 <div>
@@ -171,19 +171,19 @@ export default function SecurityPage() {
                 <div>
                   <h4 className="font-semibold mb-2 text-green-700 dark:text-green-300">Code Quality</h4>
                   <ul className="text-sm text-green-600 dark:text-green-400 space-y-1">
+                    <li>• 206 security tests passing</li>
+                    <li>• E2E and resilience testing</li>
                     <li>• Comprehensive test coverage</li>
-                    <li>• Formal verification methods</li>
-                    <li>• Security audit by top firms</li>
                     <li>• Open source transparency</li>
                   </ul>
                 </div>
                 <div>
                   <h4 className="font-semibold mb-2 text-green-700 dark:text-green-300">Access Control</h4>
                   <ul className="text-sm text-green-600 dark:text-green-400 space-y-1">
-                    <li>• Multi-signature governance</li>
+                    <li>• Committee-based Oracle access</li>
                     <li>• Role-based permissions</li>
-                    <li>• Time-locked upgrades</li>
-                    <li>• Emergency pause mechanisms</li>
+                    <li>• Soulbound token restrictions</li>
+                    <li>• Fee management controls</li>
                   </ul>
                 </div>
               </div>

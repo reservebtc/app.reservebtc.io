@@ -22,8 +22,8 @@ export default function VerificationPage() {
         <div>
           <h1 className="text-3xl font-bold mb-4">Bitcoin Address Verification</h1>
           <p className="text-lg text-muted-foreground">
-            Learn how to verify ownership of your Bitcoin address using BIP-322 signatures 
-            to mint ReserveBTC synthetic tokens without transferring your Bitcoin.
+            Learn how to verify ownership of your Bitcoin address so the Oracle system can 
+            monitor your balance and automatically manage your synthetic tokens.
           </p>
         </div>
 
@@ -31,9 +31,19 @@ export default function VerificationPage() {
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
           <h2 className="text-2xl font-semibold mb-4 text-blue-800 dark:text-blue-200">Verification Overview</h2>
           <p className="text-blue-700 dark:text-blue-300 mb-4">
-            Bitcoin address verification uses cryptographic signatures to prove you control a Bitcoin address 
-            without revealing your private keys or moving your Bitcoin.
+            Bitcoin address verification proves you control a Bitcoin address, enabling the Oracle 
+            to monitor your balance and automatically mint/burn tokens based on balance changes.
           </p>
+          <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-4">
+            <div className="flex items-center space-x-2 mb-2">
+              <AlertCircle className="h-5 w-5 text-yellow-600" />
+              <span className="font-semibold text-yellow-800 dark:text-yellow-200">Current Status</span>
+            </div>
+            <p className="text-sm text-yellow-700 dark:text-yellow-300">
+              BIP-322 signature verification is currently implemented as a mock for testnet purposes. 
+              Full cryptographic verification will be deployed for mainnet.
+            </p>
+          </div>
           <div className="grid md:grid-cols-3 gap-4">
             <div className="bg-white/50 dark:bg-black/20 rounded-lg p-3 text-center">
               <Shield className="h-6 w-6 mx-auto mb-2 text-blue-600" />

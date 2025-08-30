@@ -159,7 +159,7 @@ export default function MegaETHPage() {
               </div>
               <h3 className="font-semibold">Instant Transactions</h3>
               <p className="text-sm text-muted-foreground">
-                Sub-second finality means immediate token minting and transfers
+                Sub-second finality means immediate Oracle sync and token operations
               </p>
               <div className="bg-muted/50 rounded px-3 py-1 text-xs font-mono">
                 &lt; 1 second
@@ -199,20 +199,32 @@ export default function MegaETHPage() {
           <h2 className="text-2xl font-semibold mb-6">ReserveBTC Smart Contracts on MegaETH</h2>
           <div className="space-y-4">
             <div className="bg-muted/50 rounded-lg p-4">
-              <h3 className="font-semibold mb-3">Deployed Contracts (Testnet)</h3>
+              <h3 className="font-semibold mb-3">Deployed Contracts (MegaETH Testnet)</h3>
               <div className="space-y-3">
-                <div className="grid md:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <p className="font-medium">Oracle Aggregator</p>
-                    <p className="font-mono text-xs break-all text-muted-foreground">0x717D12a23Bb46743b15019a52184DF7F250B061a</p>
+                <div className="grid md:grid-cols-1 gap-4 text-sm">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="font-medium">OracleAggregator</p>
+                      <p className="font-mono text-xs break-all text-muted-foreground">0x717D12a23Bb46743b15019a52184DF7F250B061a</p>
+                      <p className="text-xs text-muted-foreground mt-1">Core Oracle system for balance monitoring</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">RBTCSynth</p>
+                      <p className="font-mono text-xs break-all text-muted-foreground">0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB</p>
+                      <p className="text-xs text-muted-foreground mt-1">Soulbound rBTC-SYNTH tokens</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium">rBTC-SYNTH Token</p>
-                    <p className="font-mono text-xs break-all text-muted-foreground">0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB</p>
-                  </div>
-                  <div>
-                    <p className="font-medium">wrBTC Token</p>
-                    <p className="font-mono text-xs break-all text-muted-foreground">0xa10FC332f12d102Dddf431F8136E4E89279EFF87</p>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="font-medium">VaultWrBTC</p>
+                      <p className="font-mono text-xs break-all text-muted-foreground">0xa10FC332f12d102Dddf431F8136E4E89279EFF87</p>
+                      <p className="text-xs text-muted-foreground mt-1">Transferable wrBTC ERC-20 tokens</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">FeeVault & FeePolicy</p>
+                      <p className="font-mono text-xs break-all text-muted-foreground">0x298b3746... & 0x2F0f48EA...</p>
+                      <p className="text-xs text-muted-foreground mt-1">Fee management system</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -224,17 +236,17 @@ export default function MegaETHPage() {
                 <div>
                   <ul className="space-y-1">
                     <li>• Gas-optimized for MegaETH</li>
-                    <li>• Upgradeable proxy pattern</li>
-                    <li>• Multi-signature governance</li>
-                    <li>• Emergency pause functionality</li>
+                    <li>• Oracle-based token management</li>
+                    <li>• Committee-based governance</li>
+                    <li>• Comprehensive testing (206 tests)</li>
                   </ul>
                 </div>
                 <div>
                   <ul className="space-y-1">
-                    <li>• Comprehensive event logging</li>
-                    <li>• Access control mechanisms</li>
-                    <li>• Batch operation support</li>
-                    <li>• Integration-friendly interfaces</li>
+                    <li>• Event logging for all operations</li>
+                    <li>• Fee management system</li>
+                    <li>• Soulbound token implementation</li>
+                    <li>• ERC-20 compatibility (wrBTC)</li>
                   </ul>
                 </div>
               </div>
@@ -384,8 +396,8 @@ const wrbtcContract = {
                   <p className="text-xs text-muted-foreground">Low fees enable small-value operations</p>
                 </div>
                 <div className="bg-muted/50 rounded-lg p-3">
-                  <h4 className="font-semibold mb-1">Real-time Updates</h4>
-                  <p className="text-xs text-muted-foreground">Instant balance and state synchronization</p>
+                  <h4 className="font-semibold mb-1">Oracle Efficiency</h4>
+                  <p className="text-xs text-muted-foreground">Fast Oracle sync calls and balance monitoring</p>
                 </div>
               </div>
             </div>
