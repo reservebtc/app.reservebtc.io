@@ -8,7 +8,9 @@
     "build": "tsc -p tsconfig.json",
     "dev:up": "docker compose up -d",
     "dev:down": "docker compose down -v",
-    "test:int": "vitest run --reporter=default"
+    "test": "vitest run --reporter=default",
+    "test:int": "vitest run --reporter=default",
+    "test:unit": "vitest run --reporter=default test/unit"
   },
   "dependencies": {
     "dotenv": "^16.4.5"

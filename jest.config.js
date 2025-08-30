@@ -21,10 +21,14 @@ const customJestConfig = {
     '<rootDir>/.next/',
     '<rootDir>/node_modules/',
     '<rootDir>/web-interface-BACKUP-BEAUTIFUL-VERSION/',
+    '<rootDir>/backend/',
+    '<rootDir>/contracts/',
   ],
   
   modulePathIgnorePatterns: [
     '<rootDir>/web-interface-BACKUP-BEAUTIFUL-VERSION/',
+    '<rootDir>/backend/',
+    '<rootDir>/contracts/',
   ],
   
   transform: {

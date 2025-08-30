@@ -26,7 +26,7 @@ jobs:
       run: |
         cd backend/bitcoin-provider
         echo "🧪 Running Bitcoin Provider Unit Tests..."
-        npm run test:unit 2>/dev/null || npm run test:int || {
+        npm run test:unit || {
           echo "⚠️ Unit tests may need specific configuration"
           echo "📋 Available scripts:"
           cat package.json | grep -A 10 '"scripts"' || echo "No scripts section found"

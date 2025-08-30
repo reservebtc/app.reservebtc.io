@@ -31,7 +31,7 @@ jobs:
       run: |
         cd backend/bitcoin-provider
         echo "🧪 Running Bitcoin Provider CI Tests..."
-        npm run test:int || {
+        npm run test || {
           echo "⚠️ CI tests may need environment setup"
           echo "📋 Checking test configuration:"
           ls -la test/ || echo "No test directory found"

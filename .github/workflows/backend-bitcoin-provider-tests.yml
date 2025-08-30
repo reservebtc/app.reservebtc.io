@@ -2,6 +2,11 @@ name: Backend — Bitcoin Provider Integration Tests
 
 on:
   workflow_dispatch:  # manual trigger only
+    inputs:
+      skip_tests:
+        description: 'Skip tests to save GitHub Actions minutes'
+        required: false
+        default: 'false'
 
 env:
   NODE_ENV: test
@@ -23,6 +28,7 @@ jobs:
         cd backend/bitcoin-provider
         npm ci --no-audit --no-fund
     - name: Run integration tests
+      if: inputs.skip_tests != 'true'
       run: |
         cd backend/bitcoin-provider
         echo "🧪 Running Bitcoin Provider Integration Tests..."
@@ -34,3 +40,8 @@ jobs:
         }
         echo "✅ Bitcoin Provider integration tests completed"
       timeout-minutes: 10
+    - name: Skip tests (billing limit)
+      if: inputs.skip_tests == 'true'
+      run: |
+        echo "⏭️ Tests skipped to save GitHub Actions minutes"
+        echo "💡 To run tests, set skip_tests to 'false' when manually triggering"

@@ -18,7 +18,7 @@
     "test:security": "npm audit && npm run test:coverage",
     "test:all": "node scripts/test-runner.js",
     "test:unit": "jest lib/__tests__/ --verbose",
-    "test:components": "jest components/__tests__/ --verbose",
+    "test:components": "jest components/ --verbose",
     "test:api": "jest app/api/__tests__/ --verbose",
     "test:accessibility": "jest __tests__/accessibility.test.tsx --verbose"
   },
