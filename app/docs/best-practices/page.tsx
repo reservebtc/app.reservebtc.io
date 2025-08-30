@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowLeft, Shield, Zap, TrendingUp, AlertTriangle, CheckCircle, Eye, Lock } from 'lucide-react'
+import { ArrowLeft, Shield, Zap, TrendingUp, AlertTriangle, CheckCircle, Eye, Lock, ExternalLink } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Best Practices | ReserveBTC Documentation',

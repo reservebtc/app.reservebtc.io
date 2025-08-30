@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowLeft, Signature, CheckCircle, AlertCircle, Copy, Eye, FileText, Shield } from 'lucide-react'
+import { ArrowLeft, Signature, CheckCircle, AlertCircle, Copy, Eye, FileText, Shield, RefreshCw } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Verification Process | ReserveBTC Documentation',

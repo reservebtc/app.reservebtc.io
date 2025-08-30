@@ -263,7 +263,7 @@ export default function TroubleshootingPage() {
                 <p className="text-muted-foreground"><strong>Solutions:</strong></p>
                 <ul className="list-disc list-inside space-y-1 ml-4 text-muted-foreground">
                   <li>Ensure address verification completed successfully</li>
-                  <li>Check Bitcoin balance is sufficient (> 0)</li>
+                  <li>Check Bitcoin balance is sufficient ({'>'}0)</li>
                   <li>Increase gas limit in MetaMask</li>
                   <li>Try minting smaller amount first</li>
                   <li>Verify contract addresses are correct</li>
