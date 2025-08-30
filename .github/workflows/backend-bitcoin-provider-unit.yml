@@ -29,6 +29,10 @@ jobs:
     - name: Install dependencies
       run: |
         cd backend/bitcoin-provider
+        # Generate package-lock.json if it doesn't exist
+        if [ ! -f package-lock.json ]; then
+          npm install --package-lock-only --no-audit --no-fund
+        fi
         npm ci --no-audit --no-fund
     - name: Run unit tests
       run: |
