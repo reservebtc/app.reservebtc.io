@@ -1,0 +1,2906 @@
+{
+  "startTime": "2025-08-30T08:25:13.469Z",
+  "tests": [
+    {
+      "name": "Environment file (.env)",
+      "status": "PASS",
+      "details": "Oracle private key found",
+      "timestamp": "2025-08-30T08:25:13.472Z"
+    },
+    {
+      "name": "Node.js Version",
+      "status": "PASS",
+      "details": "v22.14.0",
+      "timestamp": "2025-08-30T08:25:13.492Z"
+    },
+    {
+      "name": "Oracle Server File",
+      "status": "PASS",
+      "details": "oracle-server.js found",
+      "timestamp": "2025-08-30T08:25:13.492Z"
+    },
+    {
+      "name": "Viem Dependency",
+      "status": "PASS",
+      "details": "Version: 2.36.0",
+      "timestamp": "2025-08-30T08:25:13.492Z"
+    },
+    {
+      "name": "Next.js Build",
+      "status": "PASS",
+      "details": "Application builds successfully",
+      "timestamp": "2025-08-30T08:25:30.166Z"
+    },
+    {
+      "name": "TypeScript Check",
+      "status": "PASS",
+      "details": "No type errors found",
+      "timestamp": "2025-08-30T08:25:31.577Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:31.755Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:32.239Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:32.239Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:32.239Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:32.239Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:32.239Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:32.239Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:32.239Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:32.239Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:34.759Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:34.759Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:34.759Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:34.759Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:35.243Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:35.243Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:36.759Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:36.759Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:36.759Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:36.759Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:37.243Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:37.243Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:37.243Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:37.243Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:37.243Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:37.243Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:37.243Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:37.243Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:37.760Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:37.760Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:37.760Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:37.760Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:38.244Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:38.244Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:38.244Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:38.244Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:38.767Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:38.767Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:39.246Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:39.246Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:39.246Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:39.246Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:39.762Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:39.762Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:39.762Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:39.762Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:39.766Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:39.766Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:40.254Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:40.254Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:40.255Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:40.255Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:40.255Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:40.255Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:40.763Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:40.763Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:40.765Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:40.765Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:41.247Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:41.247Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:41.248Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:41.248Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:41.762Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:41.762Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:41.762Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:41.762Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:41.772Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:41.772Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:41.773Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:41.773Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:42.249Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:42.249Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:42.249Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:42.249Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:42.250Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:42.250Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:42.250Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:42.250Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:42.250Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:42.250Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:42.250Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:42.250Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:42.764Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:42.764Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:42.764Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:42.764Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:42.764Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:42.764Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:42.764Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:42.764Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:42.769Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:42.769Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:42.769Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:42.769Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:43.248Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:43.248Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:43.248Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:43.248Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:43.256Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:43.256Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:43.256Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:43.256Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:43.762Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:43.762Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:43.764Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:43.764Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:43.765Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:43.765Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:43.766Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:43.766Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:43.769Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:43.769Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:43.769Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:43.769Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:43.773Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:43.773Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:44.248Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:44.248Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:44.249Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:44.249Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:44.249Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:44.249Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:44.255Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:44.255Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:44.764Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:44.764Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:44.764Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:44.764Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:44.765Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:44.765Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:44.765Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:44.765Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:44.766Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:44.766Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:44.771Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:44.771Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:44.774Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:44.774Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:45.251Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:45.251Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:45.255Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:45.255Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:45.255Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:45.255Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:45.255Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:45.255Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:45.255Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:45.255Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:45.258Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:45.258Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:45.259Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:45.259Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:45.259Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:45.259Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:45.260Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:45.260Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:45.764Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:45.764Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:45.764Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:45.764Z"
+    },
+    {
+      "name": "Oracle Server Startup",
+      "status": "PASS",
+      "details": "Server started successfully",
+      "timestamp": "2025-08-30T08:25:45.765Z"
+    },
+    {
+      "name": "Oracle Authorization",
+      "status": "PASS",
+      "details": "Committee member verified",
+      "timestamp": "2025-08-30T08:25:45.765Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:46.248Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:46.248Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:46.248Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:46.248Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:46.249Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:46.249Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:46.249Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:46.249Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:46.249Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:46.249Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:46.249Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:46.249Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:46.249Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:46.249Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:46.249Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:46.249Z"
+    },
+    {
+      "name": "Next.js Dev Server",
+      "status": "PASS",
+      "details": "Development server started on localhost:3000",
+      "timestamp": "2025-08-30T08:25:48.512Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:48.764Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:48.764Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:48.764Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:48.764Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:48.764Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:48.764Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:48.764Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:48.764Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:49.250Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:49.250Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:49.250Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:49.250Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:50.768Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:50.768Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:50.768Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:50.768Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:50.772Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:50.772Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:50.772Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:50.772Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:51.253Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:51.253Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:51.253Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:51.253Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:51.253Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:51.253Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:51.253Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:51.253Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:51.253Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:51.253Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:51.253Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:51.253Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:51.253Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:51.253Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:51.253Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:51.253Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:51.766Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:51.766Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:51.766Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:51.766Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:51.766Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:51.766Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:51.766Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:51.766Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:52.253Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:52.253Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:52.253Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:52.253Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:52.254Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:52.254Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:52.254Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:52.254Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:52.774Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:52.774Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:52.774Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:52.774Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:53.253Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:53.253Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:53.253Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:53.253Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:53.253Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:53.253Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:53.253Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:53.253Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:53.768Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:53.768Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:53.768Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:53.768Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:53.768Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:53.768Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:53.768Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:53.768Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:53.772Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:53.772Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:53.772Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:53.772Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:54.259Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:54.259Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:54.259Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:54.259Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:54.259Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:54.259Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:54.259Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:54.259Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:54.259Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:54.259Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:54.259Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:54.259Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:54.768Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:54.768Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:54.768Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:54.768Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:54.768Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:54.768Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:54.768Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:54.768Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:55.254Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:55.254Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:55.254Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:55.254Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:55.254Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:55.254Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:55.254Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:55.254Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:55.768Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:55.768Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:55.768Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:55.768Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:55.768Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:55.768Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:55.768Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:55.768Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:55.776Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:55.776Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:55.776Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:55.776Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:55.776Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:55.776Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:55.776Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:55.776Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:56.254Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:56.254Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:56.254Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "PASS",
+      "details": "Help text displayed",
+      "timestamp": "2025-08-30T08:25:56.254Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:56.257Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:56.768Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:56.768Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:56.768Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:56.768Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:56.768Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:56.768Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:56.768Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:56.768Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:56.768Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:56.768Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:56.768Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:56.768Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:56.768Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:56.768Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:56.768Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:56.768Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:56.776Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:56.776Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:56.776Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:56.776Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:56.776Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:56.776Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:56.776Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:56.776Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:57.256Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:57.256Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:57.256Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:57.256Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "PASS",
+      "details": "Status information displayed",
+      "timestamp": "2025-08-30T08:25:57.256Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:57.256Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:57.256Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:57.256Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:57.259Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:57.259Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:57.259Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:57.259Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:57.259Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:57.259Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:57.259Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:57.259Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:57.768Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:57.768Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:57.768Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:57.768Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:57.769Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "PASS",
+      "details": "User successfully added to monitoring",
+      "timestamp": "2025-08-30T08:25:57.769Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "PASS",
+      "details": "User list displayed",
+      "timestamp": "2025-08-30T08:25:57.769Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:57.769Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:57.771Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:57.771Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:57.771Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:57.771Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:57.773Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:57.773Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:57.773Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:57.773Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:57.777Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:57.777Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:57.778Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:57.778Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:57.778Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:57.778Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:57.778Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:57.778Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:57.778Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:57.778Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:57.778Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:57.778Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:58.256Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:58.256Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:58.256Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:58.256Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:58.256Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:58.256Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:58.256Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:58.256Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:58.256Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:58.256Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:58.256Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:58.256Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:58.258Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:58.258Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:58.258Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:58.258Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:58.770Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:58.770Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:58.770Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:58.770Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:58.770Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:58.770Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:58.770Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:58.770Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:58.770Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:58.770Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:58.770Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:58.770Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:58.771Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:58.771Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:58.771Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:58.771Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:58.771Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:58.771Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:58.771Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:58.771Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:58.771Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:58.771Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:58.771Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:58.771Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:58.777Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:58.777Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:58.777Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:58.777Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:59.255Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:59.260Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:59.260Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:59.260Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:59.260Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:59.260Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:59.260Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:59.260Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:59.260Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:59.260Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:59.260Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:59.260Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:59.260Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:59.260Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:59.260Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:59.260Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:59.260Z"
+    },
+    {
+      "name": "Oracle Status Command",
+      "status": "WARN",
+      "details": "Status output not detected",
+      "timestamp": "2025-08-30T08:25:59.769Z"
+    },
+    {
+      "name": "Oracle Add User Command",
+      "status": "WARN",
+      "details": "Add command response unclear",
+      "timestamp": "2025-08-30T08:25:59.769Z"
+    },
+    {
+      "name": "Oracle List Command",
+      "status": "WARN",
+      "details": "List command response unclear",
+      "timestamp": "2025-08-30T08:25:59.769Z"
+    },
+    {
+      "name": "Oracle Help Command",
+      "status": "WARN",
+      "details": "Help command response unclear",
+      "timestamp": "2025-08-30T08:25:59.769Z"
+    },
+    {
+      "name": "Oracle Panel Route",
+      "status": "PASS",
+      "details": "Panel accessible at /oracle",
+      "timestamp": "2025-08-30T08:26:03.110Z"
+    },
+    {
+      "name": "Oracle API Endpoint",
+      "status": "PASS",
+      "details": "API endpoint responsive",
+      "timestamp": "2025-08-30T08:26:04.241Z"
+    }
+  ],
+  "summary": {
+    "total": 482,
+    "passed": 357,
+    "failed": 0,
+    "warnings": 125
+  },
+  "endTime": "2025-08-30T08:26:04.241Z",
+  "duration": 51,
+  "successRate": 74
+}
