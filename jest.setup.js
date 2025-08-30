@@ -66,12 +66,38 @@ jest.mock('wagmi', () => ({
   }),
 }))
 
-// Mock lucide-react icons
+// Mock lucide-react icons - comprehensive list
 jest.mock('lucide-react', () => ({
-  Wallet: ({ className, ...props }) => <div className={className} data-testid="wallet-icon" {...props} />,
-  ChevronDown: ({ className, ...props }) => <div className={className} data-testid="chevron-down-icon" {...props} />,
+  // Theme icons
   Sun: ({ className, ...props }) => <div className={className} data-testid="sun-icon" {...props} />,
   Moon: ({ className, ...props }) => <div className={className} data-testid="moon-icon" {...props} />,
+  Monitor: ({ className, ...props }) => <div className={className} data-testid="monitor-icon" {...props} />,
+  // Navigation icons  
+  ChevronDown: ({ className, ...props }) => <div className={className} data-testid="chevron-down-icon" {...props} />,
+  ChevronUp: ({ className, ...props }) => <div className={className} data-testid="chevron-up-icon" {...props} />,
+  ArrowRight: ({ className, ...props }) => <div className={className} data-testid="arrow-right-icon" {...props} />,
+  ArrowLeft: ({ className, ...props }) => <div className={className} data-testid="arrow-left-icon" {...props} />,
+  // Wallet & finance icons
+  Wallet: ({ className, ...props }) => <div className={className} data-testid="wallet-icon" {...props} />,
+  DollarSign: ({ className, ...props }) => <div className={className} data-testid="dollar-sign-icon" {...props} />,
+  Bitcoin: ({ className, ...props }) => <div className={className} data-testid="bitcoin-icon" {...props} />,
+  // Status icons
+  CheckCircle: ({ className, ...props }) => <div className={className} data-testid="check-circle-icon" {...props} />,
+  AlertCircle: ({ className, ...props }) => <div className={className} data-testid="alert-circle-icon" {...props} />,
+  Info: ({ className, ...props }) => <div className={className} data-testid="info-icon" {...props} />,
+  // Utility icons
+  ExternalLink: ({ className, ...props }) => <div className={className} data-testid="external-link-icon" {...props} />,
+  Shield: ({ className, ...props }) => <div className={className} data-testid="shield-icon" {...props} />,
+  Code: ({ className, ...props }) => <div className={className} data-testid="code-icon" {...props} />,
+  Book: ({ className, ...props }) => <div className={className} data-testid="book-icon" {...props} />,
+  FileText: ({ className, ...props }) => <div className={className} data-testid="file-text-icon" {...props} />,
+  Calendar: ({ className, ...props }) => <div className={className} data-testid="calendar-icon" {...props} />,
+  Users: ({ className, ...props }) => <div className={className} data-testid="users-icon" {...props} />,
+  RefreshCw: ({ className, ...props }) => <div className={className} data-testid="refresh-icon" {...props} />,
+  Home: ({ className, ...props }) => <div className={className} data-testid="home-icon" {...props} />,
+  Search: ({ className, ...props }) => <div className={className} data-testid="search-icon" {...props} />,
+  HelpCircle: ({ className, ...props }) => <div className={className} data-testid="help-circle-icon" {...props} />,
+  Zap: ({ className, ...props }) => <div className={className} data-testid="zap-icon" {...props} />,
 }))
 
 // Add global test helper for network warnings
