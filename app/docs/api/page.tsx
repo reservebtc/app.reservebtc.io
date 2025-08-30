@@ -57,22 +57,15 @@ export default function APIPage() {
 
         {/* Base URLs */}
         <div className="bg-card border rounded-xl p-6">
-          <h2 className="text-xl font-semibold mb-4">Base URLs</h2>
-          <div className="space-y-4">
-            <div className="bg-muted rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <span className="bg-green-600 text-white px-2 py-1 rounded text-xs font-semibold">PRODUCTION</span>
-                <span className="font-mono text-sm">https://app.reservebtc.io/api</span>
-              </div>
-              <p className="text-sm text-muted-foreground">Main production API endpoint</p>
+          <h2 className="text-xl font-semibold mb-4">Base URL</h2>
+          <div className="bg-muted rounded-lg p-4">
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-semibold">TESTNET</span>
+              <span className="font-mono text-sm">https://app.reservebtc.io/api</span>
             </div>
-            <div className="bg-muted rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-semibold">TESTNET</span>
-                <span className="font-mono text-sm">https://testnet.reservebtc.io/api</span>
-              </div>
-              <p className="text-sm text-muted-foreground">Testnet API for development and testing</p>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Currently deployed on MegaETH Testnet. All API endpoints are prefixed with this base URL.
+            </p>
           </div>
         </div>
 
@@ -82,13 +75,19 @@ export default function APIPage() {
             <Database className="h-6 w-6 mr-2" />
             Oracle API
           </h2>
+          <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
+            <p className="text-sm text-yellow-700 dark:text-yellow-300">
+              <strong>Note:</strong> Oracle API endpoints are used by the Oracle server for automated balance synchronization. 
+              Direct user access requires Oracle committee authorization.
+            </p>
+          </div>
 
           {/* GET Oracle Status */}
           <div className="space-y-6">
             <div className="bg-muted/50 rounded-lg p-4">
               <div className="flex items-center space-x-2 mb-3">
                 <span className="bg-green-600 text-white px-2 py-1 rounded text-xs font-semibold">GET</span>
-                <code className="bg-muted px-2 py-1 rounded text-sm">/oracle/status</code>
+                <code className="bg-muted px-2 py-1 rounded text-sm">/api/oracle/sync</code>
               </div>
               <p className="text-sm text-muted-foreground mb-4">Get Oracle system status and configuration</p>
               
@@ -114,9 +113,11 @@ export default function APIPage() {
             <div className="bg-muted/50 rounded-lg p-4">
               <div className="flex items-center space-x-2 mb-3">
                 <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-semibold">POST</span>
-                <code className="bg-muted px-2 py-1 rounded text-sm">/oracle/sync</code>
+                <code className="bg-muted px-2 py-1 rounded text-sm">/api/oracle/sync</code>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">Synchronize user's Bitcoin balance with smart contracts</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Synchronize user's Bitcoin balance with smart contracts. Requires Oracle committee authorization.
+              </p>
               
               <div className="space-y-4">
                 <div>
@@ -143,62 +144,34 @@ export default function APIPage() {
           </div>
         </div>
 
-        {/* Balance API */}
+        {/* Wallet Verification API */}
         <div className="bg-card border rounded-xl p-6">
-          <h2 className="text-2xl font-semibold mb-6">Balance Verification API</h2>
+          <h2 className="text-2xl font-semibold mb-6">Wallet Verification API</h2>
+          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              <strong>Note:</strong> This endpoint is currently a mock implementation for testing purposes. 
+              Real BIP-322 verification will be implemented in production.
+            </p>
+          </div>
           
           <div className="space-y-6">
-            {/* GET Balance */}
-            <div className="bg-muted/50 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-3">
-                <span className="bg-green-600 text-white px-2 py-1 rounded text-xs font-semibold">GET</span>
-                <code className="bg-muted px-2 py-1 rounded text-sm">/balance/:address</code>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">Get Bitcoin balance for a specific address</p>
-              
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-semibold mb-2">Parameters:</h4>
-                  <div className="bg-gray-50 dark:bg-gray-900 rounded p-3">
-                    <div className="text-sm">
-                      <strong>address</strong> (string): Bitcoin address (any format)
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-2">Response Example:</h4>
-                  <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-sm overflow-x-auto">
-{`{
-  "success": true,
-  "data": {
-    "address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
-    "balance": "0.12345678",
-    "balanceSats": 12345678,
-    "unconfirmed": "0.00000000",
-    "txCount": 15,
-    "lastUpdated": 1698765432
-  }
-}`}</pre>
-                </div>
-              </div>
-            </div>
-
-            {/* POST Verify Signature */}
+            {/* POST Verify Wallet */}
             <div className="bg-muted/50 rounded-lg p-4">
               <div className="flex items-center space-x-2 mb-3">
                 <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-semibold">POST</span>
-                <code className="bg-muted px-2 py-1 rounded text-sm">/verify/bip322</code>
+                <code className="bg-muted px-2 py-1 rounded text-sm">/api/verify-wallet</code>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">Verify BIP-322 signature for address ownership</p>
+              <p className="text-sm text-muted-foreground mb-4">Verify Bitcoin address ownership using BIP-322 signature</p>
               
               <div className="space-y-4">
                 <div>
                   <h4 className="font-semibold mb-2">Request Body:</h4>
                   <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-sm overflow-x-auto">
 {`{
-  "address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
-  "message": "ReserveBTC Verification\\nAddress: bc1q...\\nEVM: 0x123...\\nTimestamp: 1698765432",
-  "signature": "H4sIAAAAAAACA..."
+  "bitcoinAddress": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+  "ethereumAddress": "0x1234567890123456789012345678901234567890",
+  "message": "ReserveBTC Verification Message",
+  "signature": "base64_encoded_signature"
 }`}</pre>
                 </div>
                 <div>
@@ -206,12 +179,11 @@ export default function APIPage() {
                   <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-sm overflow-x-auto">
 {`{
   "success": true,
-  "valid": true,
   "data": {
-    "address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
-    "addressType": "P2WPKH",
+    "bitcoinAddress": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+    "ethereumAddress": "0x1234567890123456789012345678901234567890",
     "verified": true,
-    "timestamp": 1698765432
+    "timestamp": "2024-01-01T00:00:00.000Z"
   }
 }`}</pre>
                 </div>
@@ -220,62 +192,46 @@ export default function APIPage() {
           </div>
         </div>
 
-        {/* User API */}
+        {/* Token Minting API */}
         <div className="bg-card border rounded-xl p-6">
-          <h2 className="text-2xl font-semibold mb-6">User Management API</h2>
+          <h2 className="text-2xl font-semibold mb-6">Token Minting API</h2>
+          <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+            <p className="text-sm text-red-700 dark:text-red-300">
+              <strong>Important:</strong> This endpoint is a mock implementation. In the actual Oracle-based architecture, 
+              tokens are minted automatically by the Oracle when Bitcoin balance changes are detected.
+            </p>
+          </div>
           
           <div className="space-y-6">
-            {/* GET User Profile */}
-            <div className="bg-muted/50 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-3">
-                <span className="bg-green-600 text-white px-2 py-1 rounded text-xs font-semibold">GET</span>
-                <code className="bg-muted px-2 py-1 rounded text-sm">/user/:evmAddress</code>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">Get user profile and token balances</p>
-              
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-semibold mb-2">Response Example:</h4>
-                  <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-sm overflow-x-auto">
-{`{
-  "success": true,
-  "data": {
-    "evmAddress": "0x1234...5678",
-    "btcAddresses": [
-      {
-        "address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
-        "verified": true,
-        "lastSynced": 1698765432
-      }
-    ],
-    "tokenBalances": {
-      "rbtcSynth": "0.12345678",
-      "wrbtc": "0.05000000"
-    },
-    "totalBtcBacked": "0.17345678"
-  }
-}`}</pre>
-                </div>
-              </div>
-            </div>
-
-            {/* POST Register User */}
+            {/* POST Mint rBTC */}
             <div className="bg-muted/50 rounded-lg p-4">
               <div className="flex items-center space-x-2 mb-3">
                 <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-semibold">POST</span>
-                <code className="bg-muted px-2 py-1 rounded text-sm">/user/register</code>
+                <code className="bg-muted px-2 py-1 rounded text-sm">/api/mint-rbtc</code>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">Register user with verified Bitcoin address</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Mock endpoint for rBTC token minting (actual minting is handled by Oracle)
+              </p>
               
               <div className="space-y-4">
                 <div>
                   <h4 className="font-semibold mb-2">Request Body:</h4>
                   <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-sm overflow-x-auto">
 {`{
-  "evmAddress": "0x1234...5678",
-  "btcAddress": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
-  "signature": "H4sIAAAAAAACA...",
-  "message": "ReserveBTC Verification..."
+  "amount": "0.12345678",
+  "bitcoinAddress": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+  "ethereumAddress": "0x1234567890123456789012345678901234567890",
+  "amountSatoshis": 12345678
+}`}</pre>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">Response Example:</h4>
+                  <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-sm overflow-x-auto">
+{`{
+  "success": true,
+  "txHash": "0xabc123def456...",
+  "amount": "0.12345678",
+  "rbtcAmount": "0.12345678"
 }`}</pre>
                 </div>
               </div>
@@ -370,26 +326,26 @@ export default function APIPage() {
           </div>
         </div>
 
-        {/* Rate Limiting */}
+        {/* API Notes */}
         <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-6">
-          <h2 className="text-xl font-semibold mb-4 text-yellow-800 dark:text-yellow-200">⚡ Rate Limiting</h2>
-          <div className="grid md:grid-cols-2 gap-6">
+          <h2 className="text-xl font-semibold mb-4 text-yellow-800 dark:text-yellow-200">⚡ Important Notes</h2>
+          <div className="space-y-4">
             <div>
-              <h3 className="font-semibold mb-2">Limits per IP Address</h3>
+              <h3 className="font-semibold mb-2">Current Implementation Status</h3>
               <ul className="space-y-1 text-sm text-yellow-700 dark:text-yellow-300">
-                <li>• Balance queries: 100 requests/minute</li>
-                <li>• Signature verification: 10 requests/minute</li>
-                <li>• Oracle sync: 5 requests/minute</li>
-                <li>• User registration: 3 requests/hour</li>
+                <li>• Only 4 API endpoints are currently implemented</li>
+                <li>• Oracle sync endpoint is fully functional for committee members</li>
+                <li>• Wallet verification and minting endpoints are mock implementations</li>
+                <li>• Real Bitcoin integration via Oracle server (oracle-server.js)</li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-2">Response Headers</h3>
+              <h3 className="font-semibold mb-2">Oracle-Based Architecture</h3>
               <ul className="space-y-1 text-sm text-yellow-700 dark:text-yellow-300">
-                <li>• <code>X-RateLimit-Limit</code>: Request limit</li>
-                <li>• <code>X-RateLimit-Remaining</code>: Requests left</li>
-                <li>• <code>X-RateLimit-Reset</code>: Reset timestamp</li>
-                <li>• <code>Retry-After</code>: Seconds to wait</li>
+                <li>• Users don't directly mint tokens via API</li>
+                <li>• Oracle monitors Bitcoin addresses and automatically syncs balances</li>
+                <li>• Token minting/burning is handled by Oracle sync function</li>
+                <li>• See integration guide for proper usage patterns</li>
               </ul>
             </div>
           </div>
@@ -397,44 +353,34 @@ export default function APIPage() {
 
         {/* SDK and Libraries */}
         <div className="bg-card border rounded-xl p-6">
-          <h2 className="text-xl font-semibold mb-4">SDKs and Libraries</h2>
+          <h2 className="text-xl font-semibold mb-4">Development Resources</h2>
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <h3 className="font-semibold mb-2 text-blue-800 dark:text-blue-200">JavaScript/TypeScript</h3>
+              <h3 className="font-semibold mb-2 text-blue-800 dark:text-blue-200">SDK (Planned)</h3>
               <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
-                Official SDK for web applications and Node.js
+                JavaScript/TypeScript SDK is in development
               </p>
               <Link href="/docs/sdk" className="text-primary hover:underline text-sm font-medium">
                 Documentation →
               </Link>
             </div>
             <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-              <h3 className="font-semibold mb-2 text-green-800 dark:text-green-200">Python</h3>
+              <h3 className="font-semibold mb-2 text-green-800 dark:text-green-200">Smart Contracts</h3>
               <p className="text-sm text-green-700 dark:text-green-300 mb-3">
-                Python library for backend integrations
+                Complete ABI documentation and examples
               </p>
-              <a 
-                href="https://github.com/reservebtc/python-sdk" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline text-sm font-medium flex items-center"
-              >
-                GitHub <ExternalLink className="h-3 w-3 ml-1" />
-              </a>
+              <Link href="/docs/abi" className="text-primary hover:underline text-sm font-medium">
+                View ABIs →
+              </Link>
             </div>
             <div className="bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
-              <h3 className="font-semibold mb-2 text-purple-800 dark:text-purple-200">Go</h3>
+              <h3 className="font-semibold mb-2 text-purple-800 dark:text-purple-200">Integration Guide</h3>
               <p className="text-sm text-purple-700 dark:text-purple-300 mb-3">
-                Go library for high-performance applications
+                Step-by-step integration examples
               </p>
-              <a 
-                href="https://github.com/reservebtc/go-sdk" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline text-sm font-medium flex items-center"
-              >
-                GitHub <ExternalLink className="h-3 w-3 ml-1" />
-              </a>
+              <Link href="/docs/integration" className="text-primary hover:underline text-sm font-medium">
+                Get Started →
+              </Link>
             </div>
           </div>
         </div>
