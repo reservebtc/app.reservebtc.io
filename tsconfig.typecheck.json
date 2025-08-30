@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "node_modules",
+    "backend", 
+    "contracts", 
+    "web-interface",
+    "**/__tests__/**/*",
+    "**/*.test.ts",
+    "**/*.test.tsx"
+  ]
+}
