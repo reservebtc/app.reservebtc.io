@@ -13,9 +13,17 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Direct Supabase API call
-    const supabaseUrl = 'https://qoudozwmecstoxrqopqf.supabase.co'
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvdWRvendtZWNzdG94cnFvcHFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE1MTk3NTgsImV4cCI6MjA1NzA5NTc1OH0.NNEurre3vb38TbM7P28NRJSRiiwTGyjRM1Ig9Lmwbdo'
+    // Direct Supabase API call using service key to bypass RLS
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qoudozwmecstoxrqopqf.supabase.co'
+    const supabaseKey = process.env.SUPABASE_SERVICE_KEY
+    
+    if (!supabaseKey) {
+      console.error('SUPABASE_SERVICE_KEY not found in environment variables')
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      )
+    }
 
     const requestData = {
       twitter_handle: twitterHandle.replace('@', '').trim().toLowerCase(),
