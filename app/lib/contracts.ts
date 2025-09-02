@@ -61,7 +61,7 @@ export const CONTRACT_ABIS = {
   ],
   
   ORACLE_AGGREGATOR: [
-    'function sync(address user, uint64 newBalanceSats, uint32 height, uint64 timestamp)',
+    'function sync(address user, uint64 newBalanceSats, bytes proof)',
     'function lastSats(address user) view returns (uint64)',
     'function committee() view returns (address)',
     'function minConfirmations() view returns (uint256)',
@@ -71,6 +71,10 @@ export const CONTRACT_ABIS = {
     'function feePolicy() view returns (address)',
     'event Synced(address indexed user, uint64 newBalanceSats, int64 deltaSats, uint256 feeWei, uint32 height, uint64 timestamp)',
     'event NeedsTopUp(address indexed user)',
+    'error Restricted()',
+    'error FeeCapExceeded()',
+    'error ZeroAddress()',
+    'error BalanceOutOfRange()',
   ],
 } as const;
 

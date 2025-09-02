@@ -7,6 +7,7 @@ import { ArrowRight, AlertCircle, Loader2, CheckCircle, Info } from 'lucide-reac
 import { mintFormSchema, MintForm } from '@/lib/validation-schemas'
 import { validateBitcoinAddress, getBitcoinAddressTypeLabel } from '@/lib/bitcoin-validation'
 import { useAccount } from 'wagmi'
+import { DepositFeeVault } from './deposit-fee-vault'
 
 interface MintRBTCProps {
   onMintComplete?: (data: MintForm) => void
@@ -88,6 +89,9 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500">
+      {/* Deposit FeeVault Component */}
+      <DepositFeeVault />
+      
       <div className="text-center space-y-4">
         <div className="p-3 bg-primary/20 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
           <ArrowRight className="h-8 w-8 text-primary" />

@@ -3,6 +3,7 @@ import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { CONTRACTS, CONTRACT_ABIS } from '@/app/lib/contracts';
 import { megaeth } from '@/lib/chains/megaeth';
+import { getOracleAbi } from '@/app/lib/abi-utils';
 
 // Cache for initialized clients
 let clientsCache: {
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncRespo
     // Check if oracle is authorized
     const committeeAddress = await publicClient.readContract({
       address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
-      abi: CONTRACT_ABIS.ORACLE_AGGREGATOR,
+      abi: getOracleAbi(CONTRACT_ABIS.ORACLE_AGGREGATOR),
       functionName: 'committee',
     });
 
@@ -106,13 +107,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncRespo
       await publicClient.simulateContract({
         account,
         address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
-        abi: CONTRACT_ABIS.ORACLE_AGGREGATOR,
+        abi: getOracleAbi(CONTRACT_ABIS.ORACLE_AGGREGATOR),
         functionName: 'sync',
         args: [
           userAddress as `0x${string}`,
           balanceInSats,
-          blockHeight,
-          BigInt(syncTimestamp),
+          '0x' as `0x${string}`, // Empty proof for now
         ],
       });
     } catch (simulationError: any) {
@@ -126,13 +126,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncRespo
     // Execute the transaction
     const hash = await walletClient.writeContract({
       address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
-      abi: CONTRACT_ABIS.ORACLE_AGGREGATOR,
+      abi: getOracleAbi(CONTRACT_ABIS.ORACLE_AGGREGATOR),
       functionName: 'sync',
       args: [
         userAddress as `0x${string}`,
         balanceInSats,
-        blockHeight,
-        BigInt(syncTimestamp),
+        '0x' as `0x${string}`, // Empty proof for now
       ],
       account,
       chain: megaeth,
@@ -177,17 +176,17 @@ export async function GET(): Promise<NextResponse> {
     const [committee, minConfirmations, maxFeePerSync] = await Promise.all([
       publicClient.readContract({
         address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
-        abi: CONTRACT_ABIS.ORACLE_AGGREGATOR,
+        abi: getOracleAbi(CONTRACT_ABIS.ORACLE_AGGREGATOR),
         functionName: 'committee',
       }),
       publicClient.readContract({
         address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
-        abi: CONTRACT_ABIS.ORACLE_AGGREGATOR,
+        abi: getOracleAbi(CONTRACT_ABIS.ORACLE_AGGREGATOR),
         functionName: 'minConfirmations',
       }),
       publicClient.readContract({
         address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
-        abi: CONTRACT_ABIS.ORACLE_AGGREGATOR,
+        abi: getOracleAbi(CONTRACT_ABIS.ORACLE_AGGREGATOR),
         functionName: 'maxFeePerSyncWei',
       }),
     ]);

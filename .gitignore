@@ -80,3 +80,4 @@ hardhat-local.config.js
 *.orig
 *~
 .vercel
+.env*.local
