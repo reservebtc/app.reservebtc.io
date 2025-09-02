@@ -63,7 +63,7 @@ export default function FaucetPage() {
     setSubmitStatus({ type: null, message: '' })
 
     try {
-      const response = await fetch('/api/faucet-request-secure', {
+      const response = await fetch('/api/faucet-simple', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
