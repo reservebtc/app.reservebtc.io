@@ -13,7 +13,7 @@ export function DepositFeeVault() {
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
   
-  const [amount, setAmount] = useState('0.01');
+  const [amount, setAmount] = useState('0.25');
   const [isDepositing, setIsDepositing] = useState(false);
   const [txHash, setTxHash] = useState('');
   const [status, setStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
@@ -215,31 +215,24 @@ export function DepositFeeVault() {
               <div className="space-x-2">
                 <button
                   type="button"
-                  onClick={() => setAmount('0.001')}
-                  className="text-primary hover:underline text-xs"
-                >
-                  Min
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAmount(recommendedAmount)}
-                  className="text-primary hover:underline text-xs font-medium"
-                >
-                  Recommended
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAmount('0.01')}
-                  className="text-primary hover:underline text-xs"
-                >
-                  0.01
-                </button>
-                <button
-                  type="button"
                   onClick={() => setAmount('0.1')}
                   className="text-primary hover:underline text-xs"
                 >
-                  0.1 ETH
+                  Min (0.1)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAmount('0.25')}
+                  className="text-primary hover:underline text-xs font-medium"
+                >
+                  Recommended (0.25)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAmount('0.5')}
+                  className="text-primary hover:underline text-xs"
+                >
+                  Max (0.5)
                 </button>
               </div>
             </div>
