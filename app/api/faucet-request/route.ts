@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs/promises'
 import path from 'path'
+import os from 'os'
 
-// Private file to store requests (not in repo)
-const REQUESTS_FILE = path.join(process.cwd(), 'monitoring', 'faucet-requests.json')
+// Private file to store requests (use temp dir in production)
+const REQUESTS_FILE = process.env.NODE_ENV === 'production' 
+  ? path.join(os.tmpdir(), 'faucet-requests.json')
+  : path.join(process.cwd(), 'monitoring', 'faucet-requests.json')
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,13 +53,17 @@ export async function POST(req: NextRequest) {
       requests = JSON.parse(fileContent)
     } catch (error) {
       // File doesn't exist yet, will create it
-      // Create monitoring directory if it doesn't exist
-      const monitoringDir = path.dirname(REQUESTS_FILE)
-      try {
-        await fs.mkdir(monitoringDir, { recursive: true })
-      } catch (mkdirError) {
-        // Directory might already exist
+      // In production, temp dir already exists, in dev create monitoring dir
+      if (process.env.NODE_ENV !== 'production') {
+        const monitoringDir = path.dirname(REQUESTS_FILE)
+        try {
+          await fs.mkdir(monitoringDir, { recursive: true })
+        } catch (mkdirError) {
+          // Directory might already exist
+        }
       }
+      // Initialize empty array if file doesn't exist
+      requests = []
     }
 
     // Check for duplicate requests in last 24 hours
@@ -99,8 +106,14 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('Faucet request error:', error)
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      requestsFile: REQUESTS_FILE,
+      nodeEnv: process.env.NODE_ENV
+    })
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error. Please try again later.' },
       { status: 500 }
     )
   }
@@ -119,8 +132,16 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const fileContent = await fs.readFile(REQUESTS_FILE, 'utf-8')
-    const requests = JSON.parse(fileContent)
+    let requests = []
+    try {
+      const fileContent = await fs.readFile(REQUESTS_FILE, 'utf-8')
+      requests = JSON.parse(fileContent)
+    } catch (readError) {
+      // File doesn't exist, return empty array
+      console.log('Requests file not found, returning empty')
+      requests = []
+    }
+    
     const foundRequest = requests.find((r: any) => r.id === requestId)
 
     if (!foundRequest) {
@@ -136,6 +157,7 @@ export async function GET(req: NextRequest) {
       timestamp: foundRequest.timestamp
     })
   } catch (error) {
+    console.error('GET request error:', error)
     return NextResponse.json(
       { error: 'Could not retrieve request status' },
       { status: 500 }
