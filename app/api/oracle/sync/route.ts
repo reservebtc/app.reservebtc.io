@@ -14,25 +14,41 @@ let clientsCache: {
 
 // Initialize clients function
 function initializeClients() {
-  const ORACLE_PRIVATE_KEY = process.env.ORACLE_PRIVATE_KEY as `0x${string}`;
+  const ORACLE_PRIVATE_KEY = process.env.ORACLE_PRIVATE_KEY;
   
   if (!ORACLE_PRIVATE_KEY) {
     return null;
   }
   
+  // Ensure private key has 0x prefix and correct format
+  const formattedKey = ORACLE_PRIVATE_KEY.startsWith('0x') 
+    ? ORACLE_PRIVATE_KEY 
+    : `0x${ORACLE_PRIVATE_KEY}`;
+  
+  // Validate key length (should be 66 chars with 0x prefix)
+  if (formattedKey.length !== 66) {
+    console.error('Invalid private key length:', formattedKey.length);
+    return null;
+  }
+  
   if (!clientsCache) {
-    const account = privateKeyToAccount(ORACLE_PRIVATE_KEY);
-    const publicClient = createPublicClient({
-      chain: megaeth,
-      transport: http(),
-    });
-    const walletClient = createWalletClient({
-      account,
-      chain: megaeth,
-      transport: http(),
-    });
-    
-    clientsCache = { account, publicClient, walletClient };
+    try {
+      const account = privateKeyToAccount(formattedKey as `0x${string}`);
+      const publicClient = createPublicClient({
+        chain: megaeth,
+        transport: http(),
+      });
+      const walletClient = createWalletClient({
+        account,
+        chain: megaeth,
+        transport: http(),
+      });
+      
+      clientsCache = { account, publicClient, walletClient };
+    } catch (error) {
+      console.error('Failed to initialize clients:', error);
+      return null;
+    }
   }
   
   return clientsCache;
