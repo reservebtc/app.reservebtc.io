@@ -119,6 +119,27 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncRespo
       }, { status: 403 });
     }
 
+    // Check if user has prepaid fees (optional, for better error messages)
+    let hasSufficientFees = false;
+    try {
+      const feeVaultBalance = await publicClient.readContract({
+        address: CONTRACTS.FEE_VAULT as `0x${string}`,
+        abi: getOracleAbi(CONTRACT_ABIS.FEE_VAULT),
+        functionName: 'balances',
+        args: [userAddress as `0x${string}`],
+      }) as unknown as bigint;
+      
+      // Estimate required fee (simplified)
+      const estimatedFee = BigInt(Math.floor(btcAmount * 1e8)) * BigInt(1_000_000_000); // 1 gwei per satoshi
+      hasSufficientFees = feeVaultBalance >= estimatedFee;
+      
+      if (!hasSufficientFees) {
+        console.log(`User ${userAddress} has insufficient FeeVault balance: ${feeVaultBalance} wei, needs ~${estimatedFee} wei`);
+      }
+    } catch (err) {
+      console.log('Could not check FeeVault balance:', err);
+    }
+
     // Simulate the transaction first to check for errors
     try {
       await publicClient.simulateContract({
@@ -134,6 +155,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncRespo
       });
     } catch (simulationError: any) {
       console.error('Transaction simulation failed:', simulationError);
+      
+      // Provide more helpful error messages
+      if (simulationError.message?.includes('needs-topup') || !hasSufficientFees) {
+        return NextResponse.json({
+          success: false,
+          error: 'Insufficient FeeVault balance. Please deposit ETH to FeeVault first.',
+          needsTopUp: true
+        }, { status: 400 });
+      }
+      
       return NextResponse.json({
         success: false,
         error: `Transaction would fail: ${simulationError.message || 'Unknown error'}`
