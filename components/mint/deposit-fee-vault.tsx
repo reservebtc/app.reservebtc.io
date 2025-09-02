@@ -5,7 +5,7 @@ import { useAccount, useBalance, usePublicClient, useWalletClient } from 'wagmi'
 import { parseEther, formatEther } from 'viem';
 import { CONTRACTS, CONTRACT_ABIS, FEE_CONFIG } from '@/app/lib/contracts';
 import { getOracleAbi } from '@/app/lib/abi-utils';
-import { Loader2, AlertCircle, CheckCircle, Wallet, Plus, Calculator, Info } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, Wallet, Plus, Info } from 'lucide-react';
 
 export function DepositFeeVault() {
   const { address, isConnected } = useAccount();
@@ -20,7 +20,6 @@ export function DepositFeeVault() {
   const [error, setError] = useState('');
   const [feeVaultBalance, setFeeVaultBalance] = useState<string>('0');
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
-  const [showFeeCalculator, setShowFeeCalculator] = useState(false);
 
   // Calculate recommended deposit based on expected operations
   const calculateRecommendedDeposit = (operations: number = 10) => {
@@ -119,17 +118,87 @@ export function DepositFeeVault() {
 
   return (
     <div className="bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 border border-primary/20 rounded-xl p-6 space-y-4 transition-all hover:border-primary/30">
-      <div className="flex items-start justify-between">
+      {/* Critical Warning Banner */}
+      {parseFloat(feeVaultBalance) < 0.01 && (
+        <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-lg mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-start space-y-2 sm:space-y-0 sm:space-x-3">
+            <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold text-red-800 dark:text-red-200 mb-1">
+                ⚠️ Critical: Low Fee Vault Balance
+              </h4>
+              <p className="text-sm text-red-700 dark:text-red-300">
+                Your Fee Vault is nearly empty. Without sufficient funds, you will NOT be able to:
+              </p>
+              <ul className="mt-2 text-sm text-red-600 dark:text-red-400 space-y-1 list-disc list-inside">
+                <li>Mint new rBTC tokens</li>
+                <li>Burn rBTC back to Bitcoin</li>
+                <li>Sync Oracle updates</li>
+              </ul>
+              <p className="mt-2 text-xs text-red-600 dark:text-red-400 font-medium">
+                Deposit at least 0.25 ETH to ensure uninterrupted operations.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Information Banner - Always Show */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="flex flex-col sm:flex-row sm:items-start space-y-2 sm:space-y-0 sm:space-x-3">
+          <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">
+              Why Do I Need to Deposit Funds?
+            </h4>
+            <div className="text-sm text-blue-700 dark:text-blue-300 space-y-2">
+              <p>
+                The Fee Vault pays for Oracle operations that keep your Bitcoin and rBTC synchronized:
+              </p>
+              <ul className="space-y-1 list-disc list-inside ml-2">
+                <li><strong>Minting:</strong> Oracle verifies your Bitcoin balance before creating rBTC</li>
+                <li><strong>Burning:</strong> Oracle confirms burn before releasing your Bitcoin</li>
+                <li><strong>Updates:</strong> Continuous sync between Bitcoin and MegaETH networks</li>
+              </ul>
+              <div className="mt-3 p-3 bg-yellow-100/50 dark:bg-yellow-900/20 rounded-md">
+                <p className="text-xs text-yellow-800 dark:text-yellow-200 font-medium">
+                  💡 <strong>Important:</strong> If your Fee Vault runs empty, ALL operations will stop working. 
+                  You won't be able to mint new rBTC or burn existing rBTC back to Bitcoin until you refill the vault.
+                </p>
+              </div>
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                <div className="bg-white/50 dark:bg-gray-900/50 rounded p-2">
+                  <span className="text-gray-600 dark:text-gray-400">Minimum:</span>
+                  <span className="block font-semibold text-gray-900 dark:text-gray-100">0.01 ETH</span>
+                  <span className="text-gray-500 dark:text-gray-500">~5 operations</span>
+                </div>
+                <div className="bg-white/50 dark:bg-gray-900/50 rounded p-2 ring-2 ring-blue-500/50">
+                  <span className="text-gray-600 dark:text-gray-400">Recommended:</span>
+                  <span className="block font-semibold text-blue-700 dark:text-blue-300">0.25 ETH</span>
+                  <span className="text-gray-500 dark:text-gray-500">~100 operations</span>
+                </div>
+                <div className="bg-white/50 dark:bg-gray-900/50 rounded p-2">
+                  <span className="text-gray-600 dark:text-gray-400">Maximum:</span>
+                  <span className="block font-semibold text-gray-900 dark:text-gray-100">0.5 ETH</span>
+                  <span className="text-gray-500 dark:text-gray-500">~200 operations</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="flex-1">
           <h3 className="text-lg font-semibold mb-2 flex items-center space-x-2">
             <Wallet className="h-5 w-5 text-primary" />
             <span>Oracle Fee Vault</span>
           </h3>
           <p className="text-sm text-muted-foreground">
-            Deposit ETH to pay for Oracle synchronization fees
+            Your personal fee balance for protocol operations
           </p>
         </div>
-        <div className="text-right">
+        <div className="text-center sm:text-right">
           <div className="text-xs text-muted-foreground mb-1">Your Vault Balance</div>
           <div className="font-mono font-semibold mb-2">
             {isLoadingBalance ? (
@@ -140,55 +209,9 @@ export function DepositFeeVault() {
               </span>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => setShowFeeCalculator(!showFeeCalculator)}
-            className="text-xs text-primary hover:underline flex items-center space-x-1 ml-auto"
-          >
-            <Calculator className="h-3 w-3" />
-            <span>Fee Calculator</span>
-          </button>
         </div>
       </div>
 
-      {showFeeCalculator && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 space-y-3">
-          <div className="flex items-start space-x-2">
-            <Info className="h-5 w-5 text-blue-600 mt-0.5" />
-            <div className="flex-1 space-y-2">
-              <h4 className="font-medium text-blue-900 dark:text-blue-100">
-                Fee Structure & Recommendations
-              </h4>
-              <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                <p>• Base fee: {FEE_CONFIG.PCT_BPS / 100}% of transaction value</p>
-                <p>• Per satoshi fee: {FEE_CONFIG.WEI_PER_SAT} gwei</p>
-                <p>• Maximum fee per sync: {FEE_CONFIG.MAX_FEE_PER_SYNC} ETH</p>
-              </div>
-              <div className="pt-2 border-t border-blue-300 dark:border-blue-700">
-                <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
-                  Recommended Deposit Amounts:
-                </p>
-                <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                  <p>• For ~10 operations: {calculateRecommendedDeposit(10)} ETH</p>
-                  <p>• For ~50 operations: {calculateRecommendedDeposit(50)} ETH</p>
-                  <p>• For ~100 operations: {calculateRecommendedDeposit(100)} ETH</p>
-                </div>
-                <div className="mt-2 p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded">
-                  <p className="text-xs text-yellow-800 dark:text-yellow-200 font-medium">
-                    ⚠️ CRITICAL: Deposit must cover BOTH mint and burn fees!
-                  </p>
-                  <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                    Without sufficient balance, you cannot burn rBTC back to Bitcoin.
-                  </p>
-                </div>
-              </div>
-              <p className="text-xs text-blue-600 dark:text-blue-400 pt-2">
-                Note: Calculations include 2.5x safety margin for round-trip operations.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {status === 'idle' && (
         <>
