@@ -81,3 +81,62 @@ hardhat-local.config.js
 *~
 .vercel
 .env*.local
+
+# ====================================
+# INTERNAL DOCUMENTATION - NOT FOR GITHUB
+# ====================================
+
+# Test scripts and reports
+test-*.js
+*-test.js
+manual-test.js
+standalone-test.js
+TEST*.md
+*TEST*.txt
+test-simple.js
+
+# Oracle server files (deployed separately)
+oracle-server.js
+oracle-*.js
+ORACLE-*.md
+README-Oracle-*.md
+
+# Internal documentation and guides
+ISSUES_FOUND.md
+SECURITY_RECOMMENDATIONS.md
+SETUP_ORACLE_KEY.md
+DEPLOYMENT-GUIDE.md
+TESTING-GUIDE.md
+WORKFLOW-*.md
+PROJECT_CHECKLIST.md
+*-GUIDE.md
+*-REPORT.md
+*-README.md
+AUTOPUSH-*.md
+CI-CD-*.md
+GITHUB-*.md
+GIT-*.md
+
+# Project structure dumps
+Project_Structure*.txt
+signatures.txt
+
+# Backup directories
+web-interface-BACKUP*/
+*-BACKUP/
+
+# Security and audit files
+SECURITY_AUDIT_REPORT.md
+contracts/SECURITY_AUDIT_REPORT.md
+contracts/ReserveBTC_Tests_FullDump*.txt
+contracts/signatures.txt
+
+# Changelog (internal only)
+CHANGELOG.md
+
+# Jest config files for testing
+jest*.config.js
+jest.setup*.js
+
+# Scripts folder test files
+scripts/test-*.js
