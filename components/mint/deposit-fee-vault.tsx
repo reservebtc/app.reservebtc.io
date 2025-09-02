@@ -215,10 +215,10 @@ export function DepositFeeVault() {
               <div className="space-x-2">
                 <button
                   type="button"
-                  onClick={() => setAmount('0.1')}
+                  onClick={() => setAmount('0.01')}
                   className="text-primary hover:underline text-xs"
                 >
-                  Min (0.1)
+                  Min (0.01)
                 </button>
                 <button
                   type="button"
