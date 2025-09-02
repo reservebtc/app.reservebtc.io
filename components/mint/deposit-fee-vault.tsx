@@ -24,11 +24,15 @@ export function DepositFeeVault() {
 
   // Calculate recommended deposit based on expected operations
   const calculateRecommendedDeposit = (operations: number = 10) => {
+    // IMPORTANT: Must cover both mint AND burn operations!
     // Based on FEE_CONFIG: 0.1% + 1 gwei per satoshi
     // Assuming average BTC balance change of 0.1 BTC (10M satoshis)
     const avgSatoshis = 10_000_000; // 0.1 BTC
     const feePerOperation = avgSatoshis * FEE_CONFIG.WEI_PER_SAT; // 1 gwei per sat
-    const totalWei = feePerOperation * operations;
+    
+    // Multiply by 2.5x to ensure burn capability (mint + burn + safety margin)
+    const SAFETY_MULTIPLIER = 2.5;
+    const totalWei = feePerOperation * operations * SAFETY_MULTIPLIER;
     return formatEther(BigInt(totalWei));
   };
 
@@ -169,9 +173,17 @@ export function DepositFeeVault() {
                   <p>• For ~50 operations: {calculateRecommendedDeposit(50)} ETH</p>
                   <p>• For ~100 operations: {calculateRecommendedDeposit(100)} ETH</p>
                 </div>
+                <div className="mt-2 p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded">
+                  <p className="text-xs text-yellow-800 dark:text-yellow-200 font-medium">
+                    ⚠️ CRITICAL: Deposit must cover BOTH mint and burn fees!
+                  </p>
+                  <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                    Without sufficient balance, you cannot burn rBTC back to Bitcoin.
+                  </p>
+                </div>
               </div>
               <p className="text-xs text-blue-600 dark:text-blue-400 pt-2">
-                Note: Actual fees depend on your Bitcoin balance changes. Larger BTC amounts require higher fees.
+                Note: Calculations include 2.5x safety margin for round-trip operations.
               </p>
             </div>
           </div>
