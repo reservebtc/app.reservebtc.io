@@ -5,9 +5,9 @@ import path from 'path'
 // Private file to store requests (not in repo)
 const REQUESTS_FILE = path.join(process.cwd(), 'monitoring', 'faucet-requests.json')
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const body: any = await request.json()
+    const body: any = await req.json()
     const { twitterHandle, githubUsername, ethAddress, timestamp } = body
 
     // Validate input
@@ -31,14 +31,14 @@ export async function POST(request: NextRequest) {
     const cleanGithub = githubUsername.trim()
 
     // Create request object
-    const request = {
+    const faucetRequest = {
       id: Date.now().toString(),
       twitterHandle: cleanTwitter,
       githubUsername: cleanGithub,
       ethAddress: ethAddress.toLowerCase(),
       timestamp,
-      ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
-      userAgent: request.headers.get('user-agent') || 'unknown',
+      ip: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+      userAgent: req.headers.get('user-agent') || 'unknown',
       status: 'pending',
       verified: false
     }
@@ -64,9 +64,9 @@ export async function POST(request: NextRequest) {
     const recentRequests = requests.filter((r: any) => {
       const requestTime = new Date(r.timestamp).getTime()
       return requestTime > oneDayAgo && (
-        r.ethAddress === request.ethAddress ||
-        r.twitterHandle === request.twitterHandle ||
-        r.githubUsername === request.githubUsername
+        r.ethAddress === faucetRequest.ethAddress ||
+        r.twitterHandle === faucetRequest.twitterHandle ||
+        r.githubUsername === faucetRequest.githubUsername
       )
     })
 
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Add new request
-    requests.push(request)
+    requests.push(faucetRequest)
 
     // Save to file
     await fs.writeFile(REQUESTS_FILE, JSON.stringify(requests, null, 2))
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Request submitted successfully',
-      requestId: request.id
+      requestId: faucetRequest.id
     })
 
   } catch (error) {
@@ -107,8 +107,8 @@ export async function POST(request: NextRequest) {
 }
 
 // GET endpoint to check request status (optional)
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams
+export async function GET(req: NextRequest) {
+  const searchParams = req.nextUrl.searchParams
   const requestId = searchParams.get('id')
   
   if (!requestId) {
@@ -121,9 +121,9 @@ export async function GET(request: NextRequest) {
   try {
     const fileContent = await fs.readFile(REQUESTS_FILE, 'utf-8')
     const requests = JSON.parse(fileContent)
-    const request = requests.find((r: any) => r.id === requestId)
+    const foundRequest = requests.find((r: any) => r.id === requestId)
 
-    if (!request) {
+    if (!foundRequest) {
       return NextResponse.json(
         { error: 'Request not found' },
         { status: 404 }
@@ -131,9 +131,9 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      status: request.status,
-      verified: request.verified,
-      timestamp: request.timestamp
+      status: foundRequest.status,
+      verified: foundRequest.verified,
+      timestamp: foundRequest.timestamp
     })
   } catch (error) {
     return NextResponse.json(
