@@ -7,7 +7,7 @@ const REQUESTS_FILE = path.join(process.cwd(), 'monitoring', 'faucet-requests.js
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const body: any = await request.json()
     const { twitterHandle, githubUsername, ethAddress, timestamp } = body
 
     // Validate input
