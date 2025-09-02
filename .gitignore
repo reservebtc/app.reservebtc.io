@@ -126,9 +126,10 @@ GIT-*.md
 Project_Structure*.txt
 signatures.txt
 
-# Backup directories
+# Backup directories - ALWAYS IGNORE
 web-interface-BACKUP*/
-*-BACKUP/
+*-BACKUP*/
+*BACKUP*/
 
 # Security and audit files
 SECURITY_AUDIT_REPORT.md
@@ -139,9 +140,9 @@ contracts/signatures.txt
 # Changelog (internal only)
 CHANGELOG.md
 
-# Jest config files for testing
-jest*.config.js
-jest.setup*.js
+# Jest config files - KEEP THESE! They are needed for tests!
+# jest*.config.js
+# jest.setup*.js
 
 # Scripts folder test files
 scripts/test-*.js
