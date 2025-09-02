@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useBalance, usePublicClient, useWalletClient } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
-import { CONTRACTS, CONTRACT_ABIS } from '@/app/lib/contracts';
+import { CONTRACTS, CONTRACT_ABIS, FEE_CONFIG } from '@/app/lib/contracts';
 import { getOracleAbi } from '@/app/lib/abi-utils';
-import { Loader2, AlertCircle, CheckCircle, Wallet, Plus } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, Wallet, Plus, Calculator, Info } from 'lucide-react';
 
 export function DepositFeeVault() {
   const { address, isConnected } = useAccount();
@@ -20,6 +20,19 @@ export function DepositFeeVault() {
   const [error, setError] = useState('');
   const [feeVaultBalance, setFeeVaultBalance] = useState<string>('0');
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [showFeeCalculator, setShowFeeCalculator] = useState(false);
+
+  // Calculate recommended deposit based on expected operations
+  const calculateRecommendedDeposit = (operations: number = 10) => {
+    // Based on FEE_CONFIG: 0.1% + 1 gwei per satoshi
+    // Assuming average BTC balance change of 0.1 BTC (10M satoshis)
+    const avgSatoshis = 10_000_000; // 0.1 BTC
+    const feePerOperation = avgSatoshis * FEE_CONFIG.WEI_PER_SAT; // 1 gwei per sat
+    const totalWei = feePerOperation * operations;
+    return formatEther(BigInt(totalWei));
+  };
+
+  const recommendedAmount = calculateRecommendedDeposit(10);
 
   // Fetch FeeVault balance
   useEffect(() => {
@@ -113,18 +126,57 @@ export function DepositFeeVault() {
           </p>
         </div>
         <div className="text-right">
-          <div className="text-xs text-muted-foreground mb-1">Vault Balance</div>
-          <div className="font-mono font-semibold">
+          <div className="text-xs text-muted-foreground mb-1">Your Vault Balance</div>
+          <div className="font-mono font-semibold mb-2">
             {isLoadingBalance ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <span className={parseFloat(feeVaultBalance) > 0 ? 'text-green-600' : 'text-yellow-600'}>
-                {parseFloat(feeVaultBalance).toFixed(4)} ETH
+              <span className={parseFloat(feeVaultBalance) > 0.001 ? 'text-green-600' : 'text-yellow-600'}>
+                {parseFloat(feeVaultBalance).toFixed(6)} ETH
               </span>
             )}
           </div>
+          <button
+            type="button"
+            onClick={() => setShowFeeCalculator(!showFeeCalculator)}
+            className="text-xs text-primary hover:underline flex items-center space-x-1 ml-auto"
+          >
+            <Calculator className="h-3 w-3" />
+            <span>Fee Calculator</span>
+          </button>
         </div>
       </div>
+
+      {showFeeCalculator && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 space-y-3">
+          <div className="flex items-start space-x-2">
+            <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+            <div className="flex-1 space-y-2">
+              <h4 className="font-medium text-blue-900 dark:text-blue-100">
+                Fee Structure & Recommendations
+              </h4>
+              <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                <p>• Base fee: {FEE_CONFIG.PCT_BPS / 100}% of transaction value</p>
+                <p>• Per satoshi fee: {FEE_CONFIG.WEI_PER_SAT} gwei</p>
+                <p>• Maximum fee per sync: {FEE_CONFIG.MAX_FEE_PER_SYNC} ETH</p>
+              </div>
+              <div className="pt-2 border-t border-blue-300 dark:border-blue-700">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
+                  Recommended Deposit Amounts:
+                </p>
+                <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                  <p>• For ~10 operations: {calculateRecommendedDeposit(10)} ETH</p>
+                  <p>• For ~50 operations: {calculateRecommendedDeposit(50)} ETH</p>
+                  <p>• For ~100 operations: {calculateRecommendedDeposit(100)} ETH</p>
+                </div>
+              </div>
+              <p className="text-xs text-blue-600 dark:text-blue-400 pt-2">
+                Note: Actual fees depend on your Bitcoin balance changes. Larger BTC amounts require higher fees.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {status === 'idle' && (
         <>
@@ -152,23 +204,30 @@ export function DepositFeeVault() {
                 <button
                   type="button"
                   onClick={() => setAmount('0.001')}
-                  className="text-primary hover:underline"
+                  className="text-primary hover:underline text-xs"
                 >
                   Min
                 </button>
                 <button
                   type="button"
+                  onClick={() => setAmount(recommendedAmount)}
+                  className="text-primary hover:underline text-xs font-medium"
+                >
+                  Recommended
+                </button>
+                <button
+                  type="button"
                   onClick={() => setAmount('0.01')}
-                  className="text-primary hover:underline"
+                  className="text-primary hover:underline text-xs"
                 >
                   0.01
                 </button>
                 <button
                   type="button"
                   onClick={() => setAmount('0.1')}
-                  className="text-primary hover:underline"
+                  className="text-primary hover:underline text-xs"
                 >
-                  0.1
+                  0.1 ETH
                 </button>
               </div>
             </div>
