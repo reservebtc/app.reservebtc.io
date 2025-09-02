@@ -52,9 +52,18 @@
 [![BIP-322 Verification Module](https://img.shields.io/badge/BIP--322%20Module-IMPLEMENTED-success)](./backend/bitcoin-provider/src/bip322-verify.ts)
 [![Self-Send Detector Module](https://img.shields.io/badge/SelfSend%20Module-IMPLEMENTED-success)](./backend/bitcoin-provider/src/selfsend-detector.ts)
 
-## 🚀 Live Deployment - MegaETH Testnet
+## 🚀 Public Testnet Launch - Live Now!
 
-**Website**: [app.reservebtc.io](https://app.reservebtc.io)
+### 🌐 **Public Access Links**
+- **Web Application**: [https://app.reservebtc.io](https://app.reservebtc.io)
+- **Oracle Server**: [https://oracle.reservebtc.io](https://oracle.reservebtc.io/status)
+- **API Endpoints**: Fully operational and publicly accessible
+
+### ✅ **System Status**
+- **Web Interface**: 🟢 Online
+- **Oracle Server**: 🟢 Running (Hetzner Infrastructure)
+- **Smart Contracts**: 🟢 Deployed on MegaETH Testnet
+- **API Services**: 🟢 All endpoints operational
 
 ### 📋 Deployed Smart Contracts (MegaETH Testnet - Chain ID: 6342)
 
@@ -66,23 +75,31 @@
 | **FeeVault** | `0x298b3746B593df83E5bB2122cb80d17bdE2AB5fF` | Fee management |
 | **FeePolicy** | `0x2F0f48EA3dD5bCff86A178F20f9c4AB2860CD468` | Fee calculation |
 
-**Network Configuration:**
+### 🔧 **Network Configuration**
 - **RPC URL**: `https://carrot.megaeth.com/rpc`
-- **Chain ID**: `6342`
+- **Chain ID**: `6342` (0x18C6 in hex)
 - **Block Explorer**: [MegaETH Explorer](https://megaexplorer.xyz)
+- **Network Name**: MegaETH Testnet
 
 ## 🌟 Overview
 
-ReserveBTC is the first Bitcoin-backed synthetic asset protocol built on MegaETH, enabling users to mint synthetic Bitcoin tokens (rBTC-SYNTH and wrBTC) that are fully backed by real Bitcoin holdings verified through BIP-322 signatures.
+ReserveBTC is the first **fully operational** Bitcoin-backed synthetic asset protocol on MegaETH Testnet. The public testnet is **live now**, allowing anyone worldwide to test the complete flow of verifying Bitcoin ownership and minting 1:1 backed synthetic Bitcoin tokens.
 
-### Key Features
+### 🎯 **What You Can Do Now**
 
-- **🔐 Oracle-Based Architecture**: Automated balance synchronization between Bitcoin and MegaETH
+1. **Verify Bitcoin Ownership**: Prove control of your Bitcoin address using BIP-322 signatures
+2. **Mint rBTC Tokens**: Get synthetic Bitcoin tokens backed 1:1 by your real Bitcoin
+3. **Test Oracle System**: Experience automated balance synchronization in real-time
+4. **Explore DeFi Integration**: Use wrBTC (transferable version) in MegaETH ecosystem
+
+### 💡 **Key Features**
+
+- **🔐 Oracle-Based Architecture**: Production Oracle server monitoring Bitcoin balances 24/7
 - **₿ BIP-322 Verification**: Cryptographic proof of Bitcoin ownership without custody transfer
-- **⚡ MegaETH Integration**: Ultra-fast transactions with institutional-grade performance
-- **🔒 Self-Custody**: Users maintain full control of their Bitcoin while participating in DeFi
-- **🛡️ Security First**: Comprehensive testing with E2E, security canary, and resilience tests
-- **📱 Complete dApp**: Modern responsive web interface with comprehensive documentation
+- **⚡ Live on MegaETH**: Public testnet deployment with real-time synchronization
+- **🔒 Non-Custodial**: Users maintain full control of their Bitcoin throughout
+- **🛡️ Battle-Tested**: 206/206 security tests passing, production-ready code
+- **📱 User-Friendly**: Modern web interface with complete wallet integration
 
 ## 📋 Protocol Architecture
 
@@ -106,14 +123,15 @@ ReserveBTC uses an innovative Oracle-based architecture where token minting/burn
 | **FeeVault** | Fee management | `depositETH()`, `balances()` |
 | **FeePolicy** | Fee calculation | `quoteFees()`, `pctBps()`, `weiPerSat()` |
 
-### Oracle Server (`oracle-server.js`)
+### 🔮 **Oracle Server Infrastructure**
 
-Real production Oracle server with CLI interface:
-- **Bitcoin Monitoring**: Tracks Bitcoin testnet addresses via BlockCypher API
-- **Balance Sync**: Automatically calls `sync()` when Bitcoin balances change  
-- **Fee Management**: Handles fee deduction from user's prepaid ETH
-- **CLI Commands**: `add`, `remove`, `list`, `sync`, `status` commands
-- **Resilience**: Handles +1/-1 noise deltas and large spike validation
+**Production Oracle Server**: Running 24/7 on Hetzner infrastructure
+- **Status Check**: [https://oracle.reservebtc.io/status](https://oracle.reservebtc.io/status)
+- **Bitcoin Monitoring**: Real-time tracking via BlockCypher API
+- **Automatic Sync**: Detects balance changes and updates tokens
+- **Fee Management**: Deducts from user's prepaid FeeVault balance
+- **High Availability**: PM2 process management with auto-restart
+- **Resilience**: Handles network noise and validates large balance changes
 
 ## 🔄 How It Works
 
@@ -193,15 +211,25 @@ app.reservebtc.io/
     └── docs/                       # Additional documentation
 ```
 
-## 🚀 Quick Start
+## 🚀 Quick Start - Test Now!
 
-### For Users
-1. **Visit Website**: [app.reservebtc.io](https://app.reservebtc.io)
-2. **Connect Wallet**: Use MetaMask with MegaETH Testnet  
-3. **Verify Bitcoin Address**: Prove ownership via BIP-322 signature
-4. **Get Tokens**: Oracle automatically mints rBTC-SYNTH based on Bitcoin balance
+### 🧑‍💻 **For Testnet Users**
 
-### For Developers
+#### Step 1: Get Test Tokens
+- **Bitcoin Testnet**: 
+  - [coinfaucet.eu/en/btc-testnet](https://coinfaucet.eu/en/btc-testnet)
+  - [bitcoinfaucet.uo1.net](https://bitcoinfaucet.uo1.net)
+  - [testnet.help/en/btcfaucet/testnet](https://testnet.help/en/btcfaucet/testnet)
+- **MegaETH Testnet ETH**: Request in [MegaETH Discord](https://discord.gg/megaeth)
+
+#### Step 2: Setup & Test
+1. **Visit**: [https://app.reservebtc.io](https://app.reservebtc.io)
+2. **Add MegaETH Network** to MetaMask (Chain ID: 6342)
+3. **Deposit ETH to FeeVault** for Oracle fees (recommended: 0.05 ETH)
+4. **Verify Bitcoin Address** with BIP-322 signature
+5. **Watch Oracle Sync** - Tokens mint automatically based on Bitcoin balance!
+
+### 🛠️ **For Developers**
 
 #### Prerequisites
 - Node.js 22+ (locked in `.nvmrc`)
@@ -230,16 +258,19 @@ npm run build              # Production build
 npm run type-check         # TypeScript validation
 ```
 
-#### Oracle Server
+#### Oracle Monitoring
+The Oracle server is **already running** in production at [oracle.reservebtc.io](https://oracle.reservebtc.io/status)
+
+For local development:
 ```bash
-# Start Oracle monitoring
+# Clone and setup Oracle
 node oracle-server.js
 
-# CLI commands
-oracle> add 0x123... bc1q...  # Add user to tracking
-oracle> list                  # Show tracked users  
-oracle> sync                  # Manual balance sync
-oracle> status                # Oracle system status
+# Available CLI commands
+oracle> add <eth_address> <btc_address>  # Track new user
+oracle> list                             # Show all tracked users  
+oracle> sync                             # Force balance sync
+oracle> status                           # System health check
 ```
 
 ## ⚙️ Configuration
@@ -370,16 +401,36 @@ POST /api/track-selfsend
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-## 🔗 Links
+## 🔗 Important Links
 
-- **Website**: [app.reservebtc.io](https://app.reservebtc.io)
-- **Documentation**: [Complete Documentation](https://app.reservebtc.io/docs)
+### **Live Services**
+- **Web Application**: [https://app.reservebtc.io](https://app.reservebtc.io)
+- **Oracle Status**: [https://oracle.reservebtc.io/status](https://oracle.reservebtc.io/status)
+- **Documentation**: [https://app.reservebtc.io/docs](https://app.reservebtc.io/docs)
+
+### **Get Test Tokens**
+- **Bitcoin Testnet Faucets**: 
+  - [coinfaucet.eu](https://coinfaucet.eu/en/btc-testnet)
+  - [bitcoinfaucet.uo1.net](https://bitcoinfaucet.uo1.net)
+- **MegaETH Testnet**: [Discord Community](https://discord.gg/megaeth)
+
+### **Technical Documentation**
 - **Testing Guide**: [CI-CD-README.md](CI-CD-README.md)
 - **Smart Contract Tests**: [E2E Test Summary](./contracts/test/README_Test_Summary_E2E.md)
-- **Security Tests**: [Security Canary Report](./contracts/test/README_Test_Summary_SecurityCanary.md)
+- **Security Audit**: [Security Canary Report](./contracts/test/README_Test_Summary_SecurityCanary.md)
 
 ---
 
-**ReserveBTC Protocol v1.0** — Decentralized Bitcoin Reserves with Cryptographic Proof-of-Reserves
+## 📞 Support & Community
+
+- **GitHub Issues**: [Report bugs or request features](https://github.com/reservebtc/app.reservebtc.io/issues)
+- **Discord**: Join MegaETH Discord for testnet support
+- **Twitter**: Follow [@ReserveBTC](https://twitter.com/reservebtc) for updates
+
+---
+
+**ReserveBTC Protocol v1.0** — Public Testnet Live
+
+*The first fully operational Bitcoin-backed synthetic asset protocol on MegaETH*
 
 Built with ❤️ by the ReserveBTC team
