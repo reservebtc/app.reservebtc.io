@@ -33,8 +33,8 @@ export function DepositFeeVault() {
           abi: getOracleAbi(CONTRACT_ABIS.FEE_VAULT),
           functionName: 'balances',
           args: [address],
-        });
-        setFeeVaultBalance(formatEther(balance as bigint));
+        }) as unknown as bigint;
+        setFeeVaultBalance(formatEther(balance));
       } catch (err) {
         console.error('Failed to fetch FeeVault balance:', err);
       } finally {

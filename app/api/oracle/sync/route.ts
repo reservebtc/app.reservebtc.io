@@ -93,9 +93,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncRespo
       address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
       abi: getOracleAbi(CONTRACT_ABIS.ORACLE_AGGREGATOR),
       functionName: 'committee',
-    });
+      args: [],
+    }) as unknown as `0x${string}`;
 
-    if ((committeeAddress as string).toLowerCase() !== account.address.toLowerCase()) {
+    if (committeeAddress.toLowerCase() !== account.address.toLowerCase()) {
       return NextResponse.json({
         success: false,
         error: 'Unauthorized: not oracle committee member'
@@ -178,25 +179,28 @@ export async function GET(): Promise<NextResponse> {
         address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
         abi: getOracleAbi(CONTRACT_ABIS.ORACLE_AGGREGATOR),
         functionName: 'committee',
+        args: [],
       }),
       publicClient.readContract({
         address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
         abi: getOracleAbi(CONTRACT_ABIS.ORACLE_AGGREGATOR),
         functionName: 'minConfirmations',
+        args: [],
       }),
       publicClient.readContract({
         address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
         abi: getOracleAbi(CONTRACT_ABIS.ORACLE_AGGREGATOR),
         functionName: 'maxFeePerSyncWei',
+        args: [],
       }),
-    ]);
+    ]) as unknown as [`0x${string}`, bigint, bigint];
 
     return NextResponse.json({
       success: true,
       data: {
         committee,
-        minConfirmations: (minConfirmations as bigint).toString(),
-        maxFeePerSync: (maxFeePerSync as bigint).toString(),
+        minConfirmations: minConfirmations.toString(),
+        maxFeePerSync: maxFeePerSync.toString(),
         chainId: megaeth.id,
         contractAddress: CONTRACTS.ORACLE_AGGREGATOR,
       }
