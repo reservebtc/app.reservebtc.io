@@ -20,6 +20,7 @@ export function DepositFeeVault() {
   const [error, setError] = useState('');
   const [feeVaultBalance, setFeeVaultBalance] = useState<string>('0');
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [hasEverDeposited, setHasEverDeposited] = useState(false);
 
   // Calculate recommended deposit based on expected operations
   const calculateRecommendedDeposit = (operations: number = 10) => {
@@ -37,6 +38,15 @@ export function DepositFeeVault() {
 
   const recommendedAmount = calculateRecommendedDeposit(10);
 
+  // Check if user has ever deposited (from localStorage)
+  useEffect(() => {
+    if (address) {
+      const storageKey = `feeVault_deposited_${address}`;
+      const hasDeposited = localStorage.getItem(storageKey) === 'true';
+      setHasEverDeposited(hasDeposited);
+    }
+  }, [address]);
+
   // Fetch FeeVault balance
   useEffect(() => {
     const fetchFeeVaultBalance = async () => {
@@ -50,7 +60,16 @@ export function DepositFeeVault() {
           functionName: 'balances',
           args: [address],
         }) as unknown as bigint;
-        setFeeVaultBalance(formatEther(balance));
+        const balanceInEth = formatEther(balance);
+        setFeeVaultBalance(balanceInEth);
+        
+        // Check if user has ever deposited (balance > 0 or had balance before)
+        if (parseFloat(balanceInEth) > 0) {
+          setHasEverDeposited(true);
+          // Save to localStorage that this user has deposited
+          const storageKey = `feeVault_deposited_${address}`;
+          localStorage.setItem(storageKey, 'true');
+        }
       } catch (err) {
         console.error('Failed to fetch FeeVault balance:', err);
       } finally {
@@ -96,6 +115,10 @@ export function DepositFeeVault() {
       });
       
       setStatus('success');
+      setHasEverDeposited(true); // Mark that user has deposited
+      // Save to localStorage
+      const storageKey = `feeVault_deposited_${address}`;
+      localStorage.setItem(storageKey, 'true');
     } catch (err: any) {
       console.error('Deposit failed:', err);
       setError(err.message || 'Failed to deposit');
@@ -118,8 +141,8 @@ export function DepositFeeVault() {
 
   return (
     <div className="bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 border border-primary/20 rounded-xl p-6 space-y-4 transition-all hover:border-primary/30">
-      {/* Critical Warning Banner */}
-      {parseFloat(feeVaultBalance) < 0.01 && (
+      {/* Critical Warning Banner - Only show for users who have deposited before */}
+      {hasEverDeposited && parseFloat(feeVaultBalance) < 0.01 && (
         <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-lg mb-4">
           <div className="flex flex-col sm:flex-row sm:items-start space-y-2 sm:space-y-0 sm:space-x-3">
             <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
