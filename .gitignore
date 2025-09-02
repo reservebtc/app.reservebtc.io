@@ -61,6 +61,11 @@ keyfile.json
 *.sublime-*
 .history/
 
+# IMPORTANT: Keep GitHub Actions workflows (custom test environment)
+!.github/
+!.github/workflows/
+!.github/workflows/*.yml
+
 # Testing
 .coverage
 coverage.json
