@@ -48,6 +48,11 @@ typechain-types/
 *.key
 *.pem
 *.p12
+
+# Test scripts - not for production
+test-wallet-integration.js
+test-*.js
+test-*.sh
 *.keystore
 mnemonic.txt
 seed.txt
@@ -87,6 +92,14 @@ hardhat-local.config.js
 .vercel
 .env*.local
 
+# Private Monitoring (NEVER PUSH TO GITHUB)
+monitoring/
+monitoring-*
+
+# Supabase Setup Guide (PRIVATE!)
+SUPABASE_SETUP_GUIDE.md
+supabase-admin.js
+
 # ====================================
 # INTERNAL DOCUMENTATION - NOT FOR GITHUB
 # ====================================
@@ -99,6 +112,11 @@ standalone-test.js
 TEST*.md
 *TEST*.txt
 test-simple.js
+test-complete-system.js
+test-quick-check.js
+test-full-flow.js
+test-production.js
+test-oracle-integration.js
 
 # Oracle server files (deployed separately)
 oracle-server.js
