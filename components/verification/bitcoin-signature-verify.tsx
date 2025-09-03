@@ -148,7 +148,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
       } else {
         let errorMessage = ''
         if (isTestnetAddress) {
-          errorMessage = '❌ Testnet signature verification failed. Please ensure your signature is base64 encoded (80-100 characters) and copied completely from your wallet.'
+          errorMessage = '❌ Testnet verification failed. This might be due to library limitations with testnet addresses. Please check:\n• Signature is completely copied (80-100 characters)\n• Signature is in base64 format\n• Try signing again in your wallet'
         } else {
           errorMessage = '❌ Mainnet signature verification failed. Please ensure you copied the complete signature and that it matches the message and address.'
         }
@@ -456,14 +456,6 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
               onChange={(e) => setBitcoinAddress(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg bg-background dark:bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 dark:border-gray-700"
             />
-            {bitcoinAddress && (bitcoinAddress.startsWith('tb1') || bitcoinAddress.startsWith('2') || /^[mn]/.test(bitcoinAddress)) && !verificationResult?.success && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded p-2">
-                <p className="text-xs text-amber-700 dark:text-amber-300">
-                  <strong>⚠️ Testnet Address Detected:</strong> The BIP-322 library may have limited support for testnet addresses. 
-                  If verification fails, try with a mainnet address or ensure your signature is in the correct format.
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Step 4: Enter Signature */}
@@ -517,13 +509,17 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                     <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
                   )}
                   <div className="flex-1">
-                    <p className={`text-sm font-medium ${
+                    <div className={`text-sm font-medium ${
                       verificationResult.success
                         ? 'text-green-800 dark:text-green-200'
                         : 'text-red-800 dark:text-red-200'
                     }`}>
-                      {verificationResult.message}
-                    </p>
+                      {verificationResult.message.split('\n').map((line, index) => (
+                        <p key={index} className={index > 0 ? 'mt-1' : ''}>
+                          {line}
+                        </p>
+                      ))}
+                    </div>
                     {verificationResult.success && bitcoinAddress && (
                       <p className="text-xs text-green-700 dark:text-green-300 mt-1">
                         Address: {bitcoinAddress}
