@@ -391,6 +391,10 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
         throw new Error('Bitcoin not enabled in Phantom')
       }
       
+      console.log('Found Bitcoin API:', bitcoinAPI)
+      console.log('Available methods:', Object.keys(bitcoinAPI).filter(k => typeof bitcoinAPI[k] === 'function'))
+      console.log('Accounts:', bitcoinAPI.accounts)
+      console.log('PublicKey:', bitcoinAPI.publicKey)
       console.log('Attempting direct BIP-322 signing...')
       
       // Try to sign directly - Phantom will prompt for connection if needed
@@ -399,39 +403,53 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
       if (typeof bitcoinAPI.signMessage === 'function') {
         console.log('Using signMessage for BIP-322')
         
-        // Get accounts first to get the address
-        let address = null
+        // Try different approaches to sign
+        const messageBytes = new TextEncoder().encode(message)
         
-        // Check if already connected
-        if (bitcoinAPI.accounts && bitcoinAPI.accounts.length > 0) {
-          address = bitcoinAPI.accounts[0]
-        } else {
-          // Need to connect first - this will show Phantom popup
+        try {
+          // Approach 1: Let Phantom handle everything internally
+          console.log('Trying to sign without explicit address...')
+          const result = await bitcoinAPI.signMessage(messageBytes)
+          signature = typeof result === 'object' ? (result.signature || result.bip322Signature) : result
+        } catch (err1: any) {
+          console.log('First attempt failed:', err1.message)
+          
+          // Approach 2: Try with null address to trigger connection
           try {
-            const accounts = await bitcoinAPI.requestAccounts()
-            address = Array.isArray(accounts) ? accounts[0] : accounts
-          } catch (err: any) {
-            // If requestAccounts fails, try alternative methods
-            if (bitcoinAPI.connect) {
-              const result = await bitcoinAPI.connect()
-              address = result?.accounts?.[0] || result?.address || result
-            } else {
-              throw new Error('Unable to get Bitcoin address from Phantom')
+            console.log('Trying with null address...')
+            const result = await bitcoinAPI.signMessage(null, messageBytes)
+            signature = typeof result === 'object' ? (result.signature || result.bip322Signature) : result
+          } catch (err2: any) {
+            console.log('Second attempt failed:', err2.message)
+            
+            // Approach 3: Use a placeholder address - Phantom will replace with actual
+            try {
+              console.log('Trying with placeholder address...')
+              const result = await bitcoinAPI.signMessage('', messageBytes)
+              signature = typeof result === 'object' ? (result.signature || result.bip322Signature) : result
+            } catch (err3: any) {
+              console.log('Third attempt failed:', err3.message)
+              
+              // Final approach: Try to get address from existing connection
+              let address = null
+              if (bitcoinAPI.accounts && bitcoinAPI.accounts.length > 0) {
+                address = bitcoinAPI.accounts[0]
+              } else if (bitcoinAPI.publicKey) {
+                address = bitcoinAPI.publicKey
+              } else if (bitcoinAPI.selectedAddress) {
+                address = bitcoinAPI.selectedAddress
+              }
+              
+              if (address) {
+                console.log('Found existing address:', address)
+                const result = await bitcoinAPI.signMessage(address, messageBytes)
+                signature = typeof result === 'object' ? (result.signature || result.bip322Signature) : result
+              } else {
+                throw new Error('Unable to sign - Phantom may need to be unlocked or Bitcoin enabled')
+              }
             }
           }
         }
-        
-        if (!address) {
-          throw new Error('No Bitcoin address available')
-        }
-        
-        console.log('Signing with address:', address)
-        
-        // Now sign with the proper parameters
-        // Phantom expects: signMessage(address, message as Uint8Array)
-        const messageBytes = new TextEncoder().encode(message)
-        const result = await bitcoinAPI.signMessage(address, messageBytes)
-        signature = typeof result === 'object' ? (result.signature || result.bip322Signature) : result
         
         console.log('BIP-322 signature obtained:', signature)
         
@@ -448,8 +466,31 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
         
         setError(null)
         return signature
+      } else if (typeof bitcoinAPI.request === 'function') {
+        console.log('Using request method for signing')
+        
+        try {
+          // Try request method with different parameters
+          const result = await bitcoinAPI.request({
+            method: 'signMessage',
+            params: {
+              message: message,
+              address: null // Let Phantom choose
+            }
+          })
+          signature = result.signature || result
+        } catch (err: any) {
+          console.error('Request method failed:', err)
+          
+          // Try alternative request format
+          const result = await bitcoinAPI.request({
+            method: 'bitcoin_signMessage',
+            params: [message]
+          })
+          signature = result.signature || result
+        }
       } else {
-        throw new Error('BIP-322 signing not supported by Phantom')
+        throw new Error('BIP-322 signing not supported by Phantom - no signMessage or request method found')
       }
       
     } catch (err: any) {
