@@ -85,142 +85,195 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
     setError(null)
 
     try {
-      // Check multiple possible provider locations
-      const provider = (window as any).phantom?.bitcoin || 
-                      (window as any).phantom?.solana?.bitcoin ||
-                      (window as any).phantom
-
-      if (!provider) {
+      // Check if Phantom is available
+      if (!(window as any).phantom) {
         throw new Error('Phantom wallet not detected. Please install Phantom browser extension.')
       }
 
-      // Check if Bitcoin is enabled in Phantom
-      if (!provider.bitcoin && !provider.requestAccounts) {
-        throw new Error('Bitcoin is not enabled in Phantom. Please enable Bitcoin in Phantom settings.')
-      }
+      const phantom = (window as any).phantom
+      console.log('Phantom detected:', phantom)
 
-      // Try different connection methods based on provider type
+      // New approach: Use a delay to let Phantom initialize properly
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      let bitcoinAPI = null
       let accounts = null
-      let finalProvider = provider
-      
-      // If provider is the base phantom object, try to get bitcoin provider
-      if (provider && !provider.bitcoin && !provider.requestAccounts) {
-        if (provider.solana) {
-          // Phantom might be in Solana mode, need to switch or find Bitcoin
-          console.log('Phantom detected in Solana mode, looking for Bitcoin support...')
+
+      // Find Bitcoin API without triggering internal errors
+      if (phantom.bitcoin && typeof phantom.bitcoin === 'object') {
+        bitcoinAPI = phantom.bitcoin
+        console.log('Found bitcoin API at phantom.bitcoin')
+      } else if (phantom.solana?.bitcoin && typeof phantom.solana.bitcoin === 'object') {
+        bitcoinAPI = phantom.solana.bitcoin
+        console.log('Found bitcoin API at phantom.solana.bitcoin')
+      }
+
+      if (!bitcoinAPI) {
+        throw new Error('Bitcoin is not enabled in Phantom. Please go to Settings → Developer Settings → Enable Bitcoin')
+      }
+
+      // Simplified connection approach to avoid btc.js errors
+      try {
+        console.log('Attempting connection...')
+        
+        // Method 1: Direct requestAccounts (most standard)
+        if (typeof bitcoinAPI.requestAccounts === 'function') {
+          console.log('Using requestAccounts method')
+          accounts = await Promise.race([
+            bitcoinAPI.requestAccounts(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), 5000))
+          ])
+        }
+        // Method 2: Connect method
+        else if (typeof bitcoinAPI.connect === 'function') {
+          console.log('Using connect method')
+          const result = await Promise.race([
+            bitcoinAPI.connect(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), 5000))
+          ])
+          accounts = result?.accounts || result?.publicKey || [result]
+        }
+        // Method 3: Check if already has accounts
+        else if (bitcoinAPI.accounts && Array.isArray(bitcoinAPI.accounts)) {
+          console.log('Using existing accounts')
+          accounts = bitcoinAPI.accounts
+        }
+        
+      } catch (err: any) {
+        console.error('Primary connection failed:', err)
+        
+        // Fallback for btc.js errors - use window.postMessage approach
+        if (err.toString().includes('btc.js') || err.message?.includes('Unexpected')) {
+          console.log('Detected btc.js error, trying alternative approach...')
           
-          // Try to get Bitcoin provider from Phantom
-          if ((window as any).phantom?.bitcoin) {
-            finalProvider = (window as any).phantom.bitcoin
-            console.log('Found Bitcoin provider in window.phantom.bitcoin')
-          }
-        }
-      }
-      
-      // Method 1: Direct Bitcoin provider
-      if (finalProvider.bitcoin?.requestAccounts) {
-        console.log('Using method 1: bitcoin.requestAccounts')
-        accounts = await finalProvider.bitcoin.requestAccounts()
-      }
-      // Method 2: Direct requestAccounts on Bitcoin provider
-      else if (finalProvider.requestAccounts) {
-        console.log('Using method 2: requestAccounts')
-        accounts = await finalProvider.requestAccounts()
-      }
-      // Method 3: Connect method (newer API)
-      else if (finalProvider.connect) {
-        console.log('Using method 3: connect')
-        const response = await finalProvider.connect()
-        accounts = response.accounts || [response]
-      }
-      // Method 4: Request method
-      else if (finalProvider.request) {
-        console.log('Using method 4: request')
-        accounts = await finalProvider.request({ 
-          method: 'requestAccounts',
-          params: []
-        })
-      }
-
-      console.log('Accounts received:', accounts)
-
-      if (!accounts || (Array.isArray(accounts) && accounts.length === 0)) {
-        throw new Error('No Bitcoin accounts found. Please set up a Bitcoin wallet in Phantom.')
-      }
-
-      // Handle different response formats
-      let account = null
-      let address = null
-
-      if (Array.isArray(accounts)) {
-        account = accounts[0]
-      } else if (typeof accounts === 'object') {
-        account = accounts
-      } else if (typeof accounts === 'string') {
-        address = accounts
-      }
-
-      // Extract address from account object
-      if (!address && account) {
-        address = account.address || 
-                 account.publicKey || 
-                 account.pubkey ||
-                 account.bitcoinAddress ||
-                 account
-      }
-
-      // Convert address to string if needed
-      if (address && typeof address === 'object') {
-        if (address.toString) {
-          address = address.toString()
-        } else if (address.toBase58) {
-          address = address.toBase58()
+          // Alternative: Try to trigger connection through Phantom's general API
+          return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              setError('Connection timeout. Please try again.')
+              setIsConnecting(false)
+              reject(new Error('Connection timeout'))
+            }, 10000)
+            
+            // Listen for Phantom events
+            const handleMessage = (event: MessageEvent) => {
+              if (event.data?.type === 'phantom_bitcoin_connected') {
+                clearTimeout(timeout)
+                window.removeEventListener('message', handleMessage)
+                
+                const address = event.data.address
+                if (address) {
+                  console.log('Received Bitcoin address via message:', address)
+                  setSelectedWallet('Phantom')
+                  setWallets(prev => prev.map(w => 
+                    w.name === 'Phantom' 
+                      ? { ...w, address: address, type: 'bitcoin' }
+                      : w
+                  ))
+                  
+                  if (onWalletConnected) {
+                    onWalletConnected({
+                      name: 'Phantom',
+                      address: address
+                    })
+                  }
+                  setIsConnecting(false)
+                  resolve(undefined)
+                } else {
+                  setError('No Bitcoin address received')
+                  setIsConnecting(false)
+                  reject(new Error('No address received'))
+                }
+              }
+            }
+            
+            window.addEventListener('message', handleMessage)
+            
+            // Trigger Phantom popup directly
+            window.postMessage({
+              type: 'phantom_request_bitcoin',
+              method: 'connect'
+            }, '*')
+            
+            // Also try the direct API one more time
+            if (bitcoinAPI && typeof bitcoinAPI.requestAccounts === 'function') {
+              bitcoinAPI.requestAccounts()
+                .then((accs: any) => {
+                  if (accs) {
+                    clearTimeout(timeout)
+                    window.removeEventListener('message', handleMessage)
+                    handleAccounts(accs)
+                    resolve(undefined)
+                  }
+                })
+                .catch(() => {
+                  // Ignore, let message handler deal with it
+                })
+            }
+          })
         } else {
-          console.error('Address object cannot be converted to string:', address)
-          throw new Error('Invalid address format received from Phantom')
+          throw err
         }
       }
 
-      if (!address) {
-        console.error('Could not extract address from:', account)
-        throw new Error('Could not retrieve Bitcoin address from Phantom.')
-      }
-
-      console.log('Final address:', address)
-      
-      setSelectedWallet('Phantom')
-      
-      // Update wallet info first
-      setWallets(prev => prev.map(w => 
-        w.name === 'Phantom' 
-          ? { ...w, address: address, type: account?.addressType || account?.type || 'unknown' }
-          : w
-      ))
-      
-      // Call the callback if provided
-      if (onWalletConnected) {
-        try {
+      const handleAccounts = (accs: any) => {
+        console.log('Processing accounts:', accs)
+        
+        let address = null
+        
+        // Extract address from various formats
+        if (typeof accs === 'string') {
+          address = accs
+        } else if (Array.isArray(accs) && accs.length > 0) {
+          const first = accs[0]
+          if (typeof first === 'string') {
+            address = first
+          } else if (first && typeof first === 'object') {
+            address = first.address || first.publicKey || first.toString?.()
+          }
+        } else if (accs && typeof accs === 'object') {
+          address = accs.address || accs.publicKey || accs.toString?.()
+        }
+        
+        if (!address) {
+          throw new Error('No Bitcoin address received from Phantom')
+        }
+        
+        console.log('Bitcoin address:', address)
+        
+        setSelectedWallet('Phantom')
+        setWallets(prev => prev.map(w => 
+          w.name === 'Phantom' 
+            ? { ...w, address: address, type: 'bitcoin' }
+            : w
+        ))
+        
+        if (onWalletConnected) {
           onWalletConnected({
             name: 'Phantom',
             address: address
           })
-        } catch (callbackError) {
-          console.error('Error in onWalletConnected callback:', callbackError)
-          // Don't throw here, connection was successful
         }
       }
-    } catch (err: any) {
-      console.error('Phantom connection error:', err)
       
-      // Provide more specific error messages
+      if (accounts) {
+        handleAccounts(accounts)
+      } else {
+        throw new Error('No response from Phantom wallet')
+      }
+      
+    } catch (err: any) {
+      console.error('Phantom connection failed:', err)
+      
       let errorMessage = 'Failed to connect Phantom wallet'
       
       if (err.message?.includes('not detected')) {
         errorMessage = 'Phantom wallet not found. Please install it from phantom.app'
       } else if (err.message?.includes('User rejected')) {
         errorMessage = 'Connection cancelled by user'
-      } else if (err.message?.includes('Bitcoin is not enabled')) {
+      } else if (err.message?.includes('not enabled')) {
         errorMessage = 'Please enable Bitcoin in Phantom: Settings → Developer Settings → Bitcoin'
+      } else if (err.message?.includes('timeout')) {
+        errorMessage = 'Connection timed out. Please try again.'
       } else if (err.message) {
         errorMessage = err.message
       }
