@@ -27,8 +27,9 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const [copiedAddress, setCopiedAddress] = useState(false)
   const { address, isConnected } = useAccount()
   
-  // rBTC Token Contract Address
-  const RBTC_TOKEN_ADDRESS = '0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB'
+  // Token Contract Addresses
+  const RBTC_TOKEN_ADDRESS = '0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB' // rBTC-SYNTH (soulbound)
+  const WRBTC_TOKEN_ADDRESS = '0xa10FC332f12d102Dddf431F8136E4E89279EFF87' // wrBTC (transferable)
 
   const {
     register,
@@ -694,13 +695,72 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                   <div className="flex items-start space-x-2">
                     <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
                     <div className="text-xs text-amber-700 dark:text-amber-300">
-                      <p className="font-medium mb-1">Important:</p>
+                      <p className="font-medium mb-1">Important Notes:</p>
                       <ul className="space-y-1 list-disc list-inside">
                         <li>Your rBTC balance will automatically update as Bitcoin moves in/out of your wallet</li>
                         <li>Keep your FeeVault funded for continuous automatic synchronization</li>
-                        <li>rBTC is a <strong>soulbound</strong> token - it cannot be transferred to other addresses</li>
+                        <li>rBTC-SYNTH is a <strong>soulbound</strong> token - it cannot be transferred to other addresses</li>
                         <li>rBTC balance is always tied to your Bitcoin wallet and updates automatically</li>
                       </ul>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* wrBTC Information */}
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 mt-4">
+                  <div className="flex items-start space-x-2">
+                    <div className="p-1.5 bg-purple-100 dark:bg-purple-800/50 rounded-full">
+                      <ArrowRight className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-100">
+                        💡 Need Transferable Tokens? Use wrBTC!
+                      </h4>
+                      <p className="text-xs text-purple-700 dark:text-purple-300">
+                        If you need to transfer your Bitcoin value on MegaETH:
+                      </p>
+                      <ol className="space-y-2 text-xs text-purple-800 dark:text-purple-200 ml-4">
+                        <li className="flex items-start space-x-1">
+                          <span className="font-bold">1.</span>
+                          <span>Wrap your rBTC into wrBTC (Wrapped Reserve BTC)</span>
+                        </li>
+                        <li className="flex items-start space-x-1">
+                          <span className="font-bold">2.</span>
+                          <div className="flex-1">
+                            <span>Add wrBTC token to MetaMask:</span>
+                            <div className="mt-1 flex items-center space-x-2">
+                              <code className="px-2 py-1 bg-purple-100 dark:bg-purple-800/50 rounded text-xs font-mono">
+                                {WRBTC_TOKEN_ADDRESS}
+                              </code>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await navigator.clipboard.writeText(WRBTC_TOKEN_ADDRESS)
+                                    // Simple feedback without additional state
+                                  } catch (err) {
+                                    console.error('Failed to copy wrBTC address:', err)
+                                  }
+                                }}
+                                className="p-1 bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors"
+                                title="Copy wrBTC address"
+                              >
+                                <Copy className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </div>
+                        </li>
+                        <li className="flex items-start space-x-1">
+                          <span className="font-bold">3.</span>
+                          <span>wrBTC can be transferred like any ERC-20 token</span>
+                        </li>
+                        <li className="flex items-start space-x-1">
+                          <span className="font-bold">4.</span>
+                          <span>Redeem wrBTC back to rBTC anytime (1:1 ratio)</span>
+                        </li>
+                      </ol>
+                      <p className="text-xs text-purple-600 dark:text-purple-400 italic mt-2">
+                        Note: wrBTC is fully backed by rBTC and can be freely transferred between addresses
+                      </p>
                     </div>
                   </div>
                 </div>
