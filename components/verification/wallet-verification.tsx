@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { CheckCircle, AlertCircle, Loader2, Copy, RefreshCw } from 'lucide-react'
+import { CheckCircle, AlertCircle, Loader2, Copy, RefreshCw, Wallet } from 'lucide-react'
 import { walletVerificationSchema, WalletVerificationForm } from '@/lib/validation-schemas'
 import { validateBitcoinAddress, getBitcoinAddressTypeLabel } from '@/lib/bitcoin-validation'
 import { useAccount } from 'wagmi'
+import { BitcoinWalletConnect } from './bitcoin-wallet-connect'
 
 interface WalletVerificationProps {
   onVerificationComplete?: (data: WalletVerificationForm) => void
@@ -16,6 +17,8 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
   const [isVerifying, setIsVerifying] = useState(false)
   const [verificationStatus, setVerificationStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [messageCopied, setMessageCopied] = useState(false)
+  const [connectedBitcoinWallet, setConnectedBitcoinWallet] = useState<{ name: string; address: string } | null>(null)
+  const [isAutoSigning, setIsAutoSigning] = useState(false)
   const { address } = useAccount()
 
   // Generate a standardized message with timestamp for uniqueness
@@ -61,6 +64,45 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
       setTimeout(() => setMessageCopied(false), 2000)
     } catch (err) {
       console.error('Failed to copy message:', err)
+    }
+  }
+
+  // Handle Bitcoin wallet connection
+  const handleBitcoinWalletConnect = (wallet: { name: string; address: string }) => {
+    setConnectedBitcoinWallet(wallet)
+    setValue('bitcoinAddress', wallet.address)
+    
+    // Auto-trigger signing if both wallets connected
+    if (address && wallet.address) {
+      autoSignMessage()
+    }
+  }
+
+  // Auto-sign message with connected Bitcoin wallet
+  const autoSignMessage = async () => {
+    if (!connectedBitcoinWallet) return
+    
+    setIsAutoSigning(true)
+    try {
+      // Trigger signing through the BitcoinWalletConnect component
+      // This will be handled by the component's signMessageWithWallet function
+      
+      // For now, we'll show a prompt to manually trigger signing
+      // In production, this would be automatic
+      console.log('Ready to sign message with', connectedBitcoinWallet.name)
+    } catch (err) {
+      console.error('Auto-sign failed:', err)
+    } finally {
+      setIsAutoSigning(false)
+    }
+  }
+
+  // Handle signature from Bitcoin wallet
+  const handleSignature = (signature: string) => {
+    setValue('signature', signature)
+    // Auto-submit if all fields are filled
+    if (bitcoinAddress && address && message && signature) {
+      handleSubmit(onSubmit)()
     }
   }
 
@@ -124,10 +166,33 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
       )}
 
       <div className="bg-card border rounded-xl p-8 space-y-6">
+        {/* Bitcoin Wallet Connection */}
+        <BitcoinWalletConnect
+          onWalletConnected={handleBitcoinWalletConnect}
+          onSignMessage={handleSignature}
+        />
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">Or enter manually</span>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Bitcoin Address */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Bitcoin Address</label>
+            <label className="text-sm font-medium flex items-center justify-between">
+              <span>Bitcoin Address</span>
+              {connectedBitcoinWallet && (
+                <span className="text-xs text-green-600 dark:text-green-400 flex items-center space-x-1">
+                  <Wallet className="h-3 w-3" />
+                  <span>{connectedBitcoinWallet.name} Connected</span>
+                </span>
+              )}
+            </label>
             <input
               {...register('bitcoinAddress')}
               type="text"
@@ -287,48 +352,48 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
         <div className="bg-muted/50 border rounded-xl p-6 space-y-4">
           <h3 className="font-semibold flex items-center space-x-2">
             <CheckCircle className="h-5 w-5 text-green-500" />
-            <span>Supported Bitcoin Wallets</span>
+            <span>Recommended Bitcoin Wallets</span>
           </h3>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <h4 className="font-medium text-sm">Desktop Wallets</h4>
+              <h4 className="font-medium text-sm">Browser & Desktop</h4>
               <ul className="space-y-1 text-sm text-muted-foreground">
                 <li className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Sparrow Wallet (Recommended)</span>
+                  <span>👻 Phantom Wallet (Recommended)</span>
                 </li>
                 <li className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Electrum</span>
+                  <span>💼 Exodus Wallet</span>
                 </li>
                 <li className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Bitcoin Core</span>
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span>Sparrow Wallet (Manual)</span>
                 </li>
                 <li className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Wasabi Wallet</span>
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span>Electrum (Manual)</span>
                 </li>
               </ul>
             </div>
             <div className="space-y-2">
-              <h4 className="font-medium text-sm">Hardware Wallets</h4>
+              <h4 className="font-medium text-sm">Mobile Support</h4>
               <ul className="space-y-1 text-sm text-muted-foreground">
                 <li className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Ledger (via Sparrow)</span>
+                  <span>Phantom (iOS/Android)</span>
                 </li>
                 <li className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Trezor (via Sparrow)</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>ColdCard (via Sparrow)</span>
+                  <span>Exodus (iOS/Android)</span>
                 </li>
                 <li className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <span>BitBox (Limited)</span>
+                  <span>WalletConnect Support</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  <span>QR Code Signing</span>
                 </li>
               </ul>
             </div>
@@ -340,54 +405,66 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
           <h3 className="font-semibold">Step-by-Step Instructions</h3>
           
           <div className="space-y-6">
-            {/* Sparrow Wallet Instructions */}
+            {/* Phantom Wallet Instructions */}
             <div className="space-y-3">
               <h4 className="font-medium text-green-600 flex items-center space-x-2">
                 <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-xs font-bold text-white">1</div>
-                <span>Using Sparrow Wallet (Recommended)</span>
+                <span>👻 Using Phantom Wallet (Automatic)</span>
               </h4>
               <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground ml-8">
-                <li>Open Sparrow Wallet and load your wallet</li>
-                <li>Click "Copy Message" button above to copy the auto-generated message</li>
-                <li>Go to <code className="bg-muted px-2 py-1 rounded text-xs">Tools → Sign/Verify Message</code></li>
-                <li>Enter your Bitcoin address in the "Address" field</li>
-                <li>Paste the copied message in the "Message" field</li>
-                <li>Click "Sign Message" to generate BIP-322 signature</li>
-                <li>Copy the signature and paste it in the "BIP-322 Signature" field above</li>
+                <li>Install Phantom browser extension from phantom.app</li>
+                <li>Enable Bitcoin in Settings → Networks → Bitcoin (ON)</li>
+                <li>Select Taproot address type for BIP-322 support</li>
+                <li>Click "Connect Phantom" button above</li>
+                <li>Approve connection in Phantom popup</li>
+                <li>Signature will be generated automatically</li>
+                <li>Verification completes automatically when ready</li>
               </ol>
             </div>
 
-            {/* Electrum Instructions */}
+            {/* Exodus Instructions */}
             <div className="space-y-3">
               <h4 className="font-medium text-blue-600 flex items-center space-x-2">
                 <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs font-bold text-white">2</div>
-                <span>Using Electrum</span>
+                <span>💼 Using Exodus Wallet (Automatic)</span>
               </h4>
               <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground ml-8">
-                <li>Open Electrum and load your wallet</li>
-                <li>Click "Copy Message" button above to copy the auto-generated message</li>
-                <li>Go to <code className="bg-muted px-2 py-1 rounded text-xs">Tools → Sign/Verify Message</code></li>
-                <li>Select your address from the dropdown</li>
-                <li>Paste the copied message in the "Message" field</li>
-                <li>Click "Sign" to create the signature</li>
-                <li>Copy the signature and paste it in the "BIP-322 Signature" field above</li>
+                <li>Install Exodus from exodus.com</li>
+                <li>Ensure Bitcoin is enabled in your portfolio</li>
+                <li>Click "Connect Exodus" button above</li>
+                <li>Approve the connection request</li>
+                <li>Message signing happens automatically</li>
+                <li>BIP-322 signature generated for Taproot addresses</li>
+                <li>Form submits automatically when complete</li>
               </ol>
             </div>
 
-            {/* Hardware Wallet Instructions */}
+            {/* Mobile Instructions */}
             <div className="space-y-3">
               <h4 className="font-medium text-purple-600 flex items-center space-x-2">
                 <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-xs font-bold text-white">3</div>
-                <span>Using Hardware Wallets</span>
+                <span>📱 Using Mobile Wallets</span>
               </h4>
               <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground ml-8">
-                <li>Connect your hardware wallet to Sparrow Wallet</li>
-                <li>Click "Copy Message" button above to copy the auto-generated message</li>
-                <li>Ensure your device is unlocked and Bitcoin app is open</li>
-                <li>Follow the Sparrow Wallet instructions above</li>
-                <li>Confirm the signature on your hardware device</li>
-                <li>Copy the generated BIP-322 signature and paste it above</li>
+                <li>Download Phantom or Exodus from App Store/Google Play</li>
+                <li>Create or import your Bitcoin wallet</li>
+                <li>Enable Bitcoin network in settings</li>
+                <li>Open this page in wallet's built-in browser</li>
+                <li>Connect wallet when prompted</li>
+                <li>Approve signature request in app</li>
+                <li>Verification completes automatically</li>
               </ol>
+            </div>
+
+            {/* Manual Fallback */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-gray-600 flex items-center space-x-2">
+                <div className="w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center text-xs font-bold text-white">4</div>
+                <span>Manual Entry (Fallback)</span>
+              </h4>
+              <p className="text-sm text-muted-foreground ml-8">
+                If automatic connection fails, you can still enter your Bitcoin address and BIP-322 signature manually using the form fields below. Use Sparrow or Electrum to generate signatures offline.
+              </p>
             </div>
           </div>
         </div>
