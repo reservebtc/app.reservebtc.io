@@ -271,6 +271,62 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
     }
   }
 
+  // Direct BIP-322 signing with Exodus
+  const signBIP322DirectlyWithExodus = async (message: string) => {
+    setIsConnecting(true)
+    setError(null)
+    
+    try {
+      const exodus = (window as any).exodus
+      if (!exodus?.bitcoin) {
+        throw new Error('Exodus wallet not detected')
+      }
+      
+      const bitcoinAPI = exodus.bitcoin
+      console.log('Attempting direct BIP-322 signing with Exodus...')
+      
+      // Try to sign directly - Exodus will handle connection
+      let signature = null
+      
+      if (typeof bitcoinAPI.signMessage === 'function') {
+        console.log('Using signMessage for BIP-322')
+        const result = await bitcoinAPI.signMessage(message)
+        signature = result.signature || result
+      } else if (typeof bitcoinAPI.request === 'function') {
+        console.log('Using request method')
+        const result = await bitcoinAPI.request({
+          method: 'signMessage',
+          params: [message]
+        })
+        signature = result.signature || result
+      } else {
+        throw new Error('BIP-322 signing not supported by Exodus')
+      }
+      
+      console.log('BIP-322 signature obtained:', signature)
+      
+      if (onSignMessage) {
+        onSignMessage(signature)
+      }
+      
+      // Update signature field
+      const signatureField = document.querySelector<HTMLInputElement>('input[name="signature"]')
+      if (signatureField) {
+        signatureField.value = signature
+      }
+      
+      setError(null)
+      return signature
+      
+    } catch (err: any) {
+      console.error('Exodus signing failed:', err)
+      setError(`Signing failed: ${err.message}`)
+      return null
+    } finally {
+      setIsConnecting(false)
+    }
+  }
+
   const connectExodus = async () => {
     setIsConnecting(true)
     setError(null)
@@ -303,6 +359,89 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
       }
     } catch (err: any) {
       setError(err.message || 'Failed to connect Exodus wallet')
+    } finally {
+      setIsConnecting(false)
+    }
+  }
+
+  // Direct BIP-322 signing without prior connection
+  const signBIP322DirectlyWithPhantom = async (message: string) => {
+    setIsConnecting(true)
+    setError(null)
+    
+    try {
+      // Check if Phantom is available
+      if (!(window as any).phantom) {
+        throw new Error('Phantom wallet not detected')
+      }
+      
+      const phantom = (window as any).phantom
+      let bitcoinAPI = null
+      
+      // Find Bitcoin API
+      if (phantom.bitcoin) {
+        bitcoinAPI = phantom.bitcoin
+      } else if (phantom.solana?.bitcoin) {
+        bitcoinAPI = phantom.solana.bitcoin
+      }
+      
+      if (!bitcoinAPI) {
+        throw new Error('Bitcoin not enabled in Phantom')
+      }
+      
+      console.log('Attempting direct BIP-322 signing...')
+      
+      // Try to sign directly - Phantom will prompt for connection if needed
+      let signature = null
+      
+      if (typeof bitcoinAPI.signMessage === 'function') {
+        console.log('Using signMessage for BIP-322')
+        
+        // Try to sign directly - Phantom should handle connection internally
+        try {
+          // First try with a dummy address to trigger connection
+          const dummyAddress = 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+          const result = await bitcoinAPI.signMessage(dummyAddress, new TextEncoder().encode(message))
+          signature = result.signature || result
+        } catch (signErr: any) {
+          console.log('First attempt failed, trying with null address...')
+          
+          // Try with null/undefined to let Phantom choose
+          try {
+            const result = await bitcoinAPI.signMessage(null, new TextEncoder().encode(message))
+            signature = result.signature || result
+          } catch (err2) {
+            console.log('Second attempt failed, trying without address...')
+            
+            // Last attempt - call without address parameter
+            const result = await bitcoinAPI.signMessage(new TextEncoder().encode(message))
+            signature = result.signature || result
+          }
+        }
+        
+        console.log('BIP-322 signature obtained:', signature)
+        
+        // Call the callback
+        if (onSignMessage) {
+          onSignMessage(signature)
+        }
+        
+        // Also update the signature field if it exists
+        const signatureField = document.querySelector<HTMLInputElement>('input[name="signature"]')
+        if (signatureField) {
+          signatureField.value = signature
+        }
+        
+        setError(null)
+        return signature
+      } else {
+        throw new Error('BIP-322 signing not supported by Phantom')
+      }
+      
+    } catch (err: any) {
+      console.error('Direct signing failed:', err)
+      setError(`Signing failed: ${err.message}`)
+      return null
     } finally {
       setIsConnecting(false)
     }
@@ -390,17 +529,14 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
     <div className="space-y-6">
       {/* Wallet Selection */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div>
           <h3 className="text-lg font-semibold flex items-center space-x-2">
-            <Wallet className="h-5 w-5 text-primary" />
-            <span>Bitcoin Wallet Connection</span>
+            <span>🖊️</span>
+            <span>BIP-322 Signature</span>
           </h3>
-          {selectedWallet && (
-            <span className="text-sm text-green-600 dark:text-green-400 flex items-center space-x-1">
-              <CheckCircle className="h-4 w-4" />
-              <span>Connected</span>
-            </span>
-          )}
+          <p className="text-sm text-muted-foreground mt-1">
+            Choose a wallet to sign your verification message
+          </p>
         </div>
 
         {/* Important Notice - Mainnet Only */}
@@ -470,33 +606,33 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
               </div>
             )}
 
-            <div className="space-y-2">
-              <button
-                onClick={connectPhantom}
-                disabled={isConnecting || selectedWallet === 'Phantom'}
-                className="w-full px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-all"
-              >
-                {selectedWallet === 'Phantom' ? 'Connected' : 'Connect Phantom'}
-              </button>
-              
-              {/* BIP-322 Sign button */}
-              {selectedWallet === 'Phantom' && wallets.find(w => w.name === 'Phantom')?.address && (
-                <button
-                  onClick={async () => {
-                    const message = document.querySelector<HTMLTextAreaElement>('textarea[name="message"]')?.value
-                    if (!message) {
-                      setError('Please enter a message to sign')
-                      return
-                    }
-                    await signMessageWithWallet(message)
-                  }}
-                  disabled={isConnecting}
-                  className="w-full px-4 py-2 bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-all"
-                >
-                  Sign BIP-322 Message
-                </button>
+            {/* Only show BIP-322 Sign button */}
+            <button
+              onClick={async () => {
+                const message = document.querySelector<HTMLTextAreaElement>('textarea[name="message"]')?.value
+                if (!message) {
+                  setError('Please enter a message to sign above')
+                  return
+                }
+                
+                // Try to sign directly - Phantom will handle connection
+                await signBIP322DirectlyWithPhantom(message)
+              }}
+              disabled={isConnecting}
+              className="w-full px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2"
+            >
+              {isConnecting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Signing...</span>
+                </>
+              ) : (
+                <>
+                  <span>🖊️</span>
+                  <span>Sign BIP-322 with Phantom</span>
+                </>
               )}
-            </div>
+            </button>
             
             {/* Show reconnect message if Phantom has issues */}
             {error?.includes('Unable to connect') && (
@@ -551,18 +687,32 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
               )}
             </div>
 
-            {wallets.find(w => w.name === 'Exodus')?.address && (
-              <div className="mb-3 p-2 bg-muted/50 rounded text-xs font-mono truncate">
-                {wallets.find(w => w.name === 'Exodus')?.address}
-              </div>
-            )}
-
+            {/* Direct BIP-322 Sign button for Exodus */}
             <button
-              onClick={connectExodus}
-              disabled={isConnecting || selectedWallet === 'Exodus'}
-              className="w-full px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-all"
+              onClick={async () => {
+                const message = document.querySelector<HTMLTextAreaElement>('textarea[name="message"]')?.value
+                if (!message) {
+                  setError('Please enter a message to sign above')
+                  return
+                }
+                
+                // Direct sign with Exodus
+                await signBIP322DirectlyWithExodus(message)
+              }}
+              disabled={isConnecting || !wallets.find(w => w.name === 'Exodus')?.detected}
+              className="w-full px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2"
             >
-              {selectedWallet === 'Exodus' ? 'Connected' : 'Connect Exodus'}
+              {isConnecting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Signing...</span>
+                </>
+              ) : (
+                <>
+                  <span>🖊️</span>
+                  <span>Sign BIP-322 with Exodus</span>
+                </>
+              )}
             </button>
 
             {!wallets.find(w => w.name === 'Exodus')?.detected && (
