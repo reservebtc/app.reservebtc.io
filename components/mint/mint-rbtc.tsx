@@ -698,7 +698,8 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                       <ul className="space-y-1 list-disc list-inside">
                         <li>Your rBTC balance will automatically update as Bitcoin moves in/out of your wallet</li>
                         <li>Keep your FeeVault funded for continuous automatic synchronization</li>
-                        <li>You can transfer rBTC like any other ERC-20 token on MegaETH</li>
+                        <li>rBTC is a <strong>soulbound</strong> token - it cannot be transferred to other addresses</li>
+                        <li>rBTC balance is always tied to your Bitcoin wallet and updates automatically</li>
                       </ul>
                     </div>
                   </div>
