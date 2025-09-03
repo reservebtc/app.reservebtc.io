@@ -28,8 +28,14 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
     const checkWallets = () => {
       const detected: BitcoinWallet[] = []
 
-      // Check for Phantom
-      if (typeof window !== 'undefined' && (window as any).phantom?.bitcoin) {
+      // Check for Phantom - multiple possible locations
+      const phantomProvider = typeof window !== 'undefined' && (
+        (window as any).phantom?.bitcoin || 
+        (window as any).phantom?.solana || 
+        (window as any).phantom
+      )
+      
+      if (phantomProvider) {
         detected.push({
           name: 'Phantom',
           icon: '👻',
@@ -79,33 +85,84 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
     setError(null)
 
     try {
-      const provider = (window as any).phantom?.bitcoin
+      // Check multiple possible provider locations
+      const provider = (window as any).phantom?.bitcoin || 
+                      (window as any).phantom?.solana?.bitcoin ||
+                      (window as any).phantom
 
       if (!provider) {
         throw new Error('Phantom wallet not detected. Please install Phantom browser extension.')
       }
 
-      // Request accounts
-      const accounts = await provider.requestAccounts()
-      
-      if (accounts && accounts.length > 0) {
-        const account = accounts[0]
-        
-        setSelectedWallet('Phantom')
-        onWalletConnected?.({
-          name: 'Phantom',
-          address: account.address
-        })
-
-        // Update wallet info
-        setWallets(prev => prev.map(w => 
-          w.name === 'Phantom' 
-            ? { ...w, address: account.address, type: account.addressType }
-            : w
-        ))
+      // Check if Bitcoin is enabled in Phantom
+      if (!provider.bitcoin && !provider.requestAccounts) {
+        throw new Error('Bitcoin is not enabled in Phantom. Please enable Bitcoin in Phantom settings.')
       }
+
+      // Try different connection methods based on provider type
+      let accounts = null
+      
+      // Method 1: Direct Bitcoin provider
+      if (provider.bitcoin?.requestAccounts) {
+        accounts = await provider.bitcoin.requestAccounts()
+      }
+      // Method 2: Standard requestAccounts
+      else if (provider.requestAccounts) {
+        accounts = await provider.requestAccounts()
+      }
+      // Method 3: Connect method (newer API)
+      else if (provider.connect) {
+        const response = await provider.connect()
+        accounts = response.accounts || [response]
+      }
+      // Method 4: Request method
+      else if (provider.request) {
+        accounts = await provider.request({ 
+          method: 'requestAccounts',
+          params: []
+        })
+      }
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No Bitcoin accounts found. Please set up a Bitcoin wallet in Phantom.')
+      }
+
+      const account = accounts[0]
+      const address = account.address || account.publicKey || account
+
+      if (!address) {
+        throw new Error('Could not retrieve Bitcoin address from Phantom.')
+      }
+      
+      setSelectedWallet('Phantom')
+      onWalletConnected?.({
+        name: 'Phantom',
+        address: typeof address === 'string' ? address : address.toString()
+      })
+
+      // Update wallet info
+      setWallets(prev => prev.map(w => 
+        w.name === 'Phantom' 
+          ? { ...w, address: typeof address === 'string' ? address : address.toString(), type: account.addressType || 'unknown' }
+          : w
+      ))
     } catch (err: any) {
-      setError(err.message || 'Failed to connect Phantom wallet')
+      console.error('Phantom connection error:', err)
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to connect Phantom wallet'
+      
+      if (err.message?.includes('not detected')) {
+        errorMessage = 'Phantom wallet not found. Please install it from phantom.app'
+      } else if (err.message?.includes('User rejected')) {
+        errorMessage = 'Connection cancelled by user'
+      } else if (err.message?.includes('Bitcoin is not enabled')) {
+        errorMessage = 'Please enable Bitcoin in Phantom: Settings → Developer Settings → Bitcoin'
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+      
+      setError(errorMessage)
     } finally {
       setIsConnecting(false)
     }
@@ -211,6 +268,21 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
               <span>Connected</span>
             </span>
           )}
+        </div>
+
+        {/* Important Notice - Mainnet Only */}
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold text-amber-800 dark:text-amber-200 mb-1">
+                ⚠️ Bitcoin Mainnet Only
+              </p>
+              <p className="text-amber-700 dark:text-amber-300">
+                <strong>Phantom and Exodus only support Bitcoin mainnet addresses.</strong> For Bitcoin testnet, please use manual entry with Sparrow, Electrum, or Bitcoin Core wallets that support testnet.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Mobile Warning */}
