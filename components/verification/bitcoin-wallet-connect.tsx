@@ -101,51 +101,114 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
 
       // Try different connection methods based on provider type
       let accounts = null
+      let finalProvider = provider
+      
+      // If provider is the base phantom object, try to get bitcoin provider
+      if (provider && !provider.bitcoin && !provider.requestAccounts) {
+        if (provider.solana) {
+          // Phantom might be in Solana mode, need to switch or find Bitcoin
+          console.log('Phantom detected in Solana mode, looking for Bitcoin support...')
+          
+          // Try to get Bitcoin provider from Phantom
+          if ((window as any).phantom?.bitcoin) {
+            finalProvider = (window as any).phantom.bitcoin
+            console.log('Found Bitcoin provider in window.phantom.bitcoin')
+          }
+        }
+      }
       
       // Method 1: Direct Bitcoin provider
-      if (provider.bitcoin?.requestAccounts) {
-        accounts = await provider.bitcoin.requestAccounts()
+      if (finalProvider.bitcoin?.requestAccounts) {
+        console.log('Using method 1: bitcoin.requestAccounts')
+        accounts = await finalProvider.bitcoin.requestAccounts()
       }
-      // Method 2: Standard requestAccounts
-      else if (provider.requestAccounts) {
-        accounts = await provider.requestAccounts()
+      // Method 2: Direct requestAccounts on Bitcoin provider
+      else if (finalProvider.requestAccounts) {
+        console.log('Using method 2: requestAccounts')
+        accounts = await finalProvider.requestAccounts()
       }
       // Method 3: Connect method (newer API)
-      else if (provider.connect) {
-        const response = await provider.connect()
+      else if (finalProvider.connect) {
+        console.log('Using method 3: connect')
+        const response = await finalProvider.connect()
         accounts = response.accounts || [response]
       }
       // Method 4: Request method
-      else if (provider.request) {
-        accounts = await provider.request({ 
+      else if (finalProvider.request) {
+        console.log('Using method 4: request')
+        accounts = await finalProvider.request({ 
           method: 'requestAccounts',
           params: []
         })
       }
 
-      if (!accounts || accounts.length === 0) {
+      console.log('Accounts received:', accounts)
+
+      if (!accounts || (Array.isArray(accounts) && accounts.length === 0)) {
         throw new Error('No Bitcoin accounts found. Please set up a Bitcoin wallet in Phantom.')
       }
 
-      const account = accounts[0]
-      const address = account.address || account.publicKey || account
+      // Handle different response formats
+      let account = null
+      let address = null
+
+      if (Array.isArray(accounts)) {
+        account = accounts[0]
+      } else if (typeof accounts === 'object') {
+        account = accounts
+      } else if (typeof accounts === 'string') {
+        address = accounts
+      }
+
+      // Extract address from account object
+      if (!address && account) {
+        address = account.address || 
+                 account.publicKey || 
+                 account.pubkey ||
+                 account.bitcoinAddress ||
+                 account
+      }
+
+      // Convert address to string if needed
+      if (address && typeof address === 'object') {
+        if (address.toString) {
+          address = address.toString()
+        } else if (address.toBase58) {
+          address = address.toBase58()
+        } else {
+          console.error('Address object cannot be converted to string:', address)
+          throw new Error('Invalid address format received from Phantom')
+        }
+      }
 
       if (!address) {
+        console.error('Could not extract address from:', account)
         throw new Error('Could not retrieve Bitcoin address from Phantom.')
       }
+
+      console.log('Final address:', address)
       
       setSelectedWallet('Phantom')
-      onWalletConnected?.({
-        name: 'Phantom',
-        address: typeof address === 'string' ? address : address.toString()
-      })
-
-      // Update wallet info
+      
+      // Update wallet info first
       setWallets(prev => prev.map(w => 
         w.name === 'Phantom' 
-          ? { ...w, address: typeof address === 'string' ? address : address.toString(), type: account.addressType || 'unknown' }
+          ? { ...w, address: address, type: account?.addressType || account?.type || 'unknown' }
           : w
       ))
+      
+      // Call the callback if provided
+      if (onWalletConnected) {
+        try {
+          onWalletConnected({
+            name: 'Phantom',
+            address: address
+          })
+        } catch (callbackError) {
+          console.error('Error in onWalletConnected callback:', callbackError)
+          // Don't throw here, connection was successful
+        }
+      }
     } catch (err: any) {
       console.error('Phantom connection error:', err)
       
