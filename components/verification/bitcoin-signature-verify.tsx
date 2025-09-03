@@ -54,26 +54,87 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
     setVerificationResult(null)
 
     try {
-      const isValid = Verifier.verifySignature(bitcoinAddress, message, signature)
+      // Log for debugging
+      console.log('Verifying BIP-322 signature:')
+      console.log('Address:', bitcoinAddress)
+      console.log('Message:', message)
+      console.log('Signature:', signature)
+      
+      // Clean up signature - remove any whitespace or newlines
+      const cleanSignature = signature.trim().replace(/[\r\n]+/g, '')
+      const cleanAddress = bitcoinAddress.trim()
+      
+      // Try verification with cleaned inputs
+      let isValid = false
+      let verificationMethod = ''
+      
+      try {
+        // Method 1: Direct BIP-322 verification
+        isValid = Verifier.verifySignature(cleanAddress, message, cleanSignature)
+        verificationMethod = 'BIP-322'
+      } catch (e1) {
+        console.log('BIP-322 verification failed:', e1)
+        
+        try {
+          // Method 2: Try with base64 signature (some wallets encode differently)
+          const base64Signature = cleanSignature.startsWith('H') || cleanSignature.startsWith('I') 
+            ? cleanSignature 
+            : Buffer.from(cleanSignature, 'hex').toString('base64')
+          isValid = Verifier.verifySignature(cleanAddress, message, base64Signature)
+          verificationMethod = 'BIP-322 (base64)'
+        } catch (e2) {
+          console.log('Base64 verification failed:', e2)
+          
+          // Method 3: For testnet addresses, try with adjusted parameters
+          if (cleanAddress.startsWith('tb1') || cleanAddress.startsWith('2') || /^[mn]/.test(cleanAddress)) {
+            console.log('Detected testnet address, trying testnet verification...')
+            // Note: bip322-js might not fully support testnet, this is a known limitation
+            setVerificationResult({
+              success: false,
+              message: 'Testnet verification may not be fully supported. Try with a mainnet address or check if signature is correct.'
+            })
+            return
+          }
+          
+          throw new Error('All verification methods failed')
+        }
+      }
+      
+      console.log('Verification result:', isValid, 'Method:', verificationMethod)
       
       setVerificationResult({
         success: isValid,
         message: isValid 
-          ? 'Signature verified successfully!' 
-          : 'Invalid signature. Please check your address and signature.'
+          ? `Signature verified successfully! (${verificationMethod})` 
+          : 'Invalid signature. Please ensure you copied the complete signature from your wallet.'
       })
 
       if (isValid && onVerificationComplete) {
         onVerificationComplete({
-          address: bitcoinAddress,
-          signature: signature,
+          address: cleanAddress,
+          signature: cleanSignature,
           verified: true
         })
       }
     } catch (error: any) {
+      console.error('Verification error:', error)
+      
+      // Provide more helpful error messages
+      let errorMessage = 'Verification error: '
+      
+      if (error.message?.includes('Invalid signature')) {
+        errorMessage += 'The signature format is invalid. Make sure to copy the entire signature from your wallet.'
+      } else if (error.message?.includes('Invalid address')) {
+        errorMessage += 'The Bitcoin address format is invalid.'
+      } else if (error.message?.includes('testnet')) {
+        errorMessage += 'Testnet addresses may not be fully supported by the verification library.'
+      } else {
+        errorMessage += error.message || 'Unknown error occurred'
+      }
+      
       setVerificationResult({
         success: false,
-        message: `Verification error: ${error.message || 'Invalid signature format'}`
+        message: errorMessage
       })
     } finally {
       setIsVerifying(false)
@@ -348,23 +409,36 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
             <label className="font-medium">Step 3: Enter your Bitcoin address</label>
             <input
               type="text"
-              placeholder="bc1q... or 3... or 1..."
+              placeholder="bc1q... or 3... or 1... (testnet: tb1... or 2... or m/n...)"
               value={bitcoinAddress}
               onChange={(e) => setBitcoinAddress(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg bg-background dark:bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 dark:border-gray-700"
             />
+            {bitcoinAddress && (bitcoinAddress.startsWith('tb1') || bitcoinAddress.startsWith('2') || /^[mn]/.test(bitcoinAddress)) && (
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded p-2">
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  <strong>⚠️ Testnet Address Detected:</strong> The BIP-322 library may have limited support for testnet addresses. 
+                  If verification fails, try with a mainnet address or ensure your signature is in the correct format.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Step 4: Enter Signature */}
           <div className="border rounded-lg p-4 space-y-3">
             <label className="font-medium">Step 4: Paste your BIP-322 signature</label>
             <textarea
-              placeholder="Paste the signature from your wallet here..."
+              placeholder="Paste the signature from your wallet here (base64 format starting with H/I or hex format)..."
               value={signature}
               onChange={(e) => setSignature(e.target.value)}
               rows={4}
               className="w-full px-3 py-2 border rounded-lg bg-background dark:bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 dark:border-gray-700 font-mono text-sm"
             />
+            {signature && signature.length < 50 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                ⚠️ Signature seems too short. Make sure you copied the entire signature from your wallet.
+              </p>
+            )}
           </div>
 
           {/* Verify Button */}
