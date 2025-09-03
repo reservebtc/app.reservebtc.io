@@ -34,19 +34,23 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     formState: { errors, isValid }
   } = useForm<MintForm>({
     resolver: zodResolver(mintFormSchema),
-    mode: 'onChange'
+    mode: 'onChange',
+    defaultValues: {
+      amount: '0',
+      bitcoinAddress: ''
+    }
   })
 
   const amount = watch('amount')
   const bitcoinAddress = watch('bitcoinAddress')
-  const bitcoinValidation = bitcoinAddress ? validateBitcoinAddress(bitcoinAddress) : null
+  const bitcoinValidation = verifiedBitcoinAddress ? validateBitcoinAddress(verifiedBitcoinAddress) : null
 
   // Load verified Bitcoin address from localStorage
   useEffect(() => {
     const savedAddress = localStorage.getItem('verifiedBitcoinAddress')
     if (savedAddress) {
       setVerifiedBitcoinAddress(savedAddress)
-      setValue('bitcoinAddress', savedAddress)
+      setValue('bitcoinAddress', savedAddress, { shouldValidate: true })
       // Fetch Bitcoin balance for this address
       fetchBitcoinBalance(savedAddress)
     }
@@ -206,7 +210,15 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
 
       {mintStatus === 'idle' && (
         <div className="bg-card border rounded-xl p-8 space-y-6">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={(e) => {
+            e.preventDefault()
+            console.log('Form submit prevented, calling onSubmit directly')
+            // Call onSubmit directly with current values
+            onSubmit({
+              amount: bitcoinBalance.toString(),
+              bitcoinAddress: verifiedBitcoinAddress
+            })
+          }} className="space-y-6">
             {/* Bitcoin Balance from Verified Wallet */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -226,10 +238,9 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               </div>
               <div className="relative">
                 <input
-                  {...register('amount')}
                   type="text"
                   readOnly
-                  value={amount || bitcoinBalance.toFixed(8)}
+                  value={bitcoinBalance.toFixed(8)}
                   className="w-full px-4 py-3 border rounded-lg bg-muted/50 cursor-not-allowed pr-16 font-mono"
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
@@ -255,10 +266,9 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             <div className="space-y-2">
               <label className="text-sm font-medium">Your Verified Bitcoin Address</label>
               <input
-                {...register('bitcoinAddress')}
                 type="text"
                 readOnly
-                value={bitcoinAddress || verifiedBitcoinAddress || ''}
+                value={verifiedBitcoinAddress || 'No verified address'}
                 className="w-full px-4 py-3 border rounded-lg bg-muted/50 cursor-not-allowed font-mono text-sm"
               />
               {bitcoinValidation?.isValid && (
@@ -420,6 +430,15 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               type="submit"
               disabled={!verifiedBitcoinAddress || bitcoinBalance === 0 || isMinting || isLoadingBalance || !acceptedTerms}
               className="w-full flex items-center justify-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-medium transition-all hover:scale-105 active:scale-95"
+              onClick={() => {
+                console.log('Button clicked, checking conditions:', {
+                  verifiedBitcoinAddress,
+                  bitcoinBalance,
+                  isMinting,
+                  isLoadingBalance,
+                  acceptedTerms
+                })
+              }}
             >
               {isMinting ? (
                 <>
