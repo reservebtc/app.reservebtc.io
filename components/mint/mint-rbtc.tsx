@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowRight, AlertCircle, Loader2, CheckCircle, Info, Bitcoin, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowRight, AlertCircle, Loader2, CheckCircle, Info, Bitcoin, RefreshCw, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 import { mintFormSchema, MintForm } from '@/lib/validation-schemas'
 import { validateBitcoinAddress, getBitcoinAddressTypeLabel } from '@/lib/bitcoin-validation'
 import { useAccount } from 'wagmi'
@@ -573,9 +573,40 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             </p>
             {txHash && (
               <div className="text-sm text-muted-foreground">
-                Transaction: <span className="font-mono">{txHash.slice(0, 10)}...{txHash.slice(-8)}</span>
+                Transaction:{' '}
+                <a
+                  href={`https://megaexplorer.xyz/tx/${txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-primary hover:text-primary/80 underline transition-colors"
+                >
+                  {txHash.slice(0, 10)}...{txHash.slice(-8)}
+                </a>
               </div>
             )}
+          </div>
+          <div className="mt-4 flex gap-3 justify-center">
+            <a
+              href={`https://megaexplorer.xyz/tx/${txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-sm font-medium transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+            >
+              <ExternalLink className="h-4 w-4" />
+              View on Explorer
+            </a>
+            <button
+              onClick={() => {
+                setMintStatus('idle')
+                setTxHash('')
+                // Reset form for next mint
+                setAcceptedTerms(false)
+                setShowFeeVaultWarning(false)
+              }}
+              className="px-4 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors"
+            >
+              Mint More
+            </button>
           </div>
         </div>
       )}
