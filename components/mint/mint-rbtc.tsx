@@ -15,7 +15,7 @@ interface MintRBTCProps {
 
 export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const [isMinting, setIsMinting] = useState(false)
-  const [mintStatus, setMintStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle')
+  const [mintStatus, setMintStatus] = useState<'idle' | 'pending' | 'success' | 'error' | 'already-syncing'>('idle')
   const [txHash, setTxHash] = useState<string>('')
   const [verifiedBitcoinAddress, setVerifiedBitcoinAddress] = useState<string>('')
   const [bitcoinBalance, setBitcoinBalance] = useState<number>(0)
@@ -130,6 +130,15 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       bitcoinBalance,
       address
     })
+    
+    // Check if Oracle sync was already initiated
+    const syncInitiated = localStorage.getItem(`oracle_sync_initiated_${address}`)
+    if (syncInitiated === 'true') {
+      console.log('Oracle sync already initiated for this address')
+      // Oracle is already syncing automatically, show info message
+      setMintStatus('already-syncing')
+      return
+    }
     
     // First check FeeVault balance
     const feeVaultBalance = localStorage.getItem(`feeVault_deposited_${address}`)
@@ -767,6 +776,42 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {mintStatus === 'already-syncing' && (
+        <div className="bg-card border rounded-xl p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
+          <div className="p-4 bg-blue-100 dark:bg-blue-900/20 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
+            <RefreshCw className="h-10 w-10 text-blue-600 animate-pulse" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold">Automatic Sync Active</h2>
+            <p className="text-muted-foreground">
+              Oracle is already automatically syncing your Bitcoin balance.
+            </p>
+            <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 text-left max-w-md mx-auto mt-4">
+              <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
+                <strong>✅ Good news!</strong> Your wallet is already in automatic sync mode.
+              </p>
+              <ul className="text-xs text-blue-600 dark:text-blue-400 space-y-2">
+                <li>• Oracle monitors your Bitcoin wallet 24/7</li>
+                <li>• When BTC arrives → rBTC mints automatically</li>
+                <li>• When BTC leaves → rBTC burns automatically</li>
+                <li>• No manual intervention needed</li>
+              </ul>
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-3">
+                ⚠️ Keep your FeeVault funded to ensure continuous operation
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setMintStatus('idle')
+            }}
+            className="px-6 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-lg transition-colors"
+          >
+            Got it
+          </button>
         </div>
       )}
 
