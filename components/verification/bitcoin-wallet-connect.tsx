@@ -8,7 +8,7 @@ interface BitcoinWallet {
   icon: string
   detected: boolean
   address?: string
-  type?: 'taproot' | 'segwit' | 'legacy'
+  type?: 'taproot' | 'segwit' | 'legacy' | 'unknown'
 }
 
 interface BitcoinWalletConnectProps {
@@ -166,7 +166,7 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
                   setSelectedWallet('Phantom')
                   setWallets(prev => prev.map(w => 
                     w.name === 'Phantom' 
-                      ? { ...w, address: address, type: 'bitcoin' }
+                      ? { ...w, address: address, type: 'unknown' }
                       : w
                   ))
                   
@@ -243,7 +243,7 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
         setSelectedWallet('Phantom')
         setWallets(prev => prev.map(w => 
           w.name === 'Phantom' 
-            ? { ...w, address: address, type: 'bitcoin' }
+            ? { ...w, address: address, type: 'unknown' }
             : w
         ))
         
