@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Wallet, CheckCircle, AlertCircle, Loader2, Smartphone, ExternalLink } from 'lucide-react'
+import { Wallet, CheckCircle, AlertCircle, Loader2, Smartphone, ExternalLink, Info } from 'lucide-react'
+import { useAccount } from 'wagmi'
 
 interface BitcoinWallet {
   name: string
@@ -17,6 +18,7 @@ interface BitcoinWalletConnectProps {
 }
 
 export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: BitcoinWalletConnectProps) {
+  const { address: ethAddress, isConnected: isMetaMaskConnected } = useAccount()
   const [wallets, setWallets] = useState<BitcoinWallet[]>([])
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
@@ -397,27 +399,39 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
       if (typeof bitcoinAPI.signMessage === 'function') {
         console.log('Using signMessage for BIP-322')
         
-        // Try to sign directly - Phantom should handle connection internally
-        try {
-          // First try with a dummy address to trigger connection
-          const dummyAddress = 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
-          const result = await bitcoinAPI.signMessage(dummyAddress, new TextEncoder().encode(message))
-          signature = result.signature || result
-        } catch (signErr: any) {
-          console.log('First attempt failed, trying with null address...')
-          
-          // Try with null/undefined to let Phantom choose
+        // Get accounts first to get the address
+        let address = null
+        
+        // Check if already connected
+        if (bitcoinAPI.accounts && bitcoinAPI.accounts.length > 0) {
+          address = bitcoinAPI.accounts[0]
+        } else {
+          // Need to connect first - this will show Phantom popup
           try {
-            const result = await bitcoinAPI.signMessage(null, new TextEncoder().encode(message))
-            signature = result.signature || result
-          } catch (err2) {
-            console.log('Second attempt failed, trying without address...')
-            
-            // Last attempt - call without address parameter
-            const result = await bitcoinAPI.signMessage(new TextEncoder().encode(message))
-            signature = result.signature || result
+            const accounts = await bitcoinAPI.requestAccounts()
+            address = Array.isArray(accounts) ? accounts[0] : accounts
+          } catch (err: any) {
+            // If requestAccounts fails, try alternative methods
+            if (bitcoinAPI.connect) {
+              const result = await bitcoinAPI.connect()
+              address = result?.accounts?.[0] || result?.address || result
+            } else {
+              throw new Error('Unable to get Bitcoin address from Phantom')
+            }
           }
         }
+        
+        if (!address) {
+          throw new Error('No Bitcoin address available')
+        }
+        
+        console.log('Signing with address:', address)
+        
+        // Now sign with the proper parameters
+        // Phantom expects: signMessage(address, message as Uint8Array)
+        const messageBytes = new TextEncoder().encode(message)
+        const result = await bitcoinAPI.signMessage(address, messageBytes)
+        signature = typeof result === 'object' ? (result.signature || result.bip322Signature) : result
         
         console.log('BIP-322 signature obtained:', signature)
         
@@ -535,9 +549,27 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
             <span>BIP-322 Signature</span>
           </h3>
           <p className="text-sm text-muted-foreground mt-1">
-            Choose a wallet to sign your verification message
+            {isMetaMaskConnected 
+              ? 'Choose a wallet to sign your verification message'
+              : 'Connect MetaMask wallet first to enable BIP-322 signing'
+            }
           </p>
         </div>
+        
+        {/* MetaMask connection requirement notice */}
+        {!isMetaMaskConnected && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div className="flex items-start space-x-3">
+              <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium text-blue-900 dark:text-blue-100">MetaMask Required</p>
+                <p className="text-blue-700 dark:text-blue-300 mt-1">
+                  Please connect your MetaMask wallet first. The MegaETH address is needed to generate the verification message.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Important Notice - Mainnet Only */}
         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
@@ -609,6 +641,11 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
             {/* Only show BIP-322 Sign button */}
             <button
               onClick={async () => {
+                if (!isMetaMaskConnected) {
+                  setError('Please connect MetaMask wallet first to generate the verification message')
+                  return
+                }
+                
                 const message = document.querySelector<HTMLTextAreaElement>('textarea[name="message"]')?.value
                 if (!message) {
                   setError('Please enter a message to sign above')
@@ -618,13 +655,19 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
                 // Try to sign directly - Phantom will handle connection
                 await signBIP322DirectlyWithPhantom(message)
               }}
-              disabled={isConnecting}
-              className="w-full px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2"
+              disabled={isConnecting || !isMetaMaskConnected}
+              className="w-full px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 relative group"
+              title={!isMetaMaskConnected ? 'Connect MetaMask wallet first' : ''}
             >
               {isConnecting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span>Signing...</span>
+                </>
+              ) : !isMetaMaskConnected ? (
+                <>
+                  <Info className="h-4 w-4" />
+                  <span>Connect MetaMask First</span>
                 </>
               ) : (
                 <>
@@ -690,6 +733,11 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
             {/* Direct BIP-322 Sign button for Exodus */}
             <button
               onClick={async () => {
+                if (!isMetaMaskConnected) {
+                  setError('Please connect MetaMask wallet first to generate the verification message')
+                  return
+                }
+                
                 const message = document.querySelector<HTMLTextAreaElement>('textarea[name="message"]')?.value
                 if (!message) {
                   setError('Please enter a message to sign above')
@@ -699,13 +747,19 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
                 // Direct sign with Exodus
                 await signBIP322DirectlyWithExodus(message)
               }}
-              disabled={isConnecting || !wallets.find(w => w.name === 'Exodus')?.detected}
+              disabled={isConnecting || !wallets.find(w => w.name === 'Exodus')?.detected || !isMetaMaskConnected}
               className="w-full px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2"
+              title={!isMetaMaskConnected ? 'Connect MetaMask wallet first' : !wallets.find(w => w.name === 'Exodus')?.detected ? 'Exodus wallet not installed' : ''}
             >
               {isConnecting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span>Signing...</span>
+                </>
+              ) : !isMetaMaskConnected ? (
+                <>
+                  <Info className="h-4 w-4" />
+                  <span>Connect MetaMask First</span>
                 </>
               ) : (
                 <>
