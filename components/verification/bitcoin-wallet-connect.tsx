@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Wallet, CheckCircle, AlertCircle, Loader2, Smartphone, Monitor, ExternalLink } from 'lucide-react'
+import { Wallet, CheckCircle, AlertCircle, Loader2, Smartphone, ExternalLink } from 'lucide-react'
 
 interface BitcoinWallet {
   name: string
