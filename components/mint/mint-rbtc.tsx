@@ -218,18 +218,46 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500">
-      {/* Deposit FeeVault Component */}
-      <div id="fee-vault-section" className="transition-all duration-300 rounded-xl">
-        <DepositFeeVault />
+      {/* FeeVault Section with Title */}
+      <div className="space-y-4">
+        <div className="text-center space-y-4">
+          <div className="p-3 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
+            <Wallet className="h-8 w-8 text-amber-600 dark:text-amber-500" />
+          </div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-500 dark:to-orange-500 bg-clip-text text-transparent">
+            Oracle Fee Vault
+          </h1>
+          <p className="text-muted-foreground max-w-lg mx-auto">
+            Fund your vault to enable automatic Bitcoin synchronization
+          </p>
+        </div>
+        
+        {/* Deposit FeeVault Component */}
+        <div id="fee-vault-section" className="transition-all duration-300 rounded-xl">
+          <DepositFeeVault />
+        </div>
       </div>
       
-      <div className="text-center space-y-4">
-        <div className="p-3 bg-primary/20 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
-          <ArrowRight className="h-8 w-8 text-primary" />
+      {/* Divider */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
         </div>
-        <h1 className="text-3xl font-bold">Mint rBTC Token</h1>
-        <p className="text-muted-foreground">
-          Deposit Bitcoin to mint 1:1 backed rBTC on MegaETH
+        <div className="relative flex justify-center">
+          <span className="bg-background px-4 text-sm text-muted-foreground">THEN</span>
+        </div>
+      </div>
+      
+      {/* Mint Section */}
+      <div className="text-center space-y-4">
+        <div className="p-3 bg-gradient-to-br from-primary/20 to-blue-500/20 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
+          <Bitcoin className="h-8 w-8 text-primary" />
+        </div>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-blue-600 dark:from-primary dark:to-blue-500 bg-clip-text text-transparent">
+          Mint rBTC Token
+        </h1>
+        <p className="text-muted-foreground max-w-lg mx-auto">
+          Initialize automatic minting of 1:1 backed rBTC on MegaETH
         </p>
       </div>
 
