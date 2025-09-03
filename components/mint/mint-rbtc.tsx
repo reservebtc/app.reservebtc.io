@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowRight, AlertCircle, Loader2, CheckCircle, Info, Bitcoin, RefreshCw, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
+import { ArrowRight, AlertCircle, Loader2, CheckCircle, Info, Bitcoin, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Copy, Wallet } from 'lucide-react'
 import { mintFormSchema, MintForm } from '@/lib/validation-schemas'
 import { validateBitcoinAddress, getBitcoinAddressTypeLabel } from '@/lib/bitcoin-validation'
 import { useAccount } from 'wagmi'
@@ -24,7 +24,11 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const [showAutoSyncDetails, setShowAutoSyncDetails] = useState(false)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [showTermsDetails, setShowTermsDetails] = useState(false)
+  const [copiedAddress, setCopiedAddress] = useState(false)
   const { address, isConnected } = useAccount()
+  
+  // rBTC Token Contract Address
+  const RBTC_TOKEN_ADDRESS = '0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB'
 
   const {
     register,
@@ -105,6 +109,17 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
 
   // Convert BTC to satoshis (now using bitcoinBalance instead of amount)
   const amountInSatoshis = bitcoinBalance ? Math.round(bitcoinBalance * 100_000_000) : 0
+  
+  // Copy token address to clipboard
+  const copyTokenAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(RBTC_TOKEN_ADDRESS)
+      setCopiedAddress(true)
+      setTimeout(() => setCopiedAddress(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
 
   const onSubmit = async (data: MintForm) => {
     console.log('Mint form submitted with data:', {
@@ -607,6 +622,89 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             >
               Mint More
             </button>
+          </div>
+          
+          {/* Next Steps Instructions */}
+          <div className="mt-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-6 text-left space-y-4">
+            <div className="flex items-start space-x-3">
+              <div className="p-2 bg-blue-100 dark:bg-blue-800/50 rounded-full">
+                <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1 space-y-3">
+                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">
+                  Next Steps: Add rBTC to Your Wallet
+                </h3>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  To see your rBTC tokens in MetaMask, you need to add the token contract:
+                </p>
+                
+                <div className="bg-white/70 dark:bg-gray-900/70 rounded-lg p-4 space-y-3">
+                  <ol className="space-y-3 text-sm text-blue-800 dark:text-blue-200">
+                    <li className="flex items-start space-x-2">
+                      <span className="font-bold text-blue-600 dark:text-blue-400">1.</span>
+                      <span>Open MetaMask and click on "Import tokens" at the bottom</span>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <span className="font-bold text-blue-600 dark:text-blue-400">2.</span>
+                      <span>Select "Custom token" tab</span>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <span className="font-bold text-blue-600 dark:text-blue-400">3.</span>
+                      <div className="flex-1">
+                        <span>Paste the rBTC token contract address:</span>
+                        <div className="mt-2 flex items-center space-x-2">
+                          <code className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono break-all">
+                            {RBTC_TOKEN_ADDRESS}
+                          </code>
+                          <button
+                            onClick={copyTokenAddress}
+                            className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center"
+                            title="Copy address"
+                          >
+                            {copiedAddress ? (
+                              <CheckCircle className="h-4 w-4" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                        {copiedAddress && (
+                          <p className="mt-1 text-xs text-green-600 dark:text-green-400">
+                            ✓ Address copied to clipboard!
+                          </p>
+                        )}
+                      </div>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <span className="font-bold text-blue-600 dark:text-blue-400">4.</span>
+                      <span>Token symbol will auto-populate as "rBTC-SYNTH"</span>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <span className="font-bold text-blue-600 dark:text-blue-400">5.</span>
+                      <span>Decimals will auto-populate as "8" (Bitcoin standard)</span>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <span className="font-bold text-blue-600 dark:text-blue-400">6.</span>
+                      <span>Click "Next" then "Import" to add the token</span>
+                    </li>
+                  </ol>
+                </div>
+                
+                <div className="bg-amber-100/70 dark:bg-amber-900/30 rounded-lg p-3">
+                  <div className="flex items-start space-x-2">
+                    <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                    <div className="text-xs text-amber-700 dark:text-amber-300">
+                      <p className="font-medium mb-1">Important:</p>
+                      <ul className="space-y-1 list-disc list-inside">
+                        <li>Your rBTC balance will automatically update as Bitcoin moves in/out of your wallet</li>
+                        <li>Keep your FeeVault funded for continuous automatic synchronization</li>
+                        <li>You can transfer rBTC like any other ERC-20 token on MegaETH</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
