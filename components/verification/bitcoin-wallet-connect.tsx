@@ -142,74 +142,21 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
       } catch (err: any) {
         console.error('Primary connection failed:', err)
         
-        // Fallback for btc.js errors - use window.postMessage approach
+        // For btc.js errors, provide manual instructions
         if (err.toString().includes('btc.js') || err.message?.includes('Unexpected')) {
-          console.log('Detected btc.js error, trying alternative approach...')
+          console.log('Phantom Bitcoin API error detected')
           
-          // Alternative: Try to trigger connection through Phantom's general API
-          return new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-              setError('Connection timeout. Please try again.')
-              setIsConnecting(false)
-              reject(new Error('Connection timeout'))
-            }, 10000)
-            
-            // Listen for Phantom events
-            const handleMessage = (event: MessageEvent) => {
-              if (event.data?.type === 'phantom_bitcoin_connected') {
-                clearTimeout(timeout)
-                window.removeEventListener('message', handleMessage)
-                
-                const address = event.data.address
-                if (address) {
-                  console.log('Received Bitcoin address via message:', address)
-                  setSelectedWallet('Phantom')
-                  setWallets(prev => prev.map(w => 
-                    w.name === 'Phantom' 
-                      ? { ...w, address: address, type: 'unknown' }
-                      : w
-                  ))
-                  
-                  if (onWalletConnected) {
-                    onWalletConnected({
-                      name: 'Phantom',
-                      address: address
-                    })
-                  }
-                  setIsConnecting(false)
-                  resolve(undefined)
-                } else {
-                  setError('No Bitcoin address received')
-                  setIsConnecting(false)
-                  reject(new Error('No address received'))
-                }
-              }
-            }
-            
-            window.addEventListener('message', handleMessage)
-            
-            // Trigger Phantom popup directly
-            window.postMessage({
-              type: 'phantom_request_bitcoin',
-              method: 'connect'
-            }, '*')
-            
-            // Also try the direct API one more time
-            if (bitcoinAPI && typeof bitcoinAPI.requestAccounts === 'function') {
-              bitcoinAPI.requestAccounts()
-                .then((accs: any) => {
-                  if (accs) {
-                    clearTimeout(timeout)
-                    window.removeEventListener('message', handleMessage)
-                    handleAccounts(accs)
-                    resolve(undefined)
-                  }
-                })
-                .catch(() => {
-                  // Ignore, let message handler deal with it
-                })
-            }
-          })
+          // Set a specific error message with instructions
+          const manualInstructions = `Phantom Bitcoin connection is currently experiencing issues. 
+          
+Please try one of these options:
+1. Copy your Bitcoin address from Phantom manually
+2. Use Exodus wallet instead (recommended)
+3. Enter your address in the manual entry section below`
+          
+          setError(manualInstructions)
+          setIsConnecting(false)
+          return
         } else {
           throw err
         }
@@ -460,6 +407,20 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
             >
               {selectedWallet === 'Phantom' ? 'Connected' : 'Connect Phantom'}
             </button>
+            
+            {/* Show manual copy instructions if Phantom has issues */}
+            {error?.includes('Phantom Bitcoin connection') && (
+              <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-xs font-medium text-amber-900 mb-2">Connection Issue Detected</p>
+                <p className="text-xs text-amber-800 mb-2">Copy your Bitcoin address manually:</p>
+                <ol className="list-decimal list-inside text-xs text-amber-700 space-y-1">
+                  <li>Open Phantom extension</li>
+                  <li>Click Bitcoin icon at top</li>
+                  <li>Click address to copy</li>
+                  <li>Paste below in manual entry</li>
+                </ol>
+              </div>
+            )}
 
             {!wallets.find(w => w.name === 'Phantom')?.detected && (
               <a
@@ -529,8 +490,8 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
           </div>
         </div>
 
-        {/* Error Message */}
-        {error && (
+        {/* Error Message - hide for Phantom-specific issues as they're shown inline */}
+        {error && !error.includes('Phantom Bitcoin connection') && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
             <div className="flex items-start space-x-3">
               <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
