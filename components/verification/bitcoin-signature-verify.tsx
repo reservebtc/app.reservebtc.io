@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CheckCircle, AlertCircle, Copy, Check, ChevronDown, ChevronUp, Info } from 'lucide-react'
+import { CheckCircle, AlertCircle, Copy, Check, ChevronDown, ChevronUp, Info, ArrowRight, Rocket } from 'lucide-react'
 import { useAccount } from 'wagmi'
 import { Verifier } from 'bip322-js'
+import { useRouter } from 'next/navigation'
 
 interface BitcoinSignatureVerifyProps {
   onVerificationComplete?: (data: { address: string; signature: string; verified: boolean }) => void
@@ -20,6 +21,7 @@ interface WalletInstruction {
 
 export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignatureVerifyProps) {
   const { address: ethAddress, isConnected: isMetaMaskConnected } = useAccount()
+  const router = useRouter()
   const [bitcoinAddress, setBitcoinAddress] = useState('')
   const [signature, setSignature] = useState('')
   const [isVerifying, setIsVerifying] = useState(false)
@@ -27,6 +29,7 @@ export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignat
   const [copiedMessage, setCopiedMessage] = useState(false)
   const [showInstructions, setShowInstructions] = useState(false)
   const [activeWallet, setActiveWallet] = useState<string | null>(null)
+  const [verifiedAddress, setVerifiedAddress] = useState<string | null>(null)
 
   const message = ethAddress 
     ? `ReserveBTC Wallet Verification
@@ -131,6 +134,9 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
           success: true,
           message: successMessage
         })
+        
+        // Save verified address for navigation
+        setVerifiedAddress(cleanAddress)
         
         if (onVerificationComplete) {
           onVerificationComplete({
@@ -498,32 +504,52 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
 
           {/* Verification Result */}
           {verificationResult && (
-            <div className={`rounded-lg p-4 ${
-              verificationResult.success
-                ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
-                : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
-            }`}>
-              <div className="flex items-start space-x-3">
-                {verificationResult.success ? (
-                  <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                ) : (
-                  <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                )}
-                <div>
-                  <p className={`text-sm font-medium ${
-                    verificationResult.success
-                      ? 'text-green-800 dark:text-green-200'
-                      : 'text-red-800 dark:text-red-200'
-                  }`}>
-                    {verificationResult.message}
-                  </p>
-                  {verificationResult.success && bitcoinAddress && (
-                    <p className="text-xs text-green-700 dark:text-green-300 mt-1">
-                      Address: {bitcoinAddress}
-                    </p>
+            <div className="space-y-4">
+              <div className={`rounded-lg p-4 ${
+                verificationResult.success
+                  ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                  : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+              }`}>
+                <div className="flex items-start space-x-3">
+                  {verificationResult.success ? (
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
                   )}
+                  <div className="flex-1">
+                    <p className={`text-sm font-medium ${
+                      verificationResult.success
+                        ? 'text-green-800 dark:text-green-200'
+                        : 'text-red-800 dark:text-red-200'
+                    }`}>
+                      {verificationResult.message}
+                    </p>
+                    {verificationResult.success && bitcoinAddress && (
+                      <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                        Address: {bitcoinAddress}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {/* Continue to Mint Button - Only shown on successful verification */}
+              {verificationResult.success && (
+                <button
+                  onClick={() => {
+                    // Save verified address to localStorage for mint page
+                    if (verifiedAddress) {
+                      localStorage.setItem('verifiedBitcoinAddress', verifiedAddress)
+                    }
+                    router.push('/mint')
+                  }}
+                  className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl flex items-center justify-center gap-2 sm:gap-3 group"
+                >
+                  <Rocket className="h-4 sm:h-5 w-4 sm:w-5 group-hover:rotate-12 transition-transform" />
+                  <span className="text-base sm:text-lg">Continue to Mint rBTC</span>
+                  <ArrowRight className="h-4 sm:h-5 w-4 sm:w-5 group-hover:translate-x-1 transition-transform" />
+                </button>
+              )}
             </div>
           )}
         </>
