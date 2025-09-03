@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { CheckCircle, AlertCircle, Loader2, Copy, RefreshCw } from 'lucide-react'
 import { walletVerificationSchema, WalletVerificationForm } from '@/lib/validation-schemas'
 import { validateBitcoinAddress, getBitcoinAddressTypeLabel } from '@/lib/bitcoin-validation'
 import { useAccount } from 'wagmi'
@@ -15,7 +15,15 @@ interface WalletVerificationProps {
 export function WalletVerification({ onVerificationComplete }: WalletVerificationProps) {
   const [isVerifying, setIsVerifying] = useState(false)
   const [verificationStatus, setVerificationStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [messageCopied, setMessageCopied] = useState(false)
   const { address } = useAccount()
+
+  // Generate a standardized message with timestamp for uniqueness
+  const generateVerificationMessage = () => {
+    const timestamp = Math.floor(Date.now() / 1000)
+    const ethAddr = address || 'pending'
+    return `ReserveBTC Wallet Verification\nTimestamp: ${timestamp}\nMegaETH Address: ${ethAddr}\nI confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
+  }
 
   const {
     register,
@@ -27,11 +35,23 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
     mode: 'onChange',
     defaultValues: {
       ethereumAddress: address || '',
+      message: generateVerificationMessage(),
     }
   })
 
   const bitcoinAddress = watch('bitcoinAddress')
+  const message = watch('message')
   const bitcoinValidation = bitcoinAddress ? validateBitcoinAddress(bitcoinAddress) : null
+
+  const copyMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(message)
+      setMessageCopied(true)
+      setTimeout(() => setMessageCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy message:', err)
+    }
+  }
 
   const onSubmit = async (data: WalletVerificationForm) => {
     setIsVerifying(true)
@@ -120,12 +140,41 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
 
           {/* Message */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Message to Sign</label>
-            <textarea
-              {...register('message')}
-              placeholder="Enter the message you want to sign..."
-              className="w-full px-4 py-3 border rounded-lg bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors h-24 resize-none"
-            />
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Message to Sign</label>
+              <button
+                type="button"
+                onClick={copyMessage}
+                className="flex items-center space-x-1 text-xs text-primary hover:text-primary/80 transition-colors"
+              >
+                {messageCopied ? (
+                  <>
+                    <CheckCircle className="h-3 w-3" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3" />
+                    <span>Copy Message</span>
+                  </>
+                )}
+              </button>
+            </div>
+            <div className="relative">
+              <textarea
+                {...register('message')}
+                className="w-full px-4 py-3 border rounded-lg bg-muted/50 text-muted-foreground transition-colors h-24 resize-none font-mono text-xs"
+                readOnly
+              />
+              <div className="absolute top-2 right-2">
+                <div className="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs px-2 py-1 rounded">
+                  Auto-generated
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              This message is automatically generated and includes a timestamp for security. Copy it to sign in your Bitcoin wallet.
+            </p>
             {errors.message && (
               <div className="flex items-center space-x-2 text-sm text-destructive animate-in fade-in slide-in-from-left-2 duration-200">
                 <AlertCircle className="h-4 w-4" />
@@ -250,11 +299,12 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
               </h4>
               <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground ml-8">
                 <li>Open Sparrow Wallet and load your wallet</li>
+                <li>Click "Copy Message" button above to copy the auto-generated message</li>
                 <li>Go to <code className="bg-muted px-2 py-1 rounded text-xs">Tools → Sign/Verify Message</code></li>
                 <li>Enter your Bitcoin address in the "Address" field</li>
-                <li>Type your message in the "Message" field</li>
+                <li>Paste the copied message in the "Message" field</li>
                 <li>Click "Sign Message" to generate BIP-322 signature</li>
-                <li>Copy the signature and paste it in the form above</li>
+                <li>Copy the signature and paste it in the "BIP-322 Signature" field above</li>
               </ol>
             </div>
 
@@ -266,11 +316,12 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
               </h4>
               <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground ml-8">
                 <li>Open Electrum and load your wallet</li>
+                <li>Click "Copy Message" button above to copy the auto-generated message</li>
                 <li>Go to <code className="bg-muted px-2 py-1 rounded text-xs">Tools → Sign/Verify Message</code></li>
                 <li>Select your address from the dropdown</li>
-                <li>Enter your message in the message field</li>
+                <li>Paste the copied message in the "Message" field</li>
                 <li>Click "Sign" to create the signature</li>
-                <li>Copy the signature to the form above</li>
+                <li>Copy the signature and paste it in the "BIP-322 Signature" field above</li>
               </ol>
             </div>
 
@@ -282,10 +333,11 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
               </h4>
               <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground ml-8">
                 <li>Connect your hardware wallet to Sparrow Wallet</li>
+                <li>Click "Copy Message" button above to copy the auto-generated message</li>
                 <li>Ensure your device is unlocked and Bitcoin app is open</li>
                 <li>Follow the Sparrow Wallet instructions above</li>
                 <li>Confirm the signature on your hardware device</li>
-                <li>Copy the generated BIP-322 signature</li>
+                <li>Copy the generated BIP-322 signature and paste it above</li>
               </ol>
             </div>
           </div>
