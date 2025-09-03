@@ -414,12 +414,27 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
           } catch (reqErr: any) {
             console.log('requestAccounts errored:', reqErr.message)
             // Even if it errors, connection might be established
-            // Check if we now have accounts
-            await new Promise(resolve => setTimeout(resolve, 500)) // Wait a bit
+            // Wait and try to get address in different ways
+            await new Promise(resolve => setTimeout(resolve, 1000)) // Wait longer
+            
+            // Check various properties where address might be
+            console.log('Checking for address after connection...')
+            console.log('bitcoinAPI.accounts:', bitcoinAPI.accounts)
+            console.log('bitcoinAPI.selectedAddress:', (bitcoinAPI as any).selectedAddress)
+            console.log('bitcoinAPI.publicKey:', (bitcoinAPI as any).publicKey)
+            console.log('bitcoinAPI._accounts:', (bitcoinAPI as any)._accounts)
+            
             if (bitcoinAPI.accounts && bitcoinAPI.accounts.length > 0) {
               address = bitcoinAPI.accounts[0]
-              console.log('Got address after error:', address)
+            } else if ((bitcoinAPI as any).selectedAddress) {
+              address = (bitcoinAPI as any).selectedAddress
+            } else if ((bitcoinAPI as any).publicKey) {
+              address = (bitcoinAPI as any).publicKey
+            } else if ((bitcoinAPI as any)._accounts && (bitcoinAPI as any)._accounts.length > 0) {
+              address = (bitcoinAPI as any)._accounts[0]
             }
+            
+            console.log('Got address after error:', address)
           }
         }
         
@@ -544,12 +559,30 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
         
         setError(null)
         return signature
-      } else if (typeof bitcoinAPI.signPsbt === 'function') {
-        console.log('signMessage not available, trying signPsbt for BIP-322...')
+      } else if (typeof bitcoinAPI.signPSBT === 'function' || typeof bitcoinAPI.signPsbt === 'function') {
+        console.log('signMessage not working, trying PSBT approach...')
         
-        // BIP-322 can be done through PSBT signing
-        // This is more complex but might work if signMessage doesn't
-        throw new Error('BIP-322 via PSBT not yet implemented. Please try manual entry.')
+        // For now, create a simple message signing request via PSBT
+        // This is a workaround since signMessage doesn't work
+        try {
+          // Create a dummy PSBT for message signing
+          // In real implementation, we'd create a proper BIP-322 PSBT
+          const psbtBase64 = 'cHNidP8BAAoCAAAAAAAAAAAAAA==' // Minimal valid PSBT
+          
+          const signMethod = bitcoinAPI.signPSBT || bitcoinAPI.signPsbt
+          console.log('Attempting PSBT signing...')
+          
+          const result = await signMethod(psbtBase64)
+          console.log('PSBT result:', result)
+          
+          // For now, we can't get a proper BIP-322 signature this way
+          // But at least we know the wallet is connected and working
+          throw new Error('Please use manual entry. Phantom BIP-322 is not fully supported yet.')
+          
+        } catch (err: any) {
+          console.error('PSBT signing failed:', err)
+          throw new Error('Phantom BIP-322 signing is not working. Please enter signature manually.')
+        }
         
       } else if (typeof bitcoinAPI.request === 'function') {
         console.log('Using request method for signing')
@@ -588,7 +621,14 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
       
     } catch (err: any) {
       console.error('Direct signing failed:', err)
-      setError(`Signing failed: ${err.message}`)
+      
+      // Check if connection was successful even if signing failed
+      if (err.message?.includes('manual entry') || err.message?.includes('not fully supported')) {
+        setError('Phantom wallet connected successfully! However, BIP-322 signing is not fully supported. Please copy your Bitcoin address from Phantom and enter the signature manually.')
+      } else {
+        setError(`Signing failed: ${err.message}`)
+      }
+      
       return null
     } finally {
       setIsConnecting(false)
