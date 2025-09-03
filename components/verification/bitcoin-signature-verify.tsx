@@ -241,7 +241,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
               placeholder="bc1q... or 3... or 1..."
               value={bitcoinAddress}
               onChange={(e) => setBitcoinAddress(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full px-3 py-2 border rounded-lg bg-background dark:bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 dark:border-gray-700"
             />
           </div>
 
@@ -253,7 +253,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
               value={signature}
               onChange={(e) => setSignature(e.target.value)}
               rows={4}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono text-sm"
+              className="w-full px-3 py-2 border rounded-lg bg-background dark:bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 dark:border-gray-700 font-mono text-sm"
             />
           </div>
 
