@@ -224,8 +224,10 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           <div className="p-3 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
             <Wallet className="h-8 w-8 text-amber-600 dark:text-amber-500" />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-500 dark:to-orange-500 bg-clip-text text-transparent">
-            Oracle Fee Vault
+          <h1 className="text-3xl font-bold">
+            <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 bg-clip-text text-transparent">
+              Oracle Fee Vault
+            </span>
           </h1>
           <p className="text-muted-foreground max-w-lg mx-auto">
             Fund your vault to enable automatic Bitcoin synchronization
@@ -253,8 +255,10 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         <div className="p-3 bg-gradient-to-br from-primary/20 to-blue-500/20 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
           <Bitcoin className="h-8 w-8 text-primary" />
         </div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-blue-600 dark:from-primary dark:to-blue-500 bg-clip-text text-transparent">
-          Mint rBTC Token
+        <h1 className="text-3xl font-bold">
+          <span className="bg-gradient-to-r from-blue-500 via-primary to-blue-600 bg-clip-text text-transparent">
+            Mint rBTC Token
+          </span>
         </h1>
         <p className="text-muted-foreground max-w-lg mx-auto">
           Initialize automatic minting of 1:1 backed rBTC on MegaETH
