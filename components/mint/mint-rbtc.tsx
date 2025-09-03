@@ -68,7 +68,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           const balanceSats = (data.chain_stats.funded_txo_sum - data.chain_stats.spent_txo_sum) || 0
           const balanceBTC = balanceSats / 100_000_000
           setBitcoinBalance(balanceBTC)
-          setValue('amount', balanceBTC.toFixed(8))
+          setValue('amount', balanceBTC.toString())
         }
       } else {
         // Mainnet API
@@ -77,7 +77,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           const data = await response.json()
           const balanceBTC = (data.final_balance || 0) / 100_000_000
           setBitcoinBalance(balanceBTC)
-          setValue('amount', balanceBTC.toFixed(8))
+          setValue('amount', balanceBTC.toString())
         }
       }
     } catch (error) {
@@ -103,10 +103,20 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const amountInSatoshis = bitcoinBalance ? Math.round(bitcoinBalance * 100_000_000) : 0
 
   const onSubmit = async (data: MintForm) => {
+    console.log('Mint form submitted with data:', {
+      amount: data.amount,
+      bitcoinAddress: data.bitcoinAddress,
+      verifiedBitcoinAddress,
+      bitcoinBalance,
+      address
+    })
+    
     // First check FeeVault balance
     const feeVaultBalance = localStorage.getItem(`feeVault_deposited_${address}`)
+    console.log('FeeVault deposit status:', feeVaultBalance, 'for address:', address)
     
     if (!feeVaultBalance || feeVaultBalance !== 'true') {
+      console.log('FeeVault not deposited, showing warning')
       // Show FeeVault warning instead of minting
       setShowFeeVaultWarning(true)
       // Smooth scroll to FeeVault component with a slight delay for visual feedback
@@ -126,6 +136,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       return
     }
 
+    console.log('FeeVault verified, proceeding with mint')
     setIsMinting(true)
     setMintStatus('pending')
     setShowFeeVaultWarning(false)
@@ -135,6 +146,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       // The Oracle will automatically sync when it detects Bitcoin balance changes
       // This is a simulation for testnet - in production, the Oracle service handles this
       
+      console.log('Starting mint simulation...')
       await new Promise(resolve => setTimeout(resolve, 2000))
       
       // Generate a mock transaction hash for testnet
@@ -217,8 +229,8 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                   {...register('amount')}
                   type="text"
                   readOnly
+                  value={amount || bitcoinBalance.toFixed(8)}
                   className="w-full px-4 py-3 border rounded-lg bg-muted/50 cursor-not-allowed pr-16 font-mono"
-                  value={isLoadingBalance ? 'Loading...' : `${bitcoinBalance.toFixed(8)}`}
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                   BTC
@@ -246,7 +258,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                 {...register('bitcoinAddress')}
                 type="text"
                 readOnly
-                value={verifiedBitcoinAddress || 'No verified address'}
+                value={bitcoinAddress || verifiedBitcoinAddress || ''}
                 className="w-full px-4 py-3 border rounded-lg bg-muted/50 cursor-not-allowed font-mono text-sm"
               />
               {bitcoinValidation?.isValid && (
@@ -572,21 +584,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         </div>
       )}
 
-      {/* Important Notice */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
-        <div className="flex items-start space-x-3">
-          <Info className="h-5 w-5 text-blue-600 mt-0.5" />
-          <div className="space-y-2">
-            <h3 className="font-medium text-blue-900 dark:text-blue-100">
-              Important: Bitcoin stays in your wallet
-            </h3>
-            <p className="text-sm text-blue-700 dark:text-blue-300">
-              ReserveBTC uses advanced cryptographic proofs to verify your Bitcoin ownership. 
-              Your Bitcoin remains secure in your wallet while you receive 1:1 backed rBTC tokens on MegaETH.
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }
