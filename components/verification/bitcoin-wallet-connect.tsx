@@ -404,32 +404,53 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
       } else {
         console.log('Not connected, attempting to connect...')
         
-        // Try different connection methods
-        try {
-          // Method 1: connect()
-          if (typeof bitcoinAPI.connect === 'function') {
-            console.log('Using connect() method')
-            const result = await bitcoinAPI.connect()
-            address = result?.accounts?.[0] || result?.address || result
-          }
-        } catch (err: any) {
-          console.log('connect() failed:', err.message)
-          
-          // Method 2: Try enabling Bitcoin
+        // For Phantom, we MUST call requestAccounts to trigger connection
+        if (typeof bitcoinAPI.requestAccounts === 'function') {
+          console.log('Calling requestAccounts to trigger connection...')
           try {
-            if (typeof bitcoinAPI.enable === 'function') {
-              console.log('Using enable() method')
-              const result = await bitcoinAPI.enable()
-              address = Array.isArray(result) ? result[0] : result
+            const accounts = await bitcoinAPI.requestAccounts()
+            address = Array.isArray(accounts) ? accounts[0] : accounts
+            console.log('requestAccounts succeeded:', address)
+          } catch (reqErr: any) {
+            console.log('requestAccounts errored:', reqErr.message)
+            // Even if it errors, connection might be established
+            // Check if we now have accounts
+            await new Promise(resolve => setTimeout(resolve, 500)) // Wait a bit
+            if (bitcoinAPI.accounts && bitcoinAPI.accounts.length > 0) {
+              address = bitcoinAPI.accounts[0]
+              console.log('Got address after error:', address)
             }
-          } catch (err2: any) {
-            console.log('enable() failed:', err2.message)
+          }
+        }
+        
+        // If still no address, try other methods
+        if (!address) {
+          try {
+            // Method 1: connect()
+            if (typeof bitcoinAPI.connect === 'function') {
+              console.log('Using connect() method')
+              const result = await bitcoinAPI.connect()
+              address = result?.accounts?.[0] || result?.address || result
+            }
+          } catch (err: any) {
+            console.log('connect() failed:', err.message)
             
-            // Method 3: Try getAccounts
-            if (typeof bitcoinAPI.getAccounts === 'function') {
-              console.log('Using getAccounts() method')
-              const accounts = await bitcoinAPI.getAccounts()
-              address = accounts?.[0]
+            // Method 2: Try enabling Bitcoin
+            try {
+              if (typeof bitcoinAPI.enable === 'function') {
+                console.log('Using enable() method')
+                const result = await bitcoinAPI.enable()
+                address = Array.isArray(result) ? result[0] : result
+              }
+            } catch (err2: any) {
+              console.log('enable() failed:', err2.message)
+              
+              // Method 3: Try getAccounts
+              if (typeof bitcoinAPI.getAccounts === 'function') {
+                console.log('Using getAccounts() method')
+                const accounts = await bitcoinAPI.getAccounts()
+                address = accounts?.[0]
+              }
             }
           }
         }
@@ -443,44 +464,69 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
       
       if (typeof bitcoinAPI.signMessage === 'function') {
         console.log('Using signMessage for BIP-322')
+        console.log('Message to sign:', message)
+        console.log('Address available:', address)
         
-        // Phantom Bitcoin signMessage expects specific format
-        // According to Phantom docs: signMessage(message: string)
-        // The message should be a plain string, not Uint8Array
-        
-        try {
-          console.log('Attempting to sign message:', message)
-          
-          // Phantom's signMessage for Bitcoin expects just the message string
-          // It will handle the address internally after connection
-          const result = await bitcoinAPI.signMessage(message)
-          
-          console.log('Sign result:', result)
-          
-          // Extract signature from result
-          if (typeof result === 'string') {
-            signature = result
-          } else if (result && typeof result === 'object') {
-            signature = result.signature || result.bip322 || result.bip322Signature || result.sig
+        // Try different parameter formats for Phantom Bitcoin
+        const attempts = [
+          // Format 1: Object with message and address
+          async () => {
+            console.log('Attempt 1: Object format')
+            return await bitcoinAPI.signMessage({
+              message: message,
+              address: address || undefined,
+              protocol: 'BIP322'
+            })
+          },
+          // Format 2: Just message object
+          async () => {
+            console.log('Attempt 2: Message object')
+            return await bitcoinAPI.signMessage({
+              message: message
+            })
+          },
+          // Format 3: Address and message as separate params
+          async () => {
+            if (!address) throw new Error('No address for this attempt')
+            console.log('Attempt 3: Address, message params')
+            return await bitcoinAPI.signMessage(address, message)
+          },
+          // Format 4: Message as Uint8Array with address
+          async () => {
+            if (!address) throw new Error('No address for this attempt')
+            console.log('Attempt 4: Address, Uint8Array')
+            const messageBytes = new TextEncoder().encode(message)
+            return await bitcoinAPI.signMessage(address, messageBytes)
+          },
+          // Format 5: Just message string
+          async () => {
+            console.log('Attempt 5: Just message string')
+            return await bitcoinAPI.signMessage(message)
           }
-          
-        } catch (err: any) {
-          console.error('signMessage failed:', err)
-          
-          // If that fails, try with address if we have it
-          if (address) {
-            console.log('Retrying with address parameter:', address)
-            try {
-              // Some versions might expect (address, message)
-              const result = await bitcoinAPI.signMessage(address, message)
-              signature = typeof result === 'string' ? result : (result?.signature || result?.bip322)
-            } catch (err2: any) {
-              console.error('Sign with address also failed:', err2)
-              throw new Error('Unable to sign message. Please ensure Phantom is unlocked and Bitcoin is enabled.')
+        ]
+        
+        let lastError = null
+        for (let i = 0; i < attempts.length; i++) {
+          try {
+            const result = await attempts[i]()
+            console.log(`Attempt ${i + 1} succeeded:`, result)
+            
+            // Extract signature
+            if (typeof result === 'string') {
+              signature = result
+            } else if (result && typeof result === 'object') {
+              signature = result.signature || result.bip322 || result.bip322Signature || result.sig || result.result
             }
-          } else {
-            throw err
+            
+            if (signature) break
+          } catch (err: any) {
+            console.log(`Attempt ${i + 1} failed:`, err.message)
+            lastError = err
           }
+        }
+        
+        if (!signature && lastError) {
+          throw lastError
         }
         
         console.log('BIP-322 signature obtained:', signature)
