@@ -780,16 +780,19 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       )}
 
       {mintStatus === 'already-syncing' && (
-        <div className="bg-card border rounded-xl p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
+        <div className="bg-card border rounded-xl p-8 space-y-6 animate-in fade-in zoom-in-95 duration-300">
           <div className="p-4 bg-blue-100 dark:bg-blue-900/20 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
             <RefreshCw className="h-10 w-10 text-blue-600 animate-pulse" />
           </div>
-          <div className="space-y-2">
-            <h2 className="text-xl font-semibold">Automatic Sync Active</h2>
-            <p className="text-muted-foreground">
-              Oracle is already automatically syncing your Bitcoin balance.
-            </p>
-            <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 text-left max-w-md mx-auto mt-4">
+          <div className="space-y-4">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold">Automatic Sync Active</h2>
+              <p className="text-muted-foreground">
+                Oracle is already automatically syncing your Bitcoin balance.
+              </p>
+            </div>
+            
+            <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 text-left max-w-2xl mx-auto">
               <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
                 <strong>✅ Good news!</strong> Your wallet is already in automatic sync mode.
               </p>
@@ -803,14 +806,92 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                 ⚠️ Keep your FeeVault funded to ensure continuous operation
               </p>
             </div>
+
+            {/* Next Steps - Add Tokens to MetaMask */}
+            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200 dark:border-indigo-700 rounded-xl p-5 text-left max-w-2xl mx-auto">
+              <div className="flex items-start space-x-3">
+                <div className="p-2 bg-indigo-100 dark:bg-indigo-800/50 rounded-full">
+                  <Wallet className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div className="flex-1 space-y-3">
+                  <h3 className="text-base font-semibold text-indigo-900 dark:text-indigo-100">
+                    Next Steps: View Your Tokens in MetaMask
+                  </h3>
+                  
+                  {/* rBTC Token */}
+                  <div className="bg-white/70 dark:bg-gray-900/70 rounded-lg p-3 space-y-2">
+                    <p className="text-sm font-medium text-indigo-800 dark:text-indigo-200">
+                      1. Add rBTC-SYNTH (Soulbound, auto-syncs with Bitcoin)
+                    </p>
+                    <div className="flex items-center space-x-2">
+                      <code className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">
+                        {RBTC_TOKEN_ADDRESS}
+                      </code>
+                      <button
+                        onClick={copyTokenAddress}
+                        className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors"
+                        title="Copy rBTC address"
+                      >
+                        {copiedAddress ? (
+                          <CheckCircle className="h-3.5 w-3.5" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      Symbol: rBTC-SYNTH | Decimals: 8 | Non-transferable
+                    </p>
+                  </div>
+
+                  {/* wrBTC Token */}
+                  <div className="bg-white/70 dark:bg-gray-900/70 rounded-lg p-3 space-y-2">
+                    <p className="text-sm font-medium text-purple-800 dark:text-purple-200">
+                      2. Add wrBTC (Transferable wrapped version)
+                    </p>
+                    <div className="flex items-center space-x-2">
+                      <code className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">
+                        {WRBTC_TOKEN_ADDRESS}
+                      </code>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(WRBTC_TOKEN_ADDRESS)
+                            // Quick visual feedback
+                          } catch (err) {
+                            console.error('Failed to copy:', err)
+                          }
+                        }}
+                        className="p-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors"
+                        title="Copy wrBTC address"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      Symbol: wrBTC | Decimals: 8 | Transferable ERC-20
+                    </p>
+                  </div>
+
+                  {/* How to wrap info */}
+                  <div className="bg-amber-50/70 dark:bg-amber-900/20 rounded-lg p-3">
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      <strong>💡 Tip:</strong> You can wrap rBTC → wrBTC anytime to make it transferable, 
+                      then unwrap back to rBTC when needed (1:1 ratio, no fees).
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
+          
           <button
             onClick={() => {
               setMintStatus('idle')
             }}
-            className="px-6 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-lg transition-colors"
+            className="px-6 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg font-medium transition-colors"
           >
-            Got it
+            Continue
           </button>
         </div>
       )}
