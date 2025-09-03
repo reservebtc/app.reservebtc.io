@@ -109,11 +109,20 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     if (!feeVaultBalance || feeVaultBalance !== 'true') {
       // Show FeeVault warning instead of minting
       setShowFeeVaultWarning(true)
-      // Scroll to FeeVault component
-      const feeVaultElement = document.querySelector('#fee-vault-section')
-      if (feeVaultElement) {
-        feeVaultElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
+      // Smooth scroll to FeeVault component with a slight delay for visual feedback
+      setTimeout(() => {
+        const feeVaultElement = document.querySelector('#fee-vault-section')
+        if (feeVaultElement) {
+          // Add visual highlight effect
+          feeVaultElement.classList.add('ring-2', 'ring-amber-500', 'ring-offset-2')
+          feeVaultElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          
+          // Remove highlight after animation
+          setTimeout(() => {
+            feeVaultElement.classList.remove('ring-2', 'ring-amber-500', 'ring-offset-2')
+          }, 3000)
+        }
+      }, 100)
       return
     }
 
@@ -169,7 +178,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   return (
     <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500">
       {/* Deposit FeeVault Component */}
-      <div id="fee-vault-section">
+      <div id="fee-vault-section" className="transition-all duration-300 rounded-xl">
         <DepositFeeVault />
       </div>
       
@@ -182,36 +191,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           Deposit Bitcoin to mint 1:1 backed rBTC on MegaETH
         </p>
       </div>
-
-      {/* Fee Vault Warning Message */}
-      {showFeeVaultWarning && mintStatus === 'idle' && (
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-2 border-amber-400 dark:border-amber-600 rounded-xl p-6 space-y-4 animate-in fade-in slide-in-from-top duration-500">
-          <div className="flex items-start space-x-3">
-            <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400 mt-0.5 animate-pulse" />
-            <div className="flex-1 space-y-3">
-              <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-100">
-                Fee Vault Deposit Required
-              </h3>
-              <p className="text-amber-800 dark:text-amber-200">
-                To start minting rBTC, you need to deposit ETH to your Fee Vault. This covers the Oracle fees for syncing your Bitcoin balance.
-              </p>
-              <div className="bg-white/60 dark:bg-gray-900/60 rounded-lg p-4 space-y-2">
-                <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">
-                  Quick Start:
-                </p>
-                <ul className="text-sm text-amber-600 dark:text-amber-400 space-y-1 list-disc list-inside ml-2">
-                  <li>Minimum deposit: 0.01 ETH (~5 operations)</li>
-                  <li>Recommended: 0.25 ETH (~100 operations)</li>
-                  <li>The deposit is refundable anytime</li>
-                </ul>
-              </div>
-              <p className="text-xs text-amber-600 dark:text-amber-400">
-                ↑ Please scroll up and deposit to the Fee Vault above to continue
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {mintStatus === 'idle' && (
         <div className="bg-card border rounded-xl p-8 space-y-6">
@@ -303,6 +282,49 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>Network:</span>
                     <span>{verifiedBitcoinAddress.startsWith('tb1') ? 'Testnet' : 'Mainnet'}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* FeeVault Warning - Show inline when trying to mint without deposit */}
+            {showFeeVaultWarning && (
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 border-2 border-amber-500 dark:border-amber-600 rounded-xl p-4 space-y-3 animate-in fade-in slide-in-from-bottom duration-500">
+                <div className="flex items-start space-x-3">
+                  <div className="p-2 bg-amber-100 dark:bg-amber-800/50 rounded-full animate-pulse">
+                    <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <h4 className="text-base font-semibold text-amber-900 dark:text-amber-100">
+                      Action Required: Deposit to Fee Vault First
+                    </h4>
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      Before you can mint rBTC, you need to deposit ETH to the Fee Vault. This covers Oracle fees for automatic Bitcoin synchronization.
+                    </p>
+                    <div className="flex items-center justify-between bg-white/60 dark:bg-gray-900/60 rounded-lg p-3">
+                      <div className="text-xs space-y-1">
+                        <p className="text-amber-700 dark:text-amber-300 font-medium">Quick deposit options:</p>
+                        <p className="text-amber-600 dark:text-amber-400">• Minimum: 0.01 ETH</p>
+                        <p className="text-amber-600 dark:text-amber-400">• Recommended: 0.25 ETH</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const feeVaultElement = document.querySelector('#fee-vault-section')
+                          if (feeVaultElement) {
+                            feeVaultElement.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'transition-all')
+                            feeVaultElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                            setTimeout(() => {
+                              feeVaultElement.classList.remove('ring-2', 'ring-primary', 'ring-offset-2')
+                            }, 3000)
+                          }
+                        }}
+                        className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                      >
+                        <ArrowRight className="h-4 w-4" />
+                        Go to Fee Vault
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
