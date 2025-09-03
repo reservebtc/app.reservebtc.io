@@ -88,11 +88,15 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
       recommended: true,
       steps: [
         'Open Sparrow Wallet',
+        'Copy your Bitcoin address from Addresses tab',
+        'Paste this address in Step 3 field on this page',
         'Go to Tools → Sign/Verify Message (or press Ctrl+M)',
-        'Enter your Bitcoin address',
-        'Paste the message from above',
-        'Click "Sign"',
-        'Copy the signature and paste below'
+        'In Address field: paste your Bitcoin address',
+        'In Message field: paste message from Step 1',
+        'Click "Sign" button',
+        'Copy the signature',
+        'Paste signature in Step 4 field on this page',
+        'Click "Verify Ownership" button to complete'
       ],
       testnet: [
         'Open Sparrow → Tools → Restart in Testnet',
@@ -116,16 +120,29 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
       icon: '💎',
       steps: [
         'Connect hardware wallet to Sparrow or Electrum',
+        'Copy address from your hardware wallet',
+        'Paste this address in Step 3 field on this page',
         'Open Tools → Sign/Verify Message',
         'Select address from your hardware wallet',
+        'Paste message from Step 1',
         'Sign message on device',
-        'Copy the signature'
+        'Copy the signature',
+        'Paste signature in Step 4 field on this page',
+        'Click "Verify Ownership" button to complete'
       ],
       testnet: [
         'In Sparrow: Enable testnet first (see Sparrow instructions)',
         'Connect your hardware wallet',
         'Hardware wallet will work with testnet automatically',
-        'For Trezor: Enable testnet in Trezor Suite settings'
+        'For Trezor: Enable testnet in Trezor Suite settings',
+        'Go to Addresses tab in Sparrow',
+        'Copy any testnet address',
+        'Paste this address in Step 3 field on this page',
+        'Go to Tools → Sign/Verify Message',
+        'Sign with hardware wallet confirmation',
+        'Copy the signature',
+        'Paste signature in Step 4 field on this page',
+        'Click "Verify Ownership" button to complete'
       ]
     },
     {
@@ -134,16 +151,30 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
       icon: '⚡',
       steps: [
         'Open Electrum wallet',
+        'Copy your Bitcoin address from Addresses tab',
+        'Paste this address in Step 3 field on this page',
         'Go to Tools → Sign/Verify Message',
-        'Enter address and paste message',
-        'Click Sign',
-        'Copy the signature'
+        'In Address field: enter your Bitcoin address',
+        'In Message field: paste message from Step 1',
+        'Click "Sign" button',
+        'Copy the signature',
+        'Paste signature in Step 4 field on this page',
+        'Click "Verify Ownership" button to complete'
       ],
       testnet: [
         'Run Electrum with --testnet flag',
         'Or download Electrum Testnet version',
         'Create new wallet for testnet',
-        'Testnet addresses: tb1... or 2... or m/n...'
+        'Go to Addresses tab',
+        'Copy any testnet address (tb1... or 2... or m/n...)',
+        'Paste this address in Step 3 field on this page',
+        'Go to Tools → Sign/Verify Message',
+        'In Address field: paste your testnet address',
+        'In Message field: paste message from Step 1',
+        'Click "Sign" button',
+        'Copy the signature',
+        'Paste signature in Step 4 field on this page',
+        'Click "Verify Ownership" button to complete'
       ]
     },
     {
@@ -152,16 +183,30 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
       icon: '₿',
       steps: [
         'Open Bitcoin Core',
+        'Go to Receive tab and copy your address',
+        'Paste this address in Step 3 field on this page',
         'Go to File → Sign Message',
-        'Select your address',
-        'Paste the message',
-        'Sign and copy signature'
+        'In Address field: select your address',
+        'In Message field: paste message from Step 1',
+        'Click "Sign Message" button',
+        'Copy the signature',
+        'Paste signature in Step 4 field on this page',
+        'Click "Verify Ownership" button to complete'
       ],
       testnet: [
         'Start Bitcoin Core with -testnet flag',
         'Or add testnet=1 to bitcoin.conf',
         'Restart Bitcoin Core',
-        'Generate testnet address in Receive tab'
+        'Go to Receive tab and generate new testnet address',
+        'Copy the testnet address',
+        'Paste this address in Step 3 field on this page',
+        'Go to File → Sign Message',
+        'In Address field: select your testnet address',
+        'In Message field: paste message from Step 1',
+        'Click "Sign Message" button',
+        'Copy the signature',
+        'Paste signature in Step 4 field on this page',
+        'Click "Verify Ownership" button to complete'
       ]
     }
   ]
