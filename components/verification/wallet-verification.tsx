@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CheckCircle, AlertCircle, Loader2, Copy, RefreshCw } from 'lucide-react'
@@ -19,29 +19,40 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
   const { address } = useAccount()
 
   // Generate a standardized message with timestamp for uniqueness
-  const generateVerificationMessage = () => {
+  const generateVerificationMessage = (ethAddress?: string) => {
     const timestamp = Math.floor(Date.now() / 1000)
-    const ethAddr = address || 'pending'
-    return `ReserveBTC Wallet Verification\nTimestamp: ${timestamp}\nMegaETH Address: ${ethAddr}\nI confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
+    if (!ethAddress) {
+      return `ReserveBTC Wallet Verification\nTimestamp: ${timestamp}\n[Connect wallet to include MegaETH address]\nI confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
+    }
+    return `ReserveBTC Wallet Verification\nTimestamp: ${timestamp}\nMegaETH Address: ${ethAddress}\nI confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
   }
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isValid }
   } = useForm<WalletVerificationForm>({
     resolver: zodResolver(walletVerificationSchema),
     mode: 'onChange',
     defaultValues: {
       ethereumAddress: address || '',
-      message: generateVerificationMessage(),
+      message: generateVerificationMessage(address),
     }
   })
 
   const bitcoinAddress = watch('bitcoinAddress')
   const message = watch('message')
   const bitcoinValidation = bitcoinAddress ? validateBitcoinAddress(bitcoinAddress) : null
+
+  // Update message and ethereum address when wallet connects/disconnects
+  useEffect(() => {
+    if (address) {
+      setValue('ethereumAddress', address)
+      setValue('message', generateVerificationMessage(address))
+    }
+  }, [address, setValue])
 
   const copyMessage = async () => {
     try {
@@ -95,6 +106,23 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
         </p>
       </div>
 
+      {/* Wallet Connection Warning */}
+      {!address && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">
+                Wallet Connection Required
+              </h4>
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                Please connect your MetaMask or Web3 wallet to continue. Your MegaETH address will be automatically included in the verification message.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-card border rounded-xl p-8 space-y-6">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Bitcoin Address */}
@@ -122,14 +150,33 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
 
           {/* Ethereum Address */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Ethereum Address (MegaETH)</label>
-            <input
-              {...register('ethereumAddress')}
-              type="text"
-              placeholder="0x..."
-              className="w-full px-4 py-3 border rounded-lg bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
-              readOnly={!!address}
-            />
+            <label className="text-sm font-medium flex items-center justify-between">
+              <span>Ethereum Address (MegaETH)</span>
+              {address && (
+                <span className="text-xs text-green-600 dark:text-green-400 flex items-center space-x-1">
+                  <CheckCircle className="h-3 w-3" />
+                  <span>Connected</span>
+                </span>
+              )}
+            </label>
+            <div className="relative">
+              <input
+                {...register('ethereumAddress')}
+                type="text"
+                placeholder={address ? address : "Connect wallet to auto-fill"}
+                className={`w-full px-4 py-3 border rounded-lg transition-colors ${
+                  address 
+                    ? 'bg-muted/50 border-green-500/30 text-foreground' 
+                    : 'bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary'
+                }`}
+                readOnly
+              />
+              {!address && (
+                <div className="absolute inset-y-0 right-3 flex items-center">
+                  <span className="text-xs text-muted-foreground">Wallet not connected</span>
+                </div>
+              )}
+            </div>
             {errors.ethereumAddress && (
               <div className="flex items-center space-x-2 text-sm text-destructive animate-in fade-in slide-in-from-left-2 duration-200">
                 <AlertCircle className="h-4 w-4" />
@@ -202,7 +249,7 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={!isValid || isVerifying}
+            disabled={!isValid || isVerifying || !address}
             className="w-full flex items-center justify-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-medium transition-all hover:scale-105 active:scale-95"
           >
             {isVerifying ? (
@@ -210,6 +257,8 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <span>Verifying Signature...</span>
               </>
+            ) : !address ? (
+              <span>Connect Wallet to Continue</span>
             ) : (
               <span>Verify Wallet Ownership</span>
             )}
