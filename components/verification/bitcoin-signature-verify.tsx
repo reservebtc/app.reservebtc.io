@@ -9,6 +9,15 @@ interface BitcoinSignatureVerifyProps {
   onVerificationComplete?: (data: { address: string; signature: string; verified: boolean }) => void
 }
 
+interface WalletInstruction {
+  id: string
+  name: string
+  icon: string
+  recommended?: boolean
+  steps: string[]
+  testnet?: string[]
+}
+
 export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignatureVerifyProps) {
   const { address: ethAddress, isConnected: isMetaMaskConnected } = useAccount()
   const [bitcoinAddress, setBitcoinAddress] = useState('')
@@ -71,7 +80,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
     }
   }
 
-  const walletInstructions = [
+  const walletInstructions: WalletInstruction[] = [
     {
       id: 'sparrow',
       name: 'Sparrow Wallet',
@@ -84,6 +93,12 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
         'Paste the message from above',
         'Click "Sign"',
         'Copy the signature and paste below'
+      ],
+      testnet: [
+        'Go to File → Preferences → Server',
+        'Toggle "Use Testnet" option',
+        'Restart Sparrow Wallet',
+        'Your addresses will start with tb1... or 2... or m/n...'
       ]
     },
     {
@@ -96,6 +111,12 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
         'Select address from your hardware wallet',
         'Sign message on device',
         'Copy the signature'
+      ],
+      testnet: [
+        'In Sparrow: Enable testnet first (see Sparrow instructions)',
+        'Connect your hardware wallet',
+        'Hardware wallet will work with testnet automatically',
+        'For Trezor: Enable testnet in Trezor Suite settings'
       ]
     },
     {
@@ -108,6 +129,12 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
         'Enter address and paste message',
         'Click Sign',
         'Copy the signature'
+      ],
+      testnet: [
+        'Run Electrum with --testnet flag',
+        'Or download Electrum Testnet version',
+        'Create new wallet for testnet',
+        'Testnet addresses: tb1... or 2... or m/n...'
       ]
     },
     {
@@ -120,6 +147,12 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
         'Select your address',
         'Paste the message',
         'Sign and copy signature'
+      ],
+      testnet: [
+        'Start Bitcoin Core with -testnet flag',
+        'Or add testnet=1 to bitcoin.conf',
+        'Restart Bitcoin Core',
+        'Generate testnet address in Receive tab'
       ]
     }
   ]
@@ -211,14 +244,34 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                     </button>
                     
                     {activeWallet === wallet.id && (
-                      <ol className="mt-3 ml-7 space-y-1 text-sm text-muted-foreground">
-                        {wallet.steps.map((step, i) => (
-                          <li key={i} className="flex gap-2">
-                            <span className="text-primary font-medium">{i + 1}.</span>
-                            <span>{step}</span>
-                          </li>
-                        ))}
-                      </ol>
+                      <div className="mt-3 ml-7 space-y-3">
+                        <div>
+                          <p className="text-xs font-semibold text-foreground mb-1">Mainnet Instructions:</p>
+                          <ol className="space-y-1 text-sm text-muted-foreground">
+                            {wallet.steps.map((step, i) => (
+                              <li key={i} className="flex gap-2">
+                                <span className="text-primary font-medium">{i + 1}.</span>
+                                <span>{step}</span>
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                        {wallet.testnet && (
+                          <div className="border-t pt-3">
+                            <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-1">
+                              🧪 Testnet Mode:
+                            </p>
+                            <ol className="space-y-1 text-sm text-muted-foreground">
+                              {wallet.testnet.map((step, i) => (
+                                <li key={i} className="flex gap-2">
+                                  <span className="text-amber-600 dark:text-amber-400 font-medium">{i + 1}.</span>
+                                  <span>{step}</span>
+                                </li>
+                              ))}
+                            </ol>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 ))}
@@ -229,6 +282,9 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
               <p className="text-xs text-amber-700 dark:text-amber-300">
                 <strong>Tip:</strong> Any wallet supporting BIP-322 or message signing will work. 
                 Hardware wallets (Ledger, Trezor) provide the best security.
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                <strong>Testing:</strong> Use testnet mode (see instructions above) to test without real Bitcoin.
               </p>
             </div>
           </div>
