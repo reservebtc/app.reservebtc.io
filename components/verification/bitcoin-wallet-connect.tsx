@@ -93,13 +93,13 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
       const phantom = (window as any).phantom
       console.log('Phantom detected:', phantom)
 
-      // New approach: Use a delay to let Phantom initialize properly
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Wait for Phantom to initialize
+      await new Promise(resolve => setTimeout(resolve, 200))
 
       let bitcoinAPI = null
       let accounts = null
 
-      // Find Bitcoin API without triggering internal errors
+      // Find Bitcoin API
       if (phantom.bitcoin && typeof phantom.bitcoin === 'object') {
         bitcoinAPI = phantom.bitcoin
         console.log('Found bitcoin API at phantom.bitcoin')
@@ -112,51 +112,91 @@ export function BitcoinWalletConnect({ onWalletConnected, onSignMessage }: Bitco
         throw new Error('Bitcoin is not enabled in Phantom. Please go to Settings → Developer Settings → Enable Bitcoin')
       }
 
-      // Simplified connection approach to avoid btc.js errors
+      // New approach: Try to get accounts without triggering requestAccounts
       try {
-        console.log('Attempting connection...')
+        console.log('Checking Bitcoin API methods:', Object.keys(bitcoinAPI))
         
-        // Method 1: Direct requestAccounts (most standard)
-        if (typeof bitcoinAPI.requestAccounts === 'function') {
-          console.log('Using requestAccounts method')
-          accounts = await Promise.race([
-            bitcoinAPI.requestAccounts(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), 5000))
-          ])
-        }
-        // Method 2: Connect method
-        else if (typeof bitcoinAPI.connect === 'function') {
-          console.log('Using connect method')
-          const result = await Promise.race([
-            bitcoinAPI.connect(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), 5000))
-          ])
-          accounts = result?.accounts || result?.publicKey || [result]
-        }
-        // Method 3: Check if already has accounts
-        else if (bitcoinAPI.accounts && Array.isArray(bitcoinAPI.accounts)) {
-          console.log('Using existing accounts')
+        // First check if we already have accounts stored
+        if (bitcoinAPI.accounts && Array.isArray(bitcoinAPI.accounts) && bitcoinAPI.accounts.length > 0) {
+          console.log('Found existing accounts:', bitcoinAPI.accounts)
           accounts = bitcoinAPI.accounts
+        }
+        // Try getAccounts if available (doesn't trigger popup)
+        else if (typeof bitcoinAPI.getAccounts === 'function') {
+          console.log('Trying getAccounts...')
+          accounts = await bitcoinAPI.getAccounts()
+          console.log('Got accounts:', accounts)
+        }
+        // Try to access publicKey directly
+        else if (bitcoinAPI.publicKey) {
+          console.log('Found publicKey directly:', bitcoinAPI.publicKey)
+          accounts = [bitcoinAPI.publicKey]
+        }
+        
+        // If no accounts yet, we need to trigger connection
+        if (!accounts || (Array.isArray(accounts) && accounts.length === 0)) {
+          console.log('No existing accounts, need to connect...')
+          
+          // Try connect first (less likely to error)
+          if (typeof bitcoinAPI.connect === 'function') {
+            console.log('Using connect method')
+            const result = await bitcoinAPI.connect()
+            console.log('Connect result:', result)
+            accounts = result?.accounts || result?.publicKey || [result]
+          }
+          // Only use requestAccounts as last resort
+          else if (typeof bitcoinAPI.requestAccounts === 'function') {
+            console.log('Using requestAccounts as last resort...')
+            // Wrap in try-catch to handle btc.js error
+            try {
+              accounts = await bitcoinAPI.requestAccounts()
+            } catch (reqErr: any) {
+              console.error('requestAccounts failed:', reqErr)
+              // Try to extract any available account info
+              if (bitcoinAPI.accounts) {
+                accounts = bitcoinAPI.accounts
+              } else if (bitcoinAPI.publicKey) {
+                accounts = [bitcoinAPI.publicKey]
+              } else {
+                throw reqErr
+              }
+            }
+          }
+        }
+        
+        // Store the bitcoinAPI for signing later
+        if (accounts && accounts.length > 0) {
+          (window as any).__phantomBitcoinAPI = bitcoinAPI
+          console.log('Stored Bitcoin API for signing')
         }
         
       } catch (err: any) {
-        console.error('Primary connection failed:', err)
+        console.error('Connection attempt failed:', err)
         
-        // For btc.js errors, provide manual instructions
+        // Check if btc.js error
         if (err.toString().includes('btc.js') || err.message?.includes('Unexpected')) {
-          console.log('Phantom Bitcoin API error detected')
+          console.log('btc.js error detected, checking for alternative access...')
           
-          // Set a specific error message with instructions
-          const manualInstructions = `Phantom Bitcoin connection is currently experiencing issues. 
+          // Last attempt: Check if we can access the provider differently
+          if (phantom.solana && typeof phantom.solana === 'object') {
+            const solanaProvider = phantom.solana
+            if (solanaProvider._bitcoin || solanaProvider.bitcoin) {
+              const altBitcoinAPI = solanaProvider._bitcoin || solanaProvider.bitcoin
+              console.log('Found alternative Bitcoin API')
+              
+              if (altBitcoinAPI.accounts) {
+                accounts = altBitcoinAPI.accounts
+                (window as any).__phantomBitcoinAPI = altBitcoinAPI
+              } else if (altBitcoinAPI.publicKey) {
+                accounts = [altBitcoinAPI.publicKey]
+                ;(window as any).__phantomBitcoinAPI = altBitcoinAPI
+              }
+            }
+          }
           
-Please try one of these options:
-1. Copy your Bitcoin address from Phantom manually
-2. Use Exodus wallet instead (recommended)
-3. Enter your address in the manual entry section below`
-          
-          setError(manualInstructions)
-          setIsConnecting(false)
-          return
+          if (!accounts) {
+            throw new Error('Unable to connect to Phantom Bitcoin. The wallet may need to be unlocked or Bitcoin needs to be enabled in settings.')
+          }
         } else {
           throw err
         }
@@ -281,16 +321,46 @@ Please try one of these options:
       let signature = ''
 
       if (selectedWallet === 'Phantom') {
-        const provider = (window as any).phantom?.bitcoin
+        // Use the stored Bitcoin API from connection
+        const provider = (window as any).__phantomBitcoinAPI || (window as any).phantom?.bitcoin
         const wallet = wallets.find(w => w.name === 'Phantom')
         
         if (!provider || !wallet?.address) {
           throw new Error('Phantom wallet not properly connected')
         }
 
-        // Sign message using Phantom
-        const result = await provider.signMessage(wallet.address, new TextEncoder().encode(message))
-        signature = result.signature
+        console.log('Signing BIP-322 message with Phantom...')
+        console.log('Provider methods:', Object.keys(provider).filter(k => typeof provider[k] === 'function'))
+        
+        // Try different signing methods for BIP-322
+        try {
+          if (typeof provider.signMessage === 'function') {
+            // Standard BIP-322 signing
+            console.log('Using signMessage for BIP-322')
+            const result = await provider.signMessage(wallet.address, new TextEncoder().encode(message))
+            signature = result.signature || result
+          } else if (typeof provider.sign === 'function') {
+            // Alternative signing method
+            console.log('Using sign method')
+            const result = await provider.sign(message, wallet.address)
+            signature = result.signature || result
+          } else if (typeof provider.request === 'function') {
+            // RPC-style signing
+            console.log('Using request method for signing')
+            const result = await provider.request({
+              method: 'signMessage',
+              params: [wallet.address, message]
+            })
+            signature = result.signature || result
+          } else {
+            throw new Error('No signing method available in Phantom Bitcoin API')
+          }
+        } catch (signErr: any) {
+          console.error('Signing error:', signErr)
+          throw new Error(`BIP-322 signing failed: ${signErr.message}`)
+        }
+        
+        console.log('BIP-322 signature obtained:', signature)
       } else if (selectedWallet === 'Exodus') {
         const provider = (window as any).exodus?.bitcoin
         const wallet = wallets.find(w => w.name === 'Exodus')
@@ -400,25 +470,44 @@ Please try one of these options:
               </div>
             )}
 
-            <button
-              onClick={connectPhantom}
-              disabled={isConnecting || selectedWallet === 'Phantom'}
-              className="w-full px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-all"
-            >
-              {selectedWallet === 'Phantom' ? 'Connected' : 'Connect Phantom'}
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={connectPhantom}
+                disabled={isConnecting || selectedWallet === 'Phantom'}
+                className="w-full px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-all"
+              >
+                {selectedWallet === 'Phantom' ? 'Connected' : 'Connect Phantom'}
+              </button>
+              
+              {/* BIP-322 Sign button */}
+              {selectedWallet === 'Phantom' && wallets.find(w => w.name === 'Phantom')?.address && (
+                <button
+                  onClick={async () => {
+                    const message = document.querySelector<HTMLTextAreaElement>('textarea[name="message"]')?.value
+                    if (!message) {
+                      setError('Please enter a message to sign')
+                      return
+                    }
+                    await signMessageWithWallet(message)
+                  }}
+                  disabled={isConnecting}
+                  className="w-full px-4 py-2 bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-all"
+                >
+                  Sign BIP-322 Message
+                </button>
+              )}
+            </div>
             
-            {/* Show manual copy instructions if Phantom has issues */}
-            {error?.includes('Phantom Bitcoin connection') && (
+            {/* Show reconnect message if Phantom has issues */}
+            {error?.includes('Unable to connect') && (
               <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <p className="text-xs font-medium text-amber-900 mb-2">Connection Issue Detected</p>
-                <p className="text-xs text-amber-800 mb-2">Copy your Bitcoin address manually:</p>
-                <ol className="list-decimal list-inside text-xs text-amber-700 space-y-1">
-                  <li>Open Phantom extension</li>
-                  <li>Click Bitcoin icon at top</li>
-                  <li>Click address to copy</li>
-                  <li>Paste below in manual entry</li>
-                </ol>
+                <p className="text-xs font-medium text-amber-900 mb-2">Connection Issue</p>
+                <p className="text-xs text-amber-800">Please ensure:</p>
+                <ul className="list-disc list-inside text-xs text-amber-700 space-y-1 mt-1">
+                  <li>Phantom wallet is unlocked</li>
+                  <li>Bitcoin is enabled in Settings</li>
+                  <li>Try refreshing the page</li>
+                </ul>
               </div>
             )}
 
