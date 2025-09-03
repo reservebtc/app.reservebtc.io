@@ -95,10 +95,10 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
         'Copy the signature and paste below'
       ],
       testnet: [
-        'Go to File → Preferences → Server',
-        'Toggle "Use Testnet" option',
-        'Restart Sparrow Wallet',
-        'Your addresses will start with tb1... or 2... or m/n...'
+        'Open Sparrow → Tools → Restart in Testnet',
+        'Sparrow will close and restart with separate testnet configuration',
+        'Create a new wallet in testnet mode',
+        'Your testnet addresses will start with tb1... or 2... or m/n...'
       ]
     },
     {
