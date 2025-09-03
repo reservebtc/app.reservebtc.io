@@ -456,7 +456,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
               onChange={(e) => setBitcoinAddress(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg bg-background dark:bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 dark:border-gray-700"
             />
-            {bitcoinAddress && (bitcoinAddress.startsWith('tb1') || bitcoinAddress.startsWith('2') || /^[mn]/.test(bitcoinAddress)) && (
+            {bitcoinAddress && (bitcoinAddress.startsWith('tb1') || bitcoinAddress.startsWith('2') || /^[mn]/.test(bitcoinAddress)) && !verificationResult?.success && (
               <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded p-2">
                 <p className="text-xs text-amber-700 dark:text-amber-300">
                   <strong>⚠️ Testnet Address Detected:</strong> The BIP-322 library may have limited support for testnet addresses. 
