@@ -12,8 +12,12 @@ export const CONTRACTS = {
   ORACLE_AGGREGATOR: '0x717D12a23Bb46743b15019a52184DF7F250B061a',
   
   // Oracle Configuration
+  // Note: This is the actual Oracle committee address that controls sync operations
   ORACLE_COMMITTEE: '0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b',
+  // Note: This is where collected fees go (treasury/multisig)
   FEE_COLLECTOR: '0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b',
+  // Note: The actual Oracle address in contracts is ORACLE_COMMITTEE, not ORACLE_AGGREGATOR
+  // ORACLE_AGGREGATOR is the smart contract that processes sync operations
 } as const;
 
 // Contract ABIs (simplified for frontend)
@@ -27,10 +31,14 @@ export const CONTRACT_ABIS = {
   
   FEE_VAULT: [
     'function depositETH(address user) payable',
-    'function balances(address user) view returns (uint256)',
+    'function balanceOf(address user) view returns (uint256)',
+    'function spendFrom(address user, uint256 amount)',
+    'function withdrawUnused()',
     'function oracle() view returns (address)',
     'function feeCollector() view returns (address)',
-    'event Deposit(address indexed user, uint256 amount)',
+    'event Deposited(address indexed user, uint256 amount)',
+    'event Spent(address indexed user, uint256 amount, address indexed spender)',
+    'event Withdrawn(address indexed user, uint256 amount)',
   ],
   
   RBTC_SYNTH: [
@@ -62,6 +70,7 @@ export const CONTRACT_ABIS = {
   
   ORACLE_AGGREGATOR: [
     'function sync(address user, uint64 newBalanceSats, bytes proof)',
+    'function registerAndPrepay(address user, uint8 method, bytes32 checksum) payable',
     'function lastSats(address user) view returns (uint64)',
     'function committee() view returns (address)',
     'function minConfirmations() view returns (uint256)',

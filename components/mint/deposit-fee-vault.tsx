@@ -57,7 +57,7 @@ export function DepositFeeVault() {
         const balance = await publicClient.readContract({
           address: CONTRACTS.FEE_VAULT as `0x${string}`,
           abi: getOracleAbi(CONTRACT_ABIS.FEE_VAULT),
-          functionName: 'balances',
+          functionName: 'balanceOf',
           args: [address],
         }) as unknown as bigint;
         const balanceInEth = formatEther(balance);
@@ -93,16 +93,12 @@ export function DepositFeeVault() {
     setError('');
     
     try {
-      // Call registerAndPrepay function with proper arguments
+      // Call depositETH function directly on FeeVault contract
       const hash = await walletClient.writeContract({
-        address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
-        abi: getOracleAbi(CONTRACT_ABIS.ORACLE_AGGREGATOR),
-        functionName: 'registerAndPrepay',
-        args: [
-          address,
-          0, // method parameter (uint8)
-          '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}` // checksum (bytes32)
-        ],
+        address: CONTRACTS.FEE_VAULT as `0x${string}`,
+        abi: getOracleAbi(CONTRACT_ABIS.FEE_VAULT),
+        functionName: 'depositETH',
+        args: [address], // user address to credit
         value: parseEther(amount),
       });
       
