@@ -100,12 +100,14 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
         'Create a new wallet in testnet mode (File → New Wallet)',
         'After wallet is created, go to Addresses tab',
         'Copy any address from the list (right-click → Copy Address)',
+        'Paste this address in Step 3 field on this page',
         'Go to Tools → Sign/Verify Message (or press Ctrl+M)',
-        'In "Address" field: paste your testnet address',
+        'In "Address" field: paste your testnet address again',
         'In "Message" field: paste the message you copied from Step 1',
         'Click "Sign Message" button',
         'Copy the signature from "Signature" field',
-        'Paste this signature back in Step 4 below'
+        'Paste this signature in Step 4 field on this page',
+        'Click "Verify Ownership" button to complete verification'
       ]
     },
     {
