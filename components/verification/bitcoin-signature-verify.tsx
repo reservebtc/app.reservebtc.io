@@ -255,7 +255,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                     {activeWallet === wallet.id && (
                       <div className="mt-3 ml-7 space-y-3">
                         <div>
-                          <p className="text-xs font-semibold text-foreground mb-1">Mainnet Instructions:</p>
+                          <p className="text-xs font-semibold text-primary mb-1">Mainnet Instructions:</p>
                           <ol className="space-y-1 text-sm text-muted-foreground">
                             {wallet.steps.map((step, i) => (
                               <li key={i} className="flex gap-2">
