@@ -12,7 +12,7 @@ export function WalletConnect() {
   const { switchChain } = useSwitchChain()
   
   // MegaETH Testnet chain ID
-  const MEGAETH_CHAIN_ID = 70532
+  const MEGAETH_CHAIN_ID = 6342
 
   // Simplified connection
   const handleConnect = () => {
