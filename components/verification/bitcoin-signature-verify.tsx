@@ -191,7 +191,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
       recommended: true,
       steps: [
         'Open Sparrow Wallet',
-        'Copy your Bitcoin address from Addresses tab',
+        'Copy your Bitcoin address (the one holding your Bitcoin reserves) from Addresses tab',
         'Paste this address in Step 3 field on this page',
         'Go to Tools → Sign/Verify Message (Ctrl+M on Windows, Cmd+M on Mac)',
         'In Address field: paste your Bitcoin address',
@@ -223,7 +223,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
       icon: '💎',
       steps: [
         'Connect hardware wallet to Sparrow or Electrum',
-        'Copy address from your hardware wallet',
+        'Copy address from your hardware wallet (the one holding your Bitcoin reserves)',
         'Paste this address in Step 3 field on this page',
         'Open Tools → Sign/Verify Message',
         'Select address from your hardware wallet',
@@ -254,7 +254,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
       icon: '⚡',
       steps: [
         'Open Electrum wallet',
-        'Copy your Bitcoin address from Addresses tab',
+        'Copy your Bitcoin address (the one holding your Bitcoin reserves) from Addresses tab',
         'Paste this address in Step 3 field on this page',
         'Go to Tools → Sign/Verify Message',
         'In Address field: enter your Bitcoin address',
@@ -286,7 +286,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
       icon: '₿',
       steps: [
         'Open Bitcoin Core',
-        'Go to Receive tab and copy your address',
+        'Go to Receive tab and copy your address (the one holding your Bitcoin reserves)',
         'Paste this address in Step 3 field on this page',
         'Go to File → Sign Message',
         'In Address field: select your address',
