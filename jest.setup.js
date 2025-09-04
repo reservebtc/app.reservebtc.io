@@ -68,16 +68,6 @@ global.window.ethereum = {
   removeListener: jest.fn(),
 }
 
-// Mock next-themes
-jest.mock('next-themes', () => ({
-  useTheme: () => ({
-    theme: 'light',
-    setTheme: jest.fn(),
-    systemTheme: 'light',
-    themes: ['light', 'dark'],
-  }),
-  ThemeProvider: ({ children }) => children,
-}))
 
 // Suppress console errors during tests
 const originalError = console.error
