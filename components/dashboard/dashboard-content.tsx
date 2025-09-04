@@ -582,7 +582,7 @@ export function DashboardContent() {
               <div className="flex items-center gap-2 mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse"></div>
                 <p className="text-xs text-blue-700 dark:text-blue-300">
-                  Waiting for Bitcoin transaction confirmation in testnet...
+                  Waiting for Bitcoin transaction confirmation...
                 </p>
               </div>
             )}
