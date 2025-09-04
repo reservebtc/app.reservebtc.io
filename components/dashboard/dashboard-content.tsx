@@ -132,167 +132,162 @@ export function DashboardContent() {
         const currentBlock = await publicClient.getBlockNumber()
         console.log(`Current block: ${currentBlock}`)
         
-        // Use larger block range to capture more history
-        const blockRange = BigInt(100000) // Last ~100k blocks
-        const fromBlock = currentBlock > blockRange ? currentBlock - blockRange : BigInt(0)
-        console.log(`Searching from block: ${fromBlock} to ${currentBlock}`)
-
-        // 1. Get Synced events from Oracle (most important - shows mint/burn)
-        console.log(`Searching for Synced events from Oracle: ${CONTRACTS.ORACLE_AGGREGATOR}`)
+        // Get ALL transaction history from contract deployment
+        // Contract deployed around August 30, 2025, estimated around block 14000000
+        const contractDeploymentBlock = BigInt(14000000) // Estimated deployment block
+        console.log(`Searching ALL history from contract deployment (block ${contractDeploymentBlock}) to current block ${currentBlock}`)
         
-        const syncedEvents = await publicClient.getLogs({
-          address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
-          event: parseAbiItem('event Synced(address indexed user, uint64 newBalanceSats, int64 deltaSats, uint256 feeWei, uint32 height, uint64 timestamp)'),
-          args: { user: address as `0x${string}` },
-          fromBlock,
-          toBlock: 'latest'
-        })
-
-        console.log(`Found ${syncedEvents.length} Synced events`)
-
-        // Process Synced events (mint/burn operations)
-        for (const event of syncedEvents) {
-          const { user, newBalanceSats, deltaSats, feeWei, height, timestamp } = event.args
-          console.log('Processing Synced event:', { user, newBalanceSats, deltaSats, feeWei, height, timestamp })
-          
-          if (!deltaSats || !timestamp) {
-            console.log('Skipping event - missing deltaSats or timestamp')
-            continue
-          }
-          
-          const deltaSatsBigInt = BigInt(deltaSats)
-          const amount = formatUnits(deltaSatsBigInt > 0 ? deltaSatsBigInt : -deltaSatsBigInt, 8) // Bitcoin uses 8 decimals
-          
-          const transaction: Transaction = {
-            hash: event.transactionHash,
-            type: deltaSatsBigInt > 0 ? 'mint' : 'burn',
-            amount,
-            timestamp: new Date(Number(timestamp) * 1000).toISOString(),
-            status: 'success'
-          }
-          
-          console.log('Adding transaction:', transaction)
-          allTransactions.push(transaction)
-        }
-
-        // 2. Get Transfer events from rBTC-SYNTH token (incoming)
-        console.log(`Searching for rBTC Transfer events from: ${CONTRACTS.RBTC_SYNTH}`)
+        // Create chunks to avoid RPC limits (10k blocks per chunk)
+        const chunkSize = BigInt(10000)
+        const searchRanges = []
         
-        const rbtcTransferEventsIn = await publicClient.getLogs({
-          address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
-          event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
-          args: {
-            to: address as `0x${string}`
-          },
-          fromBlock,
-          toBlock: 'latest'
-        })
-
-        // Get Transfer events from rBTC-SYNTH token (outgoing)
-        const rbtcTransferEventsOut = await publicClient.getLogs({
-          address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
-          event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
-          args: {
-            from: address as `0x${string}`
-          },
-          fromBlock,
-          toBlock: 'latest'
-        })
-
-        const rbtcTransferEvents = [...rbtcTransferEventsIn, ...rbtcTransferEventsOut]
-        console.log(`Found ${rbtcTransferEvents.length} rBTC Transfer events`)
-
-        // Process rBTC transfers
-        for (const event of rbtcTransferEvents) {
-          const { from, to, value } = event.args
-          if (!from || !to || !value) continue
-          
-          const isIncoming = to.toLowerCase() === address.toLowerCase()
-          const amount = formatUnits(value, 8) // rBTC uses 8 decimals like Bitcoin
-          
-          // Skip mint/burn transfers (they have zero address)
-          if (from === '0x0000000000000000000000000000000000000000' || to === '0x0000000000000000000000000000000000000000') {
-            console.log('Skipping mint/burn transfer event')
-            continue
-          }
-          
-          const transaction: Transaction = {
-            hash: event.transactionHash,
-            type: 'transfer',
-            amount,
-            timestamp: new Date().toISOString(), // We'll get block timestamp below
-            status: 'success'
-          }
-          
-          console.log('Adding rBTC transfer:', transaction)
-          allTransactions.push(transaction)
-        }
-
-        // 3. Get Transfer events from wrBTC vault (incoming)
-        const wrbtcTransferEventsIn = await publicClient.getLogs({
-          address: CONTRACTS.VAULT_WRBTC as `0x${string}`,
-          event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
-          args: {
-            to: address as `0x${string}`
-          },
-          fromBlock,
-          toBlock: 'latest'
-        })
-
-        // Get Transfer events from wrBTC vault (outgoing)
-        const wrbtcTransferEventsOut = await publicClient.getLogs({
-          address: CONTRACTS.VAULT_WRBTC as `0x${string}`,
-          event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
-          args: {
-            from: address as `0x${string}`
-          },
-          fromBlock,
-          toBlock: 'latest'
-        })
-
-        const wrbtcTransferEvents = [...wrbtcTransferEventsIn, ...wrbtcTransferEventsOut]
-
-        // Process wrBTC transfers (wrap/unwrap operations)
-        for (const event of wrbtcTransferEvents) {
-          const { from, to, value } = event.args
-          if (!from || !to || !value) continue
-          
-          const isIncoming = to.toLowerCase() === address.toLowerCase()
-          const amount = formatUnits(value, 8) // wrBTC uses 8 decimals
-          
-          // Skip mint/burn transfers
-          if (from === '0x0000000000000000000000000000000000000000' || to === '0x0000000000000000000000000000000000000000') {
-            continue
-          }
-          
-          allTransactions.push({
-            hash: event.transactionHash,
-            type: isIncoming ? 'wrap' : 'unwrap',
-            amount,
-            timestamp: new Date().toISOString(), // We'll get block timestamp below
-            status: 'success'
+        for (let start = contractDeploymentBlock; start < currentBlock; start += chunkSize) {
+          const end = start + chunkSize > currentBlock ? currentBlock : start + chunkSize
+          searchRanges.push({
+            from: start,
+            to: end,
+            name: `blocks ${start}-${end}`
           })
         }
+        
+        console.log(`Will search ${searchRanges.length} chunks to get complete transaction history`)
+        let foundEvents = false
 
-        // Get actual timestamps from block data
-        const blockTimestamps = new Map<string, string>()
-        for (const tx of allTransactions) {
-          if (!blockTimestamps.has(tx.hash)) {
-            try {
-              const txReceipt = await publicClient.getTransactionReceipt({ hash: tx.hash as `0x${string}` })
-              const block = await publicClient.getBlock({ blockNumber: txReceipt.blockNumber })
-              blockTimestamps.set(tx.hash, new Date(Number(block.timestamp) * 1000).toISOString())
-            } catch (error) {
-              console.log(`Could not get timestamp for tx ${tx.hash}:`, error)
+        for (const range of searchRanges) {
+          console.log(`\nSearching ${range.name} range: blocks ${range.from} to ${range.to}`)
+          
+          try {
+            // 1. Get Synced events from Oracle (most important - shows mint/burn)
+            const syncedEvents = await publicClient.getLogs({
+              address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
+              event: parseAbiItem('event Synced(address indexed user, uint64 newBalanceSats, int64 deltaSats, uint256 feeWei, uint32 height, uint64 timestamp)'),
+              args: { user: address as `0x${string}` },
+              fromBlock: range.from,
+              toBlock: range.to
+            })
+
+            console.log(`Found ${syncedEvents.length} Synced events in ${range.name} range`)
+
+            // Process Synced events (mint/burn operations)
+            for (const event of syncedEvents) {
+              const { user, newBalanceSats, deltaSats, feeWei, height, timestamp } = event.args
+              console.log('Processing Synced event:', { user, newBalanceSats, deltaSats, feeWei, height, timestamp })
+              
+              if (!deltaSats || !timestamp) {
+                console.log('Skipping event - missing deltaSats or timestamp')
+                continue
+              }
+              
+              const deltaSatsBigInt = BigInt(deltaSats)
+              const amount = formatUnits(deltaSatsBigInt > 0 ? deltaSatsBigInt : -deltaSatsBigInt, 8) // Bitcoin uses 8 decimals
+              
+              const transaction: Transaction = {
+                hash: event.transactionHash,
+                type: deltaSatsBigInt > 0 ? 'mint' : 'burn',
+                amount,
+                timestamp: new Date(Number(timestamp) * 1000).toISOString(),
+                status: 'success'
+              }
+              
+              console.log('Adding transaction:', transaction)
+              allTransactions.push(transaction)
+              foundEvents = true
             }
+
+            // 2. Get rBTC-SYNTH Transfer events (incoming)
+            const rbtcIncomingEvents = await publicClient.getLogs({
+              address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
+              event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
+              args: { to: address as `0x${string}` },
+              fromBlock: range.from,
+              toBlock: range.to
+            })
+
+            console.log(`Found ${rbtcIncomingEvents.length} incoming rBTC Transfer events in ${range.name} range`)
+
+            // Process incoming Transfer events
+            for (const event of rbtcIncomingEvents) {
+              const { from, to, value } = event.args
+              if (!value) continue
+              
+              // Get block timestamp
+              let timestamp = new Date().toISOString() // Fallback
+              try {
+                const block = await publicClient.getBlock({ blockNumber: event.blockNumber })
+                timestamp = new Date(Number(block.timestamp) * 1000).toISOString()
+              } catch (blockError) {
+                console.log('Could not get block timestamp, using fallback')
+              }
+              
+              const amount = formatUnits(value, 8) // Bitcoin uses 8 decimals
+              
+              const transaction: Transaction = {
+                hash: event.transactionHash,
+                type: 'transfer',
+                amount,
+                timestamp,
+                status: 'success'
+              }
+              
+              allTransactions.push(transaction)
+              foundEvents = true
+            }
+
+            // 3. Get rBTC-SYNTH Transfer events (outgoing)
+            const rbtcOutgoingEvents = await publicClient.getLogs({
+              address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
+              event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
+              args: { from: address as `0x${string}` },
+              fromBlock: range.from,
+              toBlock: range.to
+            })
+
+            console.log(`Found ${rbtcOutgoingEvents.length} outgoing rBTC Transfer events in ${range.name} range`)
+
+            // Process outgoing Transfer events
+            for (const event of rbtcOutgoingEvents) {
+              const { from, to, value } = event.args
+              if (!value) continue
+              
+              // Get block timestamp
+              let timestamp = new Date().toISOString() // Fallback
+              try {
+                const block = await publicClient.getBlock({ blockNumber: event.blockNumber })
+                timestamp = new Date(Number(block.timestamp) * 1000).toISOString()
+              } catch (blockError) {
+                console.log('Could not get block timestamp, using fallback')
+              }
+              
+              const amount = formatUnits(value, 8) // Bitcoin uses 8 decimals
+              
+              const transaction: Transaction = {
+                hash: event.transactionHash,
+                type: 'transfer',
+                amount,
+                timestamp,
+                status: 'success'
+              }
+              
+              allTransactions.push(transaction)
+              foundEvents = true
+            }
+
+            // Continue searching all ranges to get complete history
+
+          } catch (rangeError) {
+            console.log(`Error in ${range.name} range:`, rangeError instanceof Error ? rangeError.message : 'Unknown error')
+            // Continue to next range
           }
         }
 
-        // Update timestamps
-        allTransactions.forEach(tx => {
-          const timestamp = blockTimestamps.get(tx.hash)
-          if (timestamp) tx.timestamp = timestamp
-        })
+        // Show helpful message if no events found
+        if (allTransactions.length === 0) {
+          console.log('No Oracle Synced events found for this user.')
+          console.log('This means either:')
+          console.log('1. User has not minted any rBTC tokens yet')
+          console.log('2. Events occurred outside the searched block range')
+          console.log('3. User address not registered with Oracle')
+        }
 
       } catch (contractError) {
         console.error('Error loading from contracts:', contractError)
