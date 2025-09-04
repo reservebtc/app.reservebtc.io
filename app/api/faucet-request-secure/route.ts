@@ -70,9 +70,23 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (insertError) {
-      console.error('Insert error:', insertError)
+      console.error('Supabase insert error:', {
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code
+      })
+      
+      // Check for specific errors
+      if (insertError.code === '42501') {
+        return NextResponse.json(
+          { error: 'Database permission error. Please contact support.' },
+          { status: 500 }
+        )
+      }
+      
       return NextResponse.json(
-        { error: 'Failed to submit request. Please try again.' },
+        { error: `Database error: ${insertError.message || 'Failed to submit request'}` },
         { status: 500 }
       )
     }

@@ -53,6 +53,7 @@ typechain-types/
 test-wallet-integration.js
 test-*.js
 test-*.sh
+test-*.html
 *.keystore
 mnemonic.txt
 seed.txt
