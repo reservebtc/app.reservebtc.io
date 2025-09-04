@@ -15,6 +15,11 @@ interface WalletInstruction {
   name: string
   icon: string
   recommended?: boolean
+  hardwareCompatible?: Array<{
+    name: string
+    icon: string
+    color: string
+  }>
   steps: string[]
   testnet?: string[]
 }
@@ -189,6 +194,13 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
       name: 'Sparrow Wallet',
       icon: '🔧',
       recommended: true,
+      hardwareCompatible: [
+        { name: 'Ledger', icon: '🔒', color: 'from-blue-500 to-blue-600' },
+        { name: 'Trezor', icon: '🛡️', color: 'from-green-500 to-green-600' },
+        { name: 'Coldcard', icon: '❄️', color: 'from-gray-500 to-gray-600' },
+        { name: 'BitBox', icon: '📦', color: 'from-purple-500 to-purple-600' },
+        { name: 'Keystone', icon: '🔑', color: 'from-orange-500 to-orange-600' }
+      ],
       steps: [
         'Open Sparrow Wallet',
         'Copy your Bitcoin address (the one holding your Bitcoin reserves) from Addresses tab',
@@ -388,20 +400,51 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                   <div key={wallet.id} className="border rounded-lg p-3">
                     <button
                       onClick={() => setActiveWallet(activeWallet === wallet.id ? null : wallet.id)}
-                      className="w-full flex items-center justify-between text-left"
+                      className="w-full text-left"
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">{wallet.icon}</span>
-                        <span className="font-medium">{wallet.name}</span>
-                        {wallet.recommended && (
-                          <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Recommended</span>
-                        )}
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xl">{wallet.icon}</span>
+                          <span className="font-medium">{wallet.name}</span>
+                          {wallet.recommended && (
+                            <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 px-2 py-0.5 rounded">Recommended</span>
+                          )}
+                        </div>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                          {wallet.hardwareCompatible && (
+                            <div className="w-full sm:w-auto">
+                              <div className="flex flex-wrap items-center gap-1">
+                                <span className="text-xs text-muted-foreground block sm:inline mb-1 sm:mb-0">Works with:</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {wallet.hardwareCompatible.map((hw) => (
+                                    <div
+                                      key={hw.name}
+                                      className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full bg-gradient-to-r ${hw.color} text-white text-[10px] sm:text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}
+                                    >
+                                      <span className="text-[10px] sm:text-xs">{hw.icon}</span>
+                                      <span className="hidden xs:inline">{hw.name}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          <div className="ml-auto">
+                            {activeWallet === wallet.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                          </div>
+                        </div>
                       </div>
-                      {activeWallet === wallet.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </button>
                     
                     {activeWallet === wallet.id && (
-                      <div className="mt-3 ml-7 space-y-3">
+                      <div className="mt-3 ml-2 sm:ml-7 space-y-3">
+                        {wallet.hardwareCompatible && (
+                          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                            <p className="text-sm text-blue-800 dark:text-blue-300">
+                              <span className="font-medium">Connection Layer:</span> Sparrow acts as a bridge to your hardware wallet. Your private keys remain secure on your hardware device.
+                            </p>
+                          </div>
+                        )}
                         <div>
                           <p className="text-xs font-semibold text-primary mb-1">Mainnet Instructions:</p>
                           <ol className="space-y-1 text-sm text-muted-foreground">
