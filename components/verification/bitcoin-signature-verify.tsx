@@ -419,10 +419,16 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                                   {wallet.hardwareCompatible.map((hw) => (
                                     <div
                                       key={hw.name}
-                                      className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full bg-gradient-to-r ${hw.color} text-white text-[10px] sm:text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}
+                                      className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full bg-gradient-to-r ${hw.color} text-white text-[10px] sm:text-xs font-medium shadow-sm hover:shadow-md transition-shadow relative group`}
+                                      title={hw.name}
                                     >
                                       <span className="text-[10px] sm:text-xs">{hw.icon}</span>
                                       <span className="hidden xs:inline">{hw.name}</span>
+                                      {/* Tooltip */}
+                                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                                        {hw.name} Wallet
+                                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
+                                      </div>
                                     </div>
                                   ))}
                                 </div>
