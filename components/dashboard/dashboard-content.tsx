@@ -122,11 +122,36 @@ export function DashboardContent() {
 
     setIsLoadingTransactions(true)
     try {
-      // Always load from localStorage first (keep existing/offline data)
+      // Clean up old fake transactions first
       const savedTxs = localStorage.getItem(`transactions_${address}`)
       if (savedTxs) {
-        const existingTxs = JSON.parse(savedTxs)
-        setTransactions(existingTxs)
+        try {
+          const existingTxs = JSON.parse(savedTxs)
+          // Filter out transactions with fake random hashes or invalid amounts
+          const validTxs = existingTxs.filter((tx: any) => {
+            // Skip transactions that look like our old generated ones
+            if (tx.amount === '0.05' || tx.amount === '0.02') {
+              return false
+            }
+            // Skip transactions with invalid hashes
+            if (!tx.hash || tx.hash === '0x0000000000000000000000000000000000000000000000000000000000000000') {
+              return false
+            }
+            return true
+          })
+          
+          if (validTxs.length > 0) {
+            setTransactions(validTxs)
+          } else {
+            // Clear invalid data
+            localStorage.removeItem(`transactions_${address}`)
+            setTransactions([])
+          }
+        } catch (error) {
+          console.log('Error parsing saved transactions:', error)
+          localStorage.removeItem(`transactions_${address}`)
+          setTransactions([])
+        }
       }
 
       // Try multiple approaches to fetch transaction data
@@ -179,29 +204,30 @@ export function DashboardContent() {
         console.log('API fetch failed:', apiError)
       }
 
-      // Approach 2: Create sample transaction for testing if no API data
+      // Approach 2: Load from verified mint data if available
       if (allTransactions.length === 0) {
-        // Check if we have verified Bitcoin addresses to simulate transactions
+        // Check localStorage for actual mint/verification data
         const bitcoinAddress = localStorage.getItem('verifiedBitcoinAddress')
-        if (bitcoinAddress) {
-          const sampleTransactions: Transaction[] = [
-            {
-              hash: '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join(''),
+        const mintData = localStorage.getItem('mintTransaction')
+        
+        if (bitcoinAddress && mintData) {
+          try {
+            const parsedMintData = JSON.parse(mintData)
+            const realTransaction: Transaction = {
+              hash: parsedMintData.hash || '0x0000000000000000000000000000000000000000000000000000000000000000',
               type: 'mint',
-              amount: '0.05',
-              timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-              status: 'success'
-            },
-            {
-              hash: '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join(''),
-              type: 'wrap',
-              amount: '0.02',
-              timestamp: new Date(Date.now() - 43200000).toISOString(), // 12 hours ago
-              status: 'success'
+              amount: parsedMintData.amount || '0.00000000',
+              timestamp: parsedMintData.timestamp || new Date().toISOString(),
+              status: parsedMintData.status || 'success'
             }
-          ]
-          allTransactions.push(...sampleTransactions)
+            allTransactions.push(realTransaction)
+          } catch (error) {
+            console.log('Error parsing mint data:', error)
+          }
         }
+        
+        // If still no data, don't create fake transactions
+        // Let the UI show "No transactions yet"
       }
 
       if (allTransactions.length > 0) {
