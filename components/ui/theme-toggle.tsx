@@ -23,15 +23,20 @@ export function ThemeToggle() {
     const root = document.documentElement
     
     if (theme === 'auto') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-      root.classList.toggle('dark', mediaQuery.matches)
-      
-      const handler = (e: MediaQueryListEvent) => {
-        root.classList.toggle('dark', e.matches)
+      if (typeof window !== 'undefined' && window.matchMedia) {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+        root.classList.toggle('dark', mediaQuery.matches)
+        
+        const handler = (e: MediaQueryListEvent) => {
+          root.classList.toggle('dark', e.matches)
+        }
+        
+        mediaQuery.addEventListener('change', handler)
+        return () => mediaQuery.removeEventListener('change', handler)
+      } else {
+        // Fallback for test environment or browsers without matchMedia
+        root.classList.remove('dark')
       }
-      
-      mediaQuery.addEventListener('change', handler)
-      return () => mediaQuery.removeEventListener('change', handler)
     } else {
       root.classList.toggle('dark', theme === 'dark')
     }
