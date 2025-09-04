@@ -93,13 +93,12 @@ export function DashboardContent() {
       }
     ],
     functionName: 'balanceOf',
-    args: address ? [address] : undefined,
-    enabled: !!address
+    args: address ? [address] : undefined
   })
 
   // Read wrBTC balance
   const { data: wrbtcBalance } = useReadContract({
-    address: CONTRACTS.WRBTC as `0x${string}`,
+    address: CONTRACTS.VAULT_WRBTC as `0x${string}`,
     abi: [
       {
         name: 'balanceOf',
@@ -110,8 +109,7 @@ export function DashboardContent() {
       }
     ],
     functionName: 'balanceOf',
-    args: address ? [address] : undefined,
-    enabled: !!address
+    args: address ? [address] : undefined
   })
 
   const copyAddress = (addr: string) => {
@@ -454,7 +452,7 @@ export function DashboardContent() {
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Contract:</span>
-                <span className="font-mono">{CONTRACTS.WRBTC.slice(0, 10)}...</span>
+                <span className="font-mono">{CONTRACTS.VAULT_WRBTC.slice(0, 10)}...</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Symbol:</span>
@@ -473,7 +471,7 @@ export function DashboardContent() {
                     params: {
                       type: 'ERC20',
                       options: {
-                        address: CONTRACTS.WRBTC,
+                        address: CONTRACTS.VAULT_WRBTC,
                         symbol: 'wrBTC',
                         decimals: 8,
                         image: 'https://app.reservebtc.io/favicon.svg',
