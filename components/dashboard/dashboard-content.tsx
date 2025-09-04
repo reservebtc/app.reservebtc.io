@@ -53,6 +53,12 @@ export function DashboardContent() {
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false)
   const [syncStatus, setSyncStatus] = useState<string>('')
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
+
+  // Watch for new blocks to auto-refresh transactions
+  const { data: currentBlockNumber } = useBlockNumber({
+    watch: autoRefreshEnabled,
+  })
 
   // Redirect if not connected
   useEffect(() => {
@@ -80,6 +86,28 @@ export function DashboardContent() {
     }
   }, [address])
 
+  // Auto-refresh transactions when new blocks appear
+  useEffect(() => {
+    if (!address || !currentBlockNumber || !autoRefreshEnabled) return
+
+    // Check if we have cached data
+    const cachedKey = `rbtc_transactions_${address}`
+    const cachedData = localStorage.getItem(cachedKey)
+    if (!cachedData) return // No cache yet, initial load will handle it
+
+    const cached = JSON.parse(cachedData)
+    const lastSyncedBlock = BigInt(cached.lastSyncedBlock || 0)
+    
+    // If current block is significantly newer than last synced block, auto-refresh
+    const blockDifference = currentBlockNumber - lastSyncedBlock
+    
+    if (blockDifference > BigInt(10) && !isLoadingTransactions) { // 10+ new blocks
+      console.log(`Auto-refresh triggered: ${blockDifference} new blocks detected`)
+      setSyncStatus(`New blocks detected (${blockDifference}), refreshing...`)
+      loadTransactions()
+    }
+  }, [currentBlockNumber, address, autoRefreshEnabled, isLoadingTransactions])
+
   // Read rBTC-SYNTH balance
   const { data: rbtcBalance } = useReadContract({
     address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
@@ -97,6 +125,7 @@ export function DashboardContent() {
   })
 
   // Read wrBTC balance
+
   const { data: wrbtcBalance } = useReadContract({
     address: CONTRACTS.VAULT_WRBTC as `0x${string}`,
     abi: [
@@ -129,7 +158,7 @@ export function DashboardContent() {
       // Load cached transactions first for instant display
       const cachedKey = `rbtc_transactions_${address}`
       const cachedData = localStorage.getItem(cachedKey)
-      const cached = cachedData ? JSON.parse(cachedData) : { transactions: [], lastSyncedBlock: 0n, lastSyncedAt: 0 }
+      const cached = cachedData ? JSON.parse(cachedData) : { transactions: [], lastSyncedBlock: 0, lastSyncedAt: 0 }
       
       // Show cached data immediately if available
       if (cached.transactions.length > 0) {
@@ -152,9 +181,9 @@ export function DashboardContent() {
       
       if (cached.transactions.length === 0) {
         // First time sync - start from recent history only (last 50k blocks due to MegaETH limits)
-        startBlock = currentBlock > 50000n ? currentBlock - 50000n : 0n
+        startBlock = currentBlock > BigInt(50000) ? currentBlock - BigInt(50000) : BigInt(0)
         syncDescription = 'Initial sync (recent 50k blocks)'
-      } else if (isStaleCache || currentBlock > lastSyncedBlock + 100n) {
+      } else if (isStaleCache || currentBlock > lastSyncedBlock + BigInt(100)) {
         // Incremental sync - only check new blocks since last sync
         startBlock = lastSyncedBlock
         syncDescription = `Incremental sync from block ${startBlock}`
@@ -303,12 +332,12 @@ export function DashboardContent() {
       // Remove duplicates by hash and sort by timestamp (newest first)
       const uniqueTransactions = allTransactions
         .reduce((acc, tx) => {
-          if (!acc.find(existing => existing.hash === tx.hash)) {
+          if (!acc.find((existing: Transaction) => existing.hash === tx.hash)) {
             acc.push(tx)
           }
           return acc
         }, [] as Transaction[])
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .sort((a: Transaction, b: Transaction) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
       // Update state and cache
       setTransactions(uniqueTransactions)
@@ -544,15 +573,33 @@ export function DashboardContent() {
             {syncStatus && (
               <p className="text-xs text-muted-foreground mt-1">{syncStatus}</p>
             )}
+            {currentBlockNumber && autoRefreshEnabled && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Block: {currentBlockNumber.toString()} • Auto-refresh: ON
+              </p>
+            )}
           </div>
-          <button 
-            onClick={loadTransactions}
-            disabled={isLoadingTransactions}
-            className="p-2 hover:bg-accent rounded-lg transition-colors disabled:opacity-50"
-            title="Refresh transactions"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoadingTransactions ? 'animate-spin' : ''}`} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+              className={`p-2 rounded-lg transition-colors ${
+                autoRefreshEnabled 
+                  ? 'bg-green-500/10 text-green-600 hover:bg-green-500/20' 
+                  : 'bg-muted hover:bg-accent'
+              }`}
+              title={`Auto-refresh: ${autoRefreshEnabled ? 'ON' : 'OFF'}`}
+            >
+              <div className={`h-2 w-2 rounded-full ${autoRefreshEnabled ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground'}`} />
+            </button>
+            <button 
+              onClick={loadTransactions}
+              disabled={isLoadingTransactions}
+              className="p-2 hover:bg-accent rounded-lg transition-colors disabled:opacity-50"
+              title="Refresh transactions"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoadingTransactions ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
         
         {transactions.length > 0 ? (
