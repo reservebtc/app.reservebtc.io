@@ -74,7 +74,7 @@ export default function HomePage() {
             </div>
             <div>
               <h3 className="text-2xl font-semibold">Mint rBTC Token</h3>
-              <p className="text-muted-foreground">Deposit Bitcoin to mint 1:1 backed rBTC</p>
+              <p className="text-muted-foreground">Verify Bitcoin ownership to mint 1:1 backed rBTC</p>
             </div>
           </div>
 

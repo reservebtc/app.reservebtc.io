@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
   title: 'ReserveBTC - Mint 1:1 backed rBTC tokens',
-  description: 'Deposit Bitcoin to mint 1:1 backed rBTC tokens on MegaETH',
+  description: 'Verify Bitcoin ownership to mint 1:1 backed rBTC tokens on MegaETH',
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
