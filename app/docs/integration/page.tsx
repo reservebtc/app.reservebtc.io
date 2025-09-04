@@ -148,7 +148,7 @@ const megaETHTestnet = {
                   <pre className="text-sm text-muted-foreground overflow-x-auto">
 {`const tokens = {
   'rBTC-SYNTH': {
-    address: '0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB',
+    address: '0x37fE059490B70e2605cb3D6fD64F5292d3eB46dE',
     decimals: 8,
     symbol: 'rBTC-SYNTH',
     soulbound: true
@@ -177,7 +177,7 @@ const megaETHTestnet = {
                 <div className="bg-muted/30 rounded-lg p-3">
                   <pre className="text-sm text-muted-foreground overflow-x-auto">
 {`const oracleContract = new ethers.Contract(
-  '0x717D12a23Bb46743b15019a52184DF7F250B061a',
+  '0x611AFD3808e732Ba89A0D9991d2902b0Df9bd149',
   ['event Synced(address indexed, uint64, int64, uint256, uint32, uint64)'],
   provider
 );
@@ -240,8 +240,8 @@ function ReserveBTCDashboard() {
   const [provider, setProvider] = useState(null);
   
   // Contract addresses on MegaETH Testnet
-  const SYNTH_ADDRESS = '0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB';
-  const ORACLE_ADDRESS = '0x717D12a23Bb46743b15019a52184DF7F250B061a';
+  const SYNTH_ADDRESS = '0x37fE059490B70e2605cb3D6fD64F5292d3eB46dE';
+  const ORACLE_ADDRESS = '0x611AFD3808e732Ba89A0D9991d2902b0Df9bd149';
 
   useEffect(() => {
     const initProvider = async () => {
@@ -357,8 +357,8 @@ app.use(express.json());
 const provider = new ethers.JsonRpcProvider('https://carrot.megaeth.com/rpc');
 
 // Contract addresses
-const ORACLE_ADDRESS = '0x717D12a23Bb46743b15019a52184DF7F250B061a';
-const SYNTH_ADDRESS = '0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB';
+const ORACLE_ADDRESS = '0x611AFD3808e732Ba89A0D9991d2902b0Df9bd149';
+const SYNTH_ADDRESS = '0x37fE059490B70e2605cb3D6fD64F5292d3eB46dE';
 const WRBTC_ADDRESS = '0xa10FC332f12d102Dddf431F8136E4E89279EFF87';
 
 // API endpoint to get token balances
@@ -412,7 +412,7 @@ app.listen(3000, () => {
                 <pre className="text-sm text-muted-foreground overflow-x-auto">
 {`// Set up Oracle event listeners for real-time monitoring
 const oracleContract = new ethers.Contract(
-  '0x717D12a23Bb46743b15019a52184DF7F250B061a',
+  '0x611AFD3808e732Ba89A0D9991d2902b0Df9bd149',
   ['event Synced(address indexed, uint64, int64, uint256, uint32, uint64)'],
   provider
 );

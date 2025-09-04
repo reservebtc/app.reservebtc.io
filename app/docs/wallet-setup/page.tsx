@@ -439,7 +439,7 @@ export default function WalletSetupPage() {
               <div className="space-y-2 text-sm font-mono">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Contract:</span>
-                  <span className="break-all">0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB</span>
+                  <span className="break-all">0x37fE059490B70e2605cb3D6fD64F5292d3eB46dE</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Symbol:</span>

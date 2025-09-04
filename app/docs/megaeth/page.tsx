@@ -205,12 +205,12 @@ export default function MegaETHPage() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <p className="font-medium">OracleAggregator</p>
-                      <p className="font-mono text-xs break-all text-muted-foreground">0x717D12a23Bb46743b15019a52184DF7F250B061a</p>
+                      <p className="font-mono text-xs break-all text-muted-foreground">0x611AFD3808e732Ba89A0D9991d2902b0Df9bd149</p>
                       <p className="text-xs text-muted-foreground mt-1">Core Oracle system for balance monitoring</p>
                     </div>
                     <div>
                       <p className="font-medium">RBTCSynth</p>
-                      <p className="font-mono text-xs break-all text-muted-foreground">0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB</p>
+                      <p className="font-mono text-xs break-all text-muted-foreground">0x37fE059490B70e2605cb3D6fD64F5292d3eB46dE</p>
                       <p className="text-xs text-muted-foreground mt-1">Soulbound rBTC-SYNTH tokens</p>
                     </div>
                   </div>
@@ -288,13 +288,13 @@ const { chains } = configureChains(
               <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-sm overflow-x-auto">
 {`// ReserveBTC Oracle Contract
 const oracleContract = {
-  address: '0x717D12a23Bb46743b15019a52184DF7F250B061a',
+  address: '0x611AFD3808e732Ba89A0D9991d2902b0Df9bd149',
   abi: ORACLE_ABI
 };
 
 // rBTC-SYNTH Token Contract
 const rbtcSynthContract = {
-  address: '0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB',
+  address: '0x37fE059490B70e2605cb3D6fD64F5292d3eB46dE',
   abi: ERC20_ABI
 };
 

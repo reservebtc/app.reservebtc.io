@@ -44,7 +44,7 @@ export default function ABIPage() {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="font-medium">Oracle Aggregator Contract</h3>
-                  <p className="text-sm text-muted-foreground font-mono">0x717D12a23Bb46743b15019a52184DF7F250B061a</p>
+                  <p className="text-sm text-muted-foreground font-mono">0x611AFD3808e732Ba89A0D9991d2902b0Df9bd149</p>
                 </div>
                 <div className="text-sm text-green-600 bg-green-100 dark:bg-green-900/20 px-2 py-1 rounded">
                   Verified
@@ -55,7 +55,7 @@ export default function ABIPage() {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="font-medium">rBTC-SYNTH Token Contract</h3>
-                  <p className="text-sm text-muted-foreground font-mono">0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB</p>
+                  <p className="text-sm text-muted-foreground font-mono">0x37fE059490B70e2605cb3D6fD64F5292d3eB46dE</p>
                 </div>
                 <div className="text-sm text-green-600 bg-green-100 dark:bg-green-900/20 px-2 py-1 rounded">
                   Verified
@@ -88,7 +88,7 @@ export default function ABIPage() {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="font-medium">Fee Policy Contract</h3>
-                  <p className="text-sm text-muted-foreground font-mono">0x2F0f48EA3dD5bCff86A178F20f9c4AB2860CD468</p>
+                  <p className="text-sm text-muted-foreground font-mono">0xc10fD3a2DF480CFAE8a7aBC2862a9c5724f5f4b4</p>
                 </div>
                 <div className="text-sm text-green-600 bg-green-100 dark:bg-green-900/20 px-2 py-1 rounded">
                   Verified
@@ -265,12 +265,12 @@ const web3 = new Web3('https://carrot.megaeth.com/rpc');
 
 const synthContract = new web3.eth.Contract(
   RBTC_SYNTH_ABI, 
-  "0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB"
+  "0x37fE059490B70e2605cb3D6fD64F5292d3eB46dE"
 );
 
 const oracleContract = new web3.eth.Contract(
   ORACLE_ABI,
-  "0x717D12a23Bb46743b15019a52184DF7F250B061a"
+  "0x611AFD3808e732Ba89A0D9991d2902b0Df9bd149"
 );
 
 // Query user's rBTC-SYNTH balance
@@ -294,13 +294,13 @@ oracleContract.events.Synced()
 const provider = new ethers.JsonRpcProvider('https://carrot.megaeth.com/rpc');
 
 const synthContract = new ethers.Contract(
-  "0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB",
+  "0x37fE059490B70e2605cb3D6fD64F5292d3eB46dE",
   RBTC_SYNTH_ABI,
   provider
 );
 
 const oracleContract = new ethers.Contract(
-  "0x717D12a23Bb46743b15019a52184DF7F250B061a",
+  "0x611AFD3808e732Ba89A0D9991d2902b0Df9bd149",
   ORACLE_ABI,
   provider
 );

@@ -248,7 +248,7 @@ export default function TroubleshootingPage() {
                 <p className="text-muted-foreground"><strong>Solutions:</strong></p>
                 <ul className="list-disc list-inside space-y-1 ml-4 text-muted-foreground">
                   <li>Add token contracts manually to MetaMask</li>
-                  <li>rBTC-SYNTH: 0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB</li>
+                  <li>rBTC-SYNTH: 0x37fE059490B70e2605cb3D6fD64F5292d3eB46dE</li>
                   <li>wrBTC: 0xa10FC332f12d102Dddf431F8136E4E89279EFF87</li>
                   <li>Refresh MetaMask and check "Assets" tab</li>
                   <li>Verify transaction was successful on explorer</li>

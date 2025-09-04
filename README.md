@@ -72,11 +72,11 @@
 
 | Contract | Address | Purpose |
 |----------|---------|---------|
-| **OracleAggregator** | `0x717D12a23Bb46743b15019a52184DF7F250B061a` | Core Oracle system |
-| **RBTCSynth** | `0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB` | rBTC-SYNTH (soulbound) |
+| **OracleAggregator** | `0x611AFD3808e732Ba89A0D9991d2902b0Df9bd149` | Core Oracle system |
+| **RBTCSynth** | `0x37fE059490B70e2605cb3D6fD64F5292d3eB46dE` | rBTC-SYNTH (soulbound) |
 | **VaultWrBTC** | `0xa10FC332f12d102Dddf431F8136E4E89279EFF87` | wrBTC (transferable) |
 | **FeeVault** | `0x298b3746B593df83E5bB2122cb80d17bdE2AB5fF` | Fee management |
-| **FeePolicy** | `0x2F0f48EA3dD5bCff86A178F20f9c4AB2860CD468` | Fee calculation |
+| **FeePolicy** | `0xc10fD3a2DF480CFAE8a7aBC2862a9c5724f5f4b4` | Fee calculation |
 
 **Network Configuration:**
 - **RPC URL**: `https://carrot.megaeth.com/rpc`
@@ -304,7 +304,7 @@ export const FEE_CONFIG = {
 // Live Oracle Server Configuration
 const CONFIG = {
   oracleUrl: 'https://oracle.reservebtc.io',
-  oracleContract: '0x717D12a23Bb46743b15019a52184DF7F250B061a',
+  oracleContract: '0x611AFD3808e732Ba89A0D9991d2902b0Df9bd149',
   committeeAddress: '0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b',
   feeVault: '0x298b3746B593df83E5bB2122cb80d17bdE2AB5fF',
   refreshInterval: 10000,         // 10 seconds monitoring

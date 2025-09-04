@@ -102,7 +102,7 @@ export default function APIPage() {
     "minConfirmations": "1",
     "maxFeePerSync": "10000000000000000",
     "chainId": 6342,
-    "contractAddress": "0x717D12a23Bb46743b15019a52184DF7F250B061a"
+    "contractAddress": "0x611AFD3808e732Ba89A0D9991d2902b0Df9bd149"
   }
 }`}</pre>
                 </div>
@@ -260,7 +260,7 @@ export default function APIPage() {
   "success": true,
   "data": {
     "rbtcSynth": {
-      "address": "0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB",
+      "address": "0x37fE059490B70e2605cb3D6fD64F5292d3eB46dE",
       "name": "ReserveBTC Synthetic",
       "symbol": "rBTC-SYNTH",
       "decimals": 8,

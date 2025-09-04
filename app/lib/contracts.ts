@@ -1,15 +1,15 @@
-// MegaETH Testnet Contract Addresses - Deployed 2025-08-30
+// MegaETH Testnet Contract Addresses - Updated 2025-09-04 (Fixed Architecture)
 export const CONTRACTS = {
   // Chain Configuration
   CHAIN_ID: 6342,
   RPC_URL: 'https://carrot.megaeth.com/rpc',
   
   // Contract Addresses on MegaETH Testnet
-  FEE_POLICY: '0x2F0f48EA3dD5bCff86A178F20f9c4AB2860CD468',
+  FEE_POLICY: '0xc10fD3a2DF480CFAE8a7aBC2862a9c5724f5f4b4',
   FEE_VAULT: '0x298b3746B593df83E5bB2122cb80d17bdE2AB5fF', 
-  RBTC_SYNTH: '0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB',
+  RBTC_SYNTH: '0x37fE059490B70e2605cb3D6fD64F5292d3eB46dE',
   VAULT_WRBTC: '0xa10FC332f12d102Dddf431F8136E4E89279EFF87',
-  ORACLE_AGGREGATOR: '0x717D12a23Bb46743b15019a52184DF7F250B061a',
+  ORACLE_AGGREGATOR: '0x611AFD3808e732Ba89A0D9991d2902b0Df9bd149',
   
   // Oracle Configuration
   // Note: This is the actual Oracle committee address that controls sync operations

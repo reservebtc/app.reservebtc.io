@@ -165,3 +165,26 @@ CHANGELOG.md
 
 # Scripts folder test files
 scripts/test-*.js
+
+# Oracle server diagnostic and fix scripts
+fix-oracle-address.sh
+oracle-server-diagnostic.sh
+fix-oracle-sync-signature.sh
+test-contract-sync.js
+debug-rbtc-oracle.js
+
+# Contract deploy fix scripts
+contracts/script/FixRBTCSynth.s.sol
+contracts/script/FixOracleAggregator.s.sol
+update-oracle-config.sh
+test-new-contract.js
+find-correct-pair.js
+contracts/script/FinalDeploy.s.sol
+contracts/script/FinalOracleAggregator.s.sol
+contracts/script/AtomicDeploy.s.sol
+test-manual-sync.js
+contracts/script/DeployFeePolicy.s.sol
+
+# Forge broadcast directories
+contracts/broadcast/
+contracts/cache/

@@ -23,19 +23,19 @@ export const megaeth = {
     },
     // ReserveBTC Protocol Contracts
     feePolicy: {
-      address: '0x2F0f48EA3dD5bCff86A178F20f9c4AB2860CD468',
+      address: '0xc10fD3a2DF480CFAE8a7aBC2862a9c5724f5f4b4',
     },
     feeVault: {
       address: '0x298b3746B593df83E5bB2122cb80d17bdE2AB5fF',
     },
     rbtcSynth: {
-      address: '0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB',
+      address: '0x37fE059490B70e2605cb3D6fD64F5292d3eB46dE',
     },
     vaultWrBTC: {
       address: '0xa10FC332f12d102Dddf431F8136E4E89279EFF87',
     },
     oracleAggregator: {
-      address: '0x717D12a23Bb46743b15019a52184DF7F250B061a',
+      address: '0x611AFD3808e732Ba89A0D9991d2902b0Df9bd149',
     },
   },
   testnet: true,
