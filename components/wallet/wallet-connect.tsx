@@ -1,14 +1,18 @@
 'use client'
 
-import { useAccount, useConnect, useDisconnect } from 'wagmi'
+import { useAccount, useConnect, useDisconnect, useSwitchChain } from 'wagmi'
 import { useState, useEffect } from 'react'
 import { Wallet, ChevronDown } from 'lucide-react'
 
 export function WalletConnect() {
   const [isConnecting, setIsConnecting] = useState(false)
-  const { address, isConnected } = useAccount()
+  const { address, isConnected, chain } = useAccount()
   const { connect, connectors, error, isPending } = useConnect()
   const { disconnect } = useDisconnect()
+  const { switchChain } = useSwitchChain()
+  
+  // MegaETH Testnet chain ID
+  const MEGAETH_CHAIN_ID = 70532
 
   // Simplified connection
   const handleConnect = () => {
@@ -27,6 +31,33 @@ export function WalletConnect() {
   }, [isConnected, error])
 
   if (isConnected && address) {
+    // Check if on wrong network
+    if (chain?.id !== MEGAETH_CHAIN_ID) {
+      return (
+        <div className="flex flex-col space-y-2">
+          <div className="flex items-center space-x-2 bg-card border rounded-lg px-4 py-2.5 h-10">
+            <Wallet className="h-4 w-4" />
+            <span className="font-mono text-sm">
+              {address.slice(0, 6)}...{address.slice(-4)}
+            </span>
+            <button
+              onClick={() => disconnect()}
+              className="ml-2 text-muted-foreground hover:text-foreground transition-colors"
+              title="Disconnect wallet"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </button>
+          </div>
+          <button
+            onClick={() => switchChain({ chainId: MEGAETH_CHAIN_ID })}
+            className="w-full bg-yellow-500 text-black hover:bg-yellow-400 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            Switch to MegaETH
+          </button>
+        </div>
+      )
+    }
+
     return (
       <div className="flex items-center space-x-2 bg-card border rounded-lg px-4 py-2.5 h-10">
         <Wallet className="h-4 w-4" />
