@@ -123,15 +123,23 @@ export function DashboardContent() {
 
     setIsLoadingTransactions(true)
     try {
+      console.log(`Loading transactions for address: ${address}`)
       const allTransactions: Transaction[] = []
 
       // Load transactions from smart contract events
       try {
         // Get current block number for event filtering
         const currentBlock = await publicClient.getBlockNumber()
-        const fromBlock = currentBlock - BigInt(50000) // Last ~50k blocks (adjust as needed)
+        console.log(`Current block: ${currentBlock}`)
+        
+        // Use larger block range to capture more history
+        const blockRange = BigInt(100000) // Last ~100k blocks
+        const fromBlock = currentBlock > blockRange ? currentBlock - blockRange : BigInt(0)
+        console.log(`Searching from block: ${fromBlock} to ${currentBlock}`)
 
         // 1. Get Synced events from Oracle (most important - shows mint/burn)
+        console.log(`Searching for Synced events from Oracle: ${CONTRACTS.ORACLE_AGGREGATOR}`)
+        
         const syncedEvents = await publicClient.getLogs({
           address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
           event: parseAbiItem('event Synced(address indexed user, uint64 newBalanceSats, int64 deltaSats, uint256 feeWei, uint32 height, uint64 timestamp)'),
@@ -140,24 +148,36 @@ export function DashboardContent() {
           toBlock: 'latest'
         })
 
+        console.log(`Found ${syncedEvents.length} Synced events`)
+
         // Process Synced events (mint/burn operations)
         for (const event of syncedEvents) {
           const { user, newBalanceSats, deltaSats, feeWei, height, timestamp } = event.args
-          if (!deltaSats || !timestamp) continue
+          console.log('Processing Synced event:', { user, newBalanceSats, deltaSats, feeWei, height, timestamp })
+          
+          if (!deltaSats || !timestamp) {
+            console.log('Skipping event - missing deltaSats or timestamp')
+            continue
+          }
           
           const deltaSatsBigInt = BigInt(deltaSats)
           const amount = formatUnits(deltaSatsBigInt > 0 ? deltaSatsBigInt : -deltaSatsBigInt, 8) // Bitcoin uses 8 decimals
           
-          allTransactions.push({
+          const transaction: Transaction = {
             hash: event.transactionHash,
             type: deltaSatsBigInt > 0 ? 'mint' : 'burn',
             amount,
             timestamp: new Date(Number(timestamp) * 1000).toISOString(),
             status: 'success'
-          })
+          }
+          
+          console.log('Adding transaction:', transaction)
+          allTransactions.push(transaction)
         }
 
         // 2. Get Transfer events from rBTC-SYNTH token (incoming)
+        console.log(`Searching for rBTC Transfer events from: ${CONTRACTS.RBTC_SYNTH}`)
+        
         const rbtcTransferEventsIn = await publicClient.getLogs({
           address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
           event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
@@ -180,6 +200,7 @@ export function DashboardContent() {
         })
 
         const rbtcTransferEvents = [...rbtcTransferEventsIn, ...rbtcTransferEventsOut]
+        console.log(`Found ${rbtcTransferEvents.length} rBTC Transfer events`)
 
         // Process rBTC transfers
         for (const event of rbtcTransferEvents) {
@@ -191,16 +212,20 @@ export function DashboardContent() {
           
           // Skip mint/burn transfers (they have zero address)
           if (from === '0x0000000000000000000000000000000000000000' || to === '0x0000000000000000000000000000000000000000') {
+            console.log('Skipping mint/burn transfer event')
             continue
           }
           
-          allTransactions.push({
+          const transaction: Transaction = {
             hash: event.transactionHash,
             type: 'transfer',
             amount,
             timestamp: new Date().toISOString(), // We'll get block timestamp below
             status: 'success'
-          })
+          }
+          
+          console.log('Adding rBTC transfer:', transaction)
+          allTransactions.push(transaction)
         }
 
         // 3. Get Transfer events from wrBTC vault (incoming)
@@ -270,8 +295,16 @@ export function DashboardContent() {
         })
 
       } catch (contractError) {
-        console.log('Error loading from contracts:', contractError)
+        console.error('Error loading from contracts:', contractError)
+        
+        // Fallback: try to create sample data if no contract events found
+        if (address) {
+          console.log('No contract events found, showing placeholder message')
+          // Don't create fake data, just show empty state
+        }
       }
+
+      console.log(`Total transactions found: ${allTransactions.length}`)
 
       if (allTransactions.length > 0) {
         // Remove duplicates by hash
@@ -285,18 +318,24 @@ export function DashboardContent() {
         // Sort by timestamp (newest first)
         uniqueTransactions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         
+        console.log(`Setting ${uniqueTransactions.length} unique transactions`)
         setTransactions(uniqueTransactions)
         
         // Save to localStorage
         localStorage.setItem(`transactions_${address}`, JSON.stringify(uniqueTransactions))
       } else {
+        console.log('No transactions found, setting empty array')
         setTransactions([])
+        
+        // Clear any old cached data
+        localStorage.removeItem(`transactions_${address}`)
       }
     } catch (error) {
       console.error('Error loading transactions:', error)
       setTransactions([])
     } finally {
       setIsLoadingTransactions(false)
+      console.log('Transaction loading completed')
     }
   }
 
