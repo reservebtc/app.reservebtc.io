@@ -52,6 +52,7 @@ export function DashboardContent() {
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false)
+  const [syncStatus, setSyncStatus] = useState<string>('')
 
   // Redirect if not connected
   useEffect(() => {
@@ -124,213 +125,222 @@ export function DashboardContent() {
     setIsLoadingTransactions(true)
     try {
       console.log(`Loading transactions for address: ${address}`)
-      const allTransactions: Transaction[] = []
-
-      // Load transactions from smart contract events
-      try {
-        // Get current block number for event filtering
-        const currentBlock = await publicClient.getBlockNumber()
-        console.log(`Current block: ${currentBlock}`)
+      
+      // Load cached transactions first for instant display
+      const cachedKey = `rbtc_transactions_${address}`
+      const cachedData = localStorage.getItem(cachedKey)
+      const cached = cachedData ? JSON.parse(cachedData) : { transactions: [], lastSyncedBlock: 0n, lastSyncedAt: 0 }
+      
+      // Show cached data immediately if available
+      if (cached.transactions.length > 0) {
+        console.log(`Found ${cached.transactions.length} cached transactions, showing immediately`)
+        setTransactions(cached.transactions)
+        setSyncStatus(`Showing cached data (${cached.transactions.length} transactions)`)
+      }
+      
+      // Get current block for incremental sync
+      const currentBlock = await publicClient.getBlockNumber()
+      console.log(`Current block: ${currentBlock}`)
+      
+      // Determine sync strategy based on cache age and last synced block
+      const cacheAge = Date.now() - cached.lastSyncedAt
+      const isStaleCache = cacheAge > 5 * 60 * 1000 // 5 minutes
+      const lastSyncedBlock = BigInt(cached.lastSyncedBlock || 0)
+      
+      let startBlock: bigint
+      let syncDescription: string
+      
+      if (cached.transactions.length === 0) {
+        // First time sync - start from recent history only (last 50k blocks due to MegaETH limits)
+        startBlock = currentBlock > 50000n ? currentBlock - 50000n : 0n
+        syncDescription = 'Initial sync (recent 50k blocks)'
+      } else if (isStaleCache || currentBlock > lastSyncedBlock + 100n) {
+        // Incremental sync - only check new blocks since last sync
+        startBlock = lastSyncedBlock
+        syncDescription = `Incremental sync from block ${startBlock}`
+      } else {
+        // Cache is fresh, no sync needed
+        console.log('Cache is fresh, no sync needed')
+        setSyncStatus('Up to date')
+        setIsLoadingTransactions(false)
+        return
+      }
+      
+      console.log(`${syncDescription}: scanning blocks ${startBlock} to ${currentBlock}`)
+      setSyncStatus(`Syncing... (${syncDescription})`)
+      
+      // Use VERY small chunks due to MegaETH strict limits
+      const CHUNK_SIZE = BigInt(50) // Very conservative chunk size
+      const MAX_CHUNKS_PER_SYNC = 100 // Limit total chunks to prevent long loading times
+      
+      const allNewTransactions: Transaction[] = []
+      let chunksProcessed = 0
+      
+      // Process blocks in small chunks
+      for (let blockStart = startBlock; blockStart < currentBlock && chunksProcessed < MAX_CHUNKS_PER_SYNC; blockStart += CHUNK_SIZE) {
+        const blockEnd = blockStart + CHUNK_SIZE > currentBlock ? currentBlock : blockStart + CHUNK_SIZE
+        chunksProcessed++
         
-        // Get ALL transaction history from contract deployment
-        // Contract deployed around August 30, 2025, estimated around block 14000000
-        const contractDeploymentBlock = BigInt(14000000) // Estimated deployment block
-        console.log(`Searching ALL history from contract deployment (block ${contractDeploymentBlock}) to current block ${currentBlock}`)
+        console.log(`Processing chunk ${chunksProcessed}: blocks ${blockStart} to ${blockEnd}`)
+        setSyncStatus(`Syncing... (chunk ${chunksProcessed}/${MAX_CHUNKS_PER_SYNC})`)
         
-        // Create chunks to avoid RPC limits (10k blocks per chunk)
-        const chunkSize = BigInt(10000)
-        const searchRanges = []
-        
-        for (let start = contractDeploymentBlock; start < currentBlock; start += chunkSize) {
-          const end = start + chunkSize > currentBlock ? currentBlock : start + chunkSize
-          searchRanges.push({
-            from: start,
-            to: end,
-            name: `blocks ${start}-${end}`
+        try {
+          // Search for Oracle Synced events (mint/burn operations)
+          const syncedEvents = await publicClient.getLogs({
+            address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
+            event: parseAbiItem('event Synced(address indexed user, uint64 newBalanceSats, int64 deltaSats, uint256 feeWei, uint32 height, uint64 timestamp)'),
+            args: { user: address as `0x${string}` },
+            fromBlock: blockStart,
+            toBlock: blockEnd
           })
-        }
-        
-        console.log(`Will search ${searchRanges.length} chunks to get complete transaction history`)
-        let foundEvents = false
 
-        for (const range of searchRanges) {
-          console.log(`\nSearching ${range.name} range: blocks ${range.from} to ${range.to}`)
-          
-          try {
-            // 1. Get Synced events from Oracle (most important - shows mint/burn)
-            const syncedEvents = await publicClient.getLogs({
-              address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
-              event: parseAbiItem('event Synced(address indexed user, uint64 newBalanceSats, int64 deltaSats, uint256 feeWei, uint32 height, uint64 timestamp)'),
-              args: { user: address as `0x${string}` },
-              fromBlock: range.from,
-              toBlock: range.to
-            })
-
-            console.log(`Found ${syncedEvents.length} Synced events in ${range.name} range`)
-
-            // Process Synced events (mint/burn operations)
-            for (const event of syncedEvents) {
-              const { user, newBalanceSats, deltaSats, feeWei, height, timestamp } = event.args
-              console.log('Processing Synced event:', { user, newBalanceSats, deltaSats, feeWei, height, timestamp })
-              
-              if (!deltaSats || !timestamp) {
-                console.log('Skipping event - missing deltaSats or timestamp')
-                continue
-              }
-              
-              const deltaSatsBigInt = BigInt(deltaSats)
-              const amount = formatUnits(deltaSatsBigInt > 0 ? deltaSatsBigInt : -deltaSatsBigInt, 8) // Bitcoin uses 8 decimals
-              
-              const transaction: Transaction = {
-                hash: event.transactionHash,
-                type: deltaSatsBigInt > 0 ? 'mint' : 'burn',
-                amount,
-                timestamp: new Date(Number(timestamp) * 1000).toISOString(),
-                status: 'success'
-              }
-              
-              console.log('Adding transaction:', transaction)
-              allTransactions.push(transaction)
-              foundEvents = true
+          // Process Oracle events
+          for (const event of syncedEvents) {
+            const { deltaSats, timestamp } = event.args
+            if (!deltaSats || !timestamp) continue
+            
+            const deltaSatsBigInt = BigInt(deltaSats)
+            const amount = formatUnits(deltaSatsBigInt > 0 ? deltaSatsBigInt : -deltaSatsBigInt, 8)
+            
+            const transaction: Transaction = {
+              hash: event.transactionHash,
+              type: deltaSatsBigInt > 0 ? 'mint' : 'burn',
+              amount,
+              timestamp: new Date(Number(timestamp) * 1000).toISOString(),
+              status: 'success'
             }
-
-            // 2. Get rBTC-SYNTH Transfer events (incoming)
-            const rbtcIncomingEvents = await publicClient.getLogs({
-              address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
-              event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
-              args: { to: address as `0x${string}` },
-              fromBlock: range.from,
-              toBlock: range.to
-            })
-
-            console.log(`Found ${rbtcIncomingEvents.length} incoming rBTC Transfer events in ${range.name} range`)
-
-            // Process incoming Transfer events
-            for (const event of rbtcIncomingEvents) {
-              const { from, to, value } = event.args
-              if (!value) continue
-              
-              // Get block timestamp
-              let timestamp = new Date().toISOString() // Fallback
-              try {
-                const block = await publicClient.getBlock({ blockNumber: event.blockNumber })
-                timestamp = new Date(Number(block.timestamp) * 1000).toISOString()
-              } catch (blockError) {
-                console.log('Could not get block timestamp, using fallback')
-              }
-              
-              const amount = formatUnits(value, 8) // Bitcoin uses 8 decimals
-              
-              const transaction: Transaction = {
-                hash: event.transactionHash,
-                type: 'transfer',
-                amount,
-                timestamp,
-                status: 'success'
-              }
-              
-              allTransactions.push(transaction)
-              foundEvents = true
-            }
-
-            // 3. Get rBTC-SYNTH Transfer events (outgoing)
-            const rbtcOutgoingEvents = await publicClient.getLogs({
-              address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
-              event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
-              args: { from: address as `0x${string}` },
-              fromBlock: range.from,
-              toBlock: range.to
-            })
-
-            console.log(`Found ${rbtcOutgoingEvents.length} outgoing rBTC Transfer events in ${range.name} range`)
-
-            // Process outgoing Transfer events
-            for (const event of rbtcOutgoingEvents) {
-              const { from, to, value } = event.args
-              if (!value) continue
-              
-              // Get block timestamp
-              let timestamp = new Date().toISOString() // Fallback
-              try {
-                const block = await publicClient.getBlock({ blockNumber: event.blockNumber })
-                timestamp = new Date(Number(block.timestamp) * 1000).toISOString()
-              } catch (blockError) {
-                console.log('Could not get block timestamp, using fallback')
-              }
-              
-              const amount = formatUnits(value, 8) // Bitcoin uses 8 decimals
-              
-              const transaction: Transaction = {
-                hash: event.transactionHash,
-                type: 'transfer',
-                amount,
-                timestamp,
-                status: 'success'
-              }
-              
-              allTransactions.push(transaction)
-              foundEvents = true
-            }
-
-            // Continue searching all ranges to get complete history
-
-          } catch (rangeError) {
-            console.log(`Error in ${range.name} range:`, rangeError instanceof Error ? rangeError.message : 'Unknown error')
-            // Continue to next range
+            
+            allNewTransactions.push(transaction)
           }
-        }
 
-        // Show helpful message if no events found
-        if (allTransactions.length === 0) {
-          console.log('No Oracle Synced events found for this user.')
-          console.log('This means either:')
-          console.log('1. User has not minted any rBTC tokens yet')
-          console.log('2. Events occurred outside the searched block range')
-          console.log('3. User address not registered with Oracle')
-        }
+          // Search for rBTC Transfer events (incoming)
+          const transferInEvents = await publicClient.getLogs({
+            address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
+            event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
+            args: { to: address as `0x${string}` },
+            fromBlock: blockStart,
+            toBlock: blockEnd
+          })
 
-      } catch (contractError) {
-        console.error('Error loading from contracts:', contractError)
-        
-        // Fallback: try to create sample data if no contract events found
-        if (address) {
-          console.log('No contract events found, showing placeholder message')
-          // Don't create fake data, just show empty state
+          // Process incoming transfers
+          for (const event of transferInEvents) {
+            const { value } = event.args
+            if (!value || event.args.from === '0x0000000000000000000000000000000000000000') continue // Skip mints
+            
+            // Get block timestamp
+            let timestamp: string
+            try {
+              const block = await publicClient.getBlock({ blockNumber: event.blockNumber })
+              timestamp = new Date(Number(block.timestamp) * 1000).toISOString()
+            } catch {
+              timestamp = new Date().toISOString() // Fallback
+            }
+            
+            const transaction: Transaction = {
+              hash: event.transactionHash,
+              type: 'transfer',
+              amount: formatUnits(value, 8),
+              timestamp,
+              status: 'success'
+            }
+            
+            allNewTransactions.push(transaction)
+          }
+
+          // Search for rBTC Transfer events (outgoing)
+          const transferOutEvents = await publicClient.getLogs({
+            address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
+            event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
+            args: { from: address as `0x${string}` },
+            fromBlock: blockStart,
+            toBlock: blockEnd
+          })
+
+          // Process outgoing transfers
+          for (const event of transferOutEvents) {
+            const { value } = event.args
+            if (!value || event.args.to === '0x0000000000000000000000000000000000000000') continue // Skip burns
+            
+            // Get block timestamp
+            let timestamp: string
+            try {
+              const block = await publicClient.getBlock({ blockNumber: event.blockNumber })
+              timestamp = new Date(Number(block.timestamp) * 1000).toISOString()
+            } catch {
+              timestamp = new Date().toISOString() // Fallback
+            }
+            
+            const transaction: Transaction = {
+              hash: event.transactionHash,
+              type: 'transfer',
+              amount: formatUnits(value, 8),
+              timestamp,
+              status: 'success'
+            }
+            
+            allNewTransactions.push(transaction)
+          }
+
+        } catch (chunkError) {
+          console.log(`Error processing chunk ${blockStart}-${blockEnd}:`, chunkError instanceof Error ? chunkError.message : 'Unknown error')
+          
+          // If we hit rate limits, break and save what we have
+          if (chunkError instanceof Error && chunkError.message.includes('rate limit')) {
+            console.log('Hit rate limits, stopping incremental sync')
+            break
+          }
+          
+          // Continue with next chunk for other errors
+          continue
         }
       }
 
-      console.log(`Total transactions found: ${allTransactions.length}`)
+      console.log(`Found ${allNewTransactions.length} new transactions in ${chunksProcessed} chunks`)
 
-      if (allTransactions.length > 0) {
-        // Remove duplicates by hash
-        const uniqueTransactions = allTransactions.reduce((acc, tx) => {
+      // Merge new transactions with cached ones
+      const allTransactions = [...cached.transactions, ...allNewTransactions]
+      
+      // Remove duplicates by hash and sort by timestamp (newest first)
+      const uniqueTransactions = allTransactions
+        .reduce((acc, tx) => {
           if (!acc.find(existing => existing.hash === tx.hash)) {
             acc.push(tx)
           }
           return acc
         }, [] as Transaction[])
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
-        // Sort by timestamp (newest first)
-        uniqueTransactions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-        
-        console.log(`Setting ${uniqueTransactions.length} unique transactions`)
-        setTransactions(uniqueTransactions)
-        
-        // Save to localStorage
-        localStorage.setItem(`transactions_${address}`, JSON.stringify(uniqueTransactions))
-      } else {
-        console.log('No transactions found, setting empty array')
-        setTransactions([])
-        
-        // Clear any old cached data
-        localStorage.removeItem(`transactions_${address}`)
+      // Update state and cache
+      setTransactions(uniqueTransactions)
+      
+      // Save updated cache with sync metadata
+      const updatedCache = {
+        transactions: uniqueTransactions,
+        lastSyncedBlock: currentBlock.toString(),
+        lastSyncedAt: Date.now(),
+        totalSyncs: (cached.totalSyncs || 0) + 1,
+        lastSyncDescription: syncDescription
       }
+      localStorage.setItem(cachedKey, JSON.stringify(updatedCache))
+      
+      console.log(`Transaction sync completed: ${uniqueTransactions.length} total transactions cached`)
+      setSyncStatus(`Synchronized ${uniqueTransactions.length} transactions`)
+      
     } catch (error) {
       console.error('Error loading transactions:', error)
-      setTransactions([])
+      
+      // On error, still try to show cached data if available
+      const cachedKey = `rbtc_transactions_${address}`
+      const cachedData = localStorage.getItem(cachedKey)
+      if (cachedData) {
+        const cached = JSON.parse(cachedData)
+        if (cached.transactions?.length > 0) {
+          console.log('Showing cached transactions due to sync error')
+          setTransactions(cached.transactions)
+        }
+      }
     } finally {
       setIsLoadingTransactions(false)
-      console.log('Transaction loading completed')
     }
   }
 
@@ -529,7 +539,12 @@ export function DashboardContent() {
       {/* Transaction History */}
       <div className="bg-card border rounded-xl p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Transaction History</h3>
+          <div>
+            <h3 className="text-lg font-semibold">Transaction History</h3>
+            {syncStatus && (
+              <p className="text-xs text-muted-foreground mt-1">{syncStatus}</p>
+            )}
+          </div>
           <button 
             onClick={loadTransactions}
             disabled={isLoadingTransactions}
