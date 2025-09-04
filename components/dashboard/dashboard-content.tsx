@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAccount, useReadContract, useBlockNumber } from 'wagmi'
-import { formatUnits } from 'viem'
+import { useAccount, useReadContract, useBlockNumber, usePublicClient } from 'wagmi'
+import { formatUnits, parseAbiItem } from 'viem'
 import { useRouter } from 'next/navigation'
 import { 
   Wallet, 
@@ -31,7 +31,7 @@ interface VerifiedAddress {
 
 interface Transaction {
   hash: string
-  type: 'mint' | 'wrap' | 'unwrap' | 'transfer'
+  type: 'mint' | 'burn' | 'wrap' | 'unwrap' | 'transfer'
   amount: string
   timestamp: string
   status: 'success' | 'pending' | 'failed'
@@ -45,6 +45,7 @@ declare global {
 
 export function DashboardContent() {
   const { address, isConnected } = useAccount()
+  const publicClient = usePublicClient()
   const router = useRouter()
   const [verifiedAddresses, setVerifiedAddresses] = useState<VerifiedAddress[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -118,147 +119,187 @@ export function DashboardContent() {
 
 
   const loadTransactions = async () => {
-    if (!address) return
+    if (!address || !publicClient) return
 
     setIsLoadingTransactions(true)
     try {
-      // Clean up old fake transactions first
-      const savedTxs = localStorage.getItem(`transactions_${address}`)
-      if (savedTxs) {
-        try {
-          const existingTxs = JSON.parse(savedTxs)
-          // Filter out transactions with fake random hashes or invalid amounts
-          const validTxs = existingTxs.filter((tx: any) => {
-            // Skip transactions that look like our old generated ones
-            if (tx.amount === '0.05' || tx.amount === '0.02') {
-              return false
-            }
-            // Skip transactions with invalid hashes
-            if (!tx.hash || tx.hash === '0x0000000000000000000000000000000000000000000000000000000000000000') {
-              return false
-            }
-            return true
-          })
-          
-          if (validTxs.length > 0) {
-            setTransactions(validTxs)
-          } else {
-            // Clear invalid data
-            localStorage.removeItem(`transactions_${address}`)
-            setTransactions([])
-          }
-        } catch (error) {
-          console.log('Error parsing saved transactions:', error)
-          localStorage.removeItem(`transactions_${address}`)
-          setTransactions([])
-        }
-      }
-
-      // Try multiple approaches to fetch transaction data
       const allTransactions: Transaction[] = []
 
-      // Approach 1: Try MegaExplorer API with different endpoints
+      // Load transactions from smart contract events
       try {
-        const endpoints = [
-          `https://api.megaexplorer.xyz/address/${address}/transactions`,
-          `https://www.megaexplorer.xyz/api/address/${address}/transactions`,
-          `https://megaexplorer.xyz/api/v1/address/${address}/txs`
-        ]
+        // Get current block number for event filtering
+        const currentBlock = await publicClient.getBlockNumber()
+        const fromBlock = currentBlock - BigInt(50000) // Last ~50k blocks (adjust as needed)
 
-        for (const endpoint of endpoints) {
-          try {
-            const controller = new AbortController()
-            const timeoutId = setTimeout(() => controller.abort(), 5000)
-            
-            const response = await fetch(endpoint, { 
-              signal: controller.signal,
-              headers: { 'Accept': 'application/json' }
-            })
-            clearTimeout(timeoutId)
-            
-            if (response.ok) {
-              const data = await response.json()
-              
-              if (data.transactions && Array.isArray(data.transactions)) {
-                const formattedTxs = data.transactions
-                  .filter((tx: any) => tx.to === address || tx.from === address)
-                  .slice(0, 20)
-                  .map((tx: any) => ({
-                    hash: tx.hash || tx.transactionHash,
-                    type: detectTransactionType(tx),
-                    amount: formatUnits(BigInt(tx.value || 0), 18),
-                    timestamp: new Date((tx.timestamp || tx.timeStamp) * 1000).toISOString(),
-                    status: (tx.status === '1' || tx.status === 'success') ? 'success' : 'failed'
-                  }))
-                
-                allTransactions.push(...formattedTxs)
-                break // Use first successful response
-              }
-            }
-          } catch (endpointError) {
-            console.log(`Failed endpoint ${endpoint}:`, endpointError)
+        // 1. Get Synced events from Oracle (most important - shows mint/burn)
+        const syncedEvents = await publicClient.getLogs({
+          address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
+          event: parseAbiItem('event Synced(address indexed user, uint64 newBalanceSats, int64 deltaSats, uint256 feeWei, uint32 height, uint64 timestamp)'),
+          args: { user: address as `0x${string}` },
+          fromBlock,
+          toBlock: 'latest'
+        })
+
+        // Process Synced events (mint/burn operations)
+        for (const event of syncedEvents) {
+          const { user, newBalanceSats, deltaSats, feeWei, height, timestamp } = event.args
+          if (!deltaSats || !timestamp) continue
+          
+          const deltaSatsBigInt = BigInt(deltaSats)
+          const amount = formatUnits(deltaSatsBigInt > 0 ? deltaSatsBigInt : -deltaSatsBigInt, 8) // Bitcoin uses 8 decimals
+          
+          allTransactions.push({
+            hash: event.transactionHash,
+            type: deltaSatsBigInt > 0 ? 'mint' : 'burn',
+            amount,
+            timestamp: new Date(Number(timestamp) * 1000).toISOString(),
+            status: 'success'
+          })
+        }
+
+        // 2. Get Transfer events from rBTC-SYNTH token (incoming)
+        const rbtcTransferEventsIn = await publicClient.getLogs({
+          address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
+          event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
+          args: {
+            to: address as `0x${string}`
+          },
+          fromBlock,
+          toBlock: 'latest'
+        })
+
+        // Get Transfer events from rBTC-SYNTH token (outgoing)
+        const rbtcTransferEventsOut = await publicClient.getLogs({
+          address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
+          event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
+          args: {
+            from: address as `0x${string}`
+          },
+          fromBlock,
+          toBlock: 'latest'
+        })
+
+        const rbtcTransferEvents = [...rbtcTransferEventsIn, ...rbtcTransferEventsOut]
+
+        // Process rBTC transfers
+        for (const event of rbtcTransferEvents) {
+          const { from, to, value } = event.args
+          if (!from || !to || !value) continue
+          
+          const isIncoming = to.toLowerCase() === address.toLowerCase()
+          const amount = formatUnits(value, 8) // rBTC uses 8 decimals like Bitcoin
+          
+          // Skip mint/burn transfers (they have zero address)
+          if (from === '0x0000000000000000000000000000000000000000' || to === '0x0000000000000000000000000000000000000000') {
             continue
           }
+          
+          allTransactions.push({
+            hash: event.transactionHash,
+            type: 'transfer',
+            amount,
+            timestamp: new Date().toISOString(), // We'll get block timestamp below
+            status: 'success'
+          })
         }
-      } catch (apiError) {
-        console.log('API fetch failed:', apiError)
-      }
 
-      // Approach 2: Load from verified mint data if available
-      if (allTransactions.length === 0) {
-        // Check localStorage for actual mint/verification data
-        const bitcoinAddress = localStorage.getItem('verifiedBitcoinAddress')
-        const mintData = localStorage.getItem('mintTransaction')
-        
-        if (bitcoinAddress && mintData) {
-          try {
-            const parsedMintData = JSON.parse(mintData)
-            const realTransaction: Transaction = {
-              hash: parsedMintData.hash || '0x0000000000000000000000000000000000000000000000000000000000000000',
-              type: 'mint',
-              amount: parsedMintData.amount || '0.00000000',
-              timestamp: parsedMintData.timestamp || new Date().toISOString(),
-              status: parsedMintData.status || 'success'
+        // 3. Get Transfer events from wrBTC vault (incoming)
+        const wrbtcTransferEventsIn = await publicClient.getLogs({
+          address: CONTRACTS.VAULT_WRBTC as `0x${string}`,
+          event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
+          args: {
+            to: address as `0x${string}`
+          },
+          fromBlock,
+          toBlock: 'latest'
+        })
+
+        // Get Transfer events from wrBTC vault (outgoing)
+        const wrbtcTransferEventsOut = await publicClient.getLogs({
+          address: CONTRACTS.VAULT_WRBTC as `0x${string}`,
+          event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
+          args: {
+            from: address as `0x${string}`
+          },
+          fromBlock,
+          toBlock: 'latest'
+        })
+
+        const wrbtcTransferEvents = [...wrbtcTransferEventsIn, ...wrbtcTransferEventsOut]
+
+        // Process wrBTC transfers (wrap/unwrap operations)
+        for (const event of wrbtcTransferEvents) {
+          const { from, to, value } = event.args
+          if (!from || !to || !value) continue
+          
+          const isIncoming = to.toLowerCase() === address.toLowerCase()
+          const amount = formatUnits(value, 8) // wrBTC uses 8 decimals
+          
+          // Skip mint/burn transfers
+          if (from === '0x0000000000000000000000000000000000000000' || to === '0x0000000000000000000000000000000000000000') {
+            continue
+          }
+          
+          allTransactions.push({
+            hash: event.transactionHash,
+            type: isIncoming ? 'wrap' : 'unwrap',
+            amount,
+            timestamp: new Date().toISOString(), // We'll get block timestamp below
+            status: 'success'
+          })
+        }
+
+        // Get actual timestamps from block data
+        const blockTimestamps = new Map<string, string>()
+        for (const tx of allTransactions) {
+          if (!blockTimestamps.has(tx.hash)) {
+            try {
+              const txReceipt = await publicClient.getTransactionReceipt({ hash: tx.hash as `0x${string}` })
+              const block = await publicClient.getBlock({ blockNumber: txReceipt.blockNumber })
+              blockTimestamps.set(tx.hash, new Date(Number(block.timestamp) * 1000).toISOString())
+            } catch (error) {
+              console.log(`Could not get timestamp for tx ${tx.hash}:`, error)
             }
-            allTransactions.push(realTransaction)
-          } catch (error) {
-            console.log('Error parsing mint data:', error)
           }
         }
-        
-        // If still no data, don't create fake transactions
-        // Let the UI show "No transactions yet"
+
+        // Update timestamps
+        allTransactions.forEach(tx => {
+          const timestamp = blockTimestamps.get(tx.hash)
+          if (timestamp) tx.timestamp = timestamp
+        })
+
+      } catch (contractError) {
+        console.log('Error loading from contracts:', contractError)
       }
 
       if (allTransactions.length > 0) {
+        // Remove duplicates by hash
+        const uniqueTransactions = allTransactions.reduce((acc, tx) => {
+          if (!acc.find(existing => existing.hash === tx.hash)) {
+            acc.push(tx)
+          }
+          return acc
+        }, [] as Transaction[])
+
         // Sort by timestamp (newest first)
-        allTransactions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        uniqueTransactions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         
-        setTransactions(allTransactions)
+        setTransactions(uniqueTransactions)
         
         // Save to localStorage
-        localStorage.setItem(`transactions_${address}`, JSON.stringify(allTransactions))
+        localStorage.setItem(`transactions_${address}`, JSON.stringify(uniqueTransactions))
+      } else {
+        setTransactions([])
       }
     } catch (error) {
       console.error('Error loading transactions:', error)
+      setTransactions([])
     } finally {
       setIsLoadingTransactions(false)
     }
   }
 
-  const detectTransactionType = (tx: any): 'mint' | 'wrap' | 'unwrap' | 'transfer' => {
-    // Simple detection based on contract interactions
-    if (tx.to === CONTRACTS.RBTC_SYNTH) {
-      return 'mint'
-    }
-    if (tx.to === CONTRACTS.VAULT_WRBTC) {
-      return 'wrap'
-    }
-    if (tx.from === CONTRACTS.VAULT_WRBTC) {
-      return 'unwrap'
-    }
-    return 'transfer'
-  }
 
   const formatBTC = (value: bigint | undefined) => {
     if (!value) return '0'
