@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowRight, AlertCircle, Loader2, CheckCircle, Info, Bitcoin, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Copy, Wallet } from 'lucide-react'
+import { ArrowRight, ArrowLeft, AlertCircle, Loader2, CheckCircle, Info, Bitcoin, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Copy, Wallet } from 'lucide-react'
 import { mintFormSchema, MintForm } from '@/lib/validation-schemas'
 import { validateBitcoinAddress, getBitcoinAddressTypeLabel } from '@/lib/bitcoin-validation'
 import { useAccount } from 'wagmi'
 import { DepositFeeVault } from './deposit-fee-vault'
+import Link from 'next/link'
 
 interface MintRBTCProps {
   onMintComplete?: (data: MintForm) => void
@@ -309,9 +310,36 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                   = {amountInSatoshis.toLocaleString()} satoshis
                 </div>
               )}
-              {bitcoinBalance === 0 && !isLoadingBalance && (
-                <div className="text-xs text-amber-600">
-                  ⚠️ No balance detected. Make sure you have BTC in your verified wallet.
+              {bitcoinBalance === 0 && !isLoadingBalance && verifiedBitcoinAddress && (
+                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <div className="text-amber-600 dark:text-amber-400 text-xl flex-shrink-0">⚠️</div>
+                    <div className="space-y-2 flex-1">
+                      <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                        No Balance Detected
+                      </p>
+                      <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                        <strong>Why this happens:</strong> Bitcoin uses UTXO model. When you make any transaction (even sending 1% of your balance), 
+                        your entire balance moves to new addresses controlled by your seed phrase.
+                      </p>
+                      <div className="space-y-1.5 text-xs text-amber-700 dark:text-amber-400">
+                        <p className="font-medium">Solutions:</p>
+                        <ul className="space-y-1 ml-4">
+                          <li>• Send BTC back to this exact address: <span className="font-mono text-[10px] break-all">{verifiedBitcoinAddress}</span></li>
+                          <li>• Or verify a different address from your wallet that holds BTC</li>
+                        </ul>
+                      </div>
+                      <div className="pt-2">
+                        <Link 
+                          href="/verify" 
+                          className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
+                        >
+                          <ArrowLeft className="h-3 w-3" />
+                          Verify another address (free)
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
               <p className="text-xs text-muted-foreground">
