@@ -50,6 +50,7 @@ export function DashboardContent() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
   const [isLoadingData, setIsLoadingData] = useState(true)
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false)
 
   // Redirect if not connected
   useEffect(() => {
@@ -70,11 +71,8 @@ export function DashboardContent() {
         }])
       }
       
-      // Load transaction history
-      const savedTxs = localStorage.getItem(`transactions_${address}`)
-      if (savedTxs) {
-        setTransactions(JSON.parse(savedTxs))
-      }
+      // Load transaction history from API
+      loadTransactions()
       
       setIsLoadingData(false)
     }
@@ -116,6 +114,97 @@ export function DashboardContent() {
     navigator.clipboard.writeText(addr)
     setCopiedAddress(addr)
     setTimeout(() => setCopiedAddress(null), 2000)
+  }
+
+  const addTokenToMetaMask = async (tokenAddress: string, symbol: string, decimals: number) => {
+    try {
+      // Check if MetaMask is available
+      if (!window.ethereum) {
+        alert('MetaMask is not installed. Please install MetaMask to add tokens.')
+        return
+      }
+
+      // Check if it's specifically MetaMask (not other wallets like OKX)
+      const isMetaMask = window.ethereum.isMetaMask
+      if (!isMetaMask) {
+        alert('Please use MetaMask wallet to add tokens. Switch to MetaMask if you have multiple wallets.')
+        return
+      }
+
+      // Request to add token to MetaMask
+      await window.ethereum.request({
+        method: 'wallet_watchAsset',
+        params: {
+          type: 'ERC20',
+          options: {
+            address: tokenAddress,
+            symbol: symbol,
+            decimals: decimals,
+            image: 'https://app.reservebtc.io/favicon.svg',
+          },
+        },
+      })
+    } catch (error) {
+      console.error('Error adding token to MetaMask:', error)
+      alert('Failed to add token to MetaMask. Please try again.')
+    }
+  }
+
+  const loadTransactions = async () => {
+    if (!address) return
+
+    setIsLoadingTransactions(true)
+    try {
+      // First, try to load from localStorage (for existing data)
+      const savedTxs = localStorage.getItem(`transactions_${address}`)
+      if (savedTxs) {
+        const existingTxs = JSON.parse(savedTxs)
+        setTransactions(existingTxs)
+      }
+
+      // Then fetch fresh data from MegaExplorer API
+      const response = await fetch(`https://api.megaexplorer.xyz/address/${address}/transactions`)
+      if (response.ok) {
+        const data = await response.json()
+        
+        if (data.transactions && Array.isArray(data.transactions)) {
+          const formattedTxs = data.transactions
+            .filter((tx: any) => tx.to === address || tx.from === address) // Only relevant transactions
+            .slice(0, 50) // Limit to 50 most recent
+            .map((tx: any) => ({
+              hash: tx.hash,
+              type: detectTransactionType(tx),
+              amount: formatUnits(BigInt(tx.value || 0), 18),
+              timestamp: new Date(tx.timestamp * 1000).toISOString(),
+              status: tx.status === '1' ? 'success' : 'failed'
+            }))
+
+          setTransactions(formattedTxs)
+          
+          // Save to localStorage
+          localStorage.setItem(`transactions_${address}`, JSON.stringify(formattedTxs))
+        }
+      }
+    } catch (error) {
+      console.error('Error loading transactions:', error)
+      // Keep existing localStorage data if API fails
+    } finally {
+      setIsLoadingTransactions(false)
+    }
+  }
+
+  const detectTransactionType = (tx: any): 'mint' | 'wrap' | 'unwrap' | 'transfer' => {
+    // Simple detection based on contract interactions
+    if (tx.to === CONTRACTS.RBTC_SYNTH) {
+      return 'mint'
+    }
+    if (tx.to === CONTRACTS.VAULT_WRBTC) {
+      return 'wrap'
+    }
+    if (tx.from === CONTRACTS.VAULT_WRBTC) {
+      return 'unwrap'
+    }
+    return 'transfer'
   }
 
   const formatBTC = (value: bigint | undefined) => {
@@ -313,8 +402,13 @@ export function DashboardContent() {
       <div className="bg-card border rounded-xl p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Transaction History</h3>
-          <button className="p-2 hover:bg-accent rounded-lg transition-colors">
-            <RefreshCw className="h-4 w-4" />
+          <button 
+            onClick={loadTransactions}
+            disabled={isLoadingTransactions}
+            className="p-2 hover:bg-accent rounded-lg transition-colors disabled:opacity-50"
+            title="Refresh transactions"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoadingTransactions ? 'animate-spin' : ''}`} />
           </button>
         </div>
         
@@ -345,7 +439,7 @@ export function DashboardContent() {
                     </td>
                     <td className="py-3 px-2 hidden sm:table-cell">
                       <a 
-                        href={`https://explorer.megaeth.com/tx/${tx.hash}`}
+                        href={`https://www.megaexplorer.xyz/tx/${tx.hash}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-mono text-xs text-primary hover:underline flex items-center gap-1"
@@ -409,34 +503,58 @@ export function DashboardContent() {
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Contract:</span>
-                <span className="font-mono">{CONTRACTS.RBTC_SYNTH.slice(0, 10)}...</span>
+                <div className="flex items-center gap-1">
+                  <span className="font-mono">{CONTRACTS.RBTC_SYNTH.slice(0, 10)}...</span>
+                  <button
+                    onClick={() => copyAddress(CONTRACTS.RBTC_SYNTH)}
+                    className="p-1 hover:bg-accent rounded transition-colors"
+                    title="Copy contract address"
+                  >
+                    {copiedAddress === CONTRACTS.RBTC_SYNTH ? (
+                      <CheckCircle className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <Copy className="h-3 w-3 text-muted-foreground" />
+                    )}
+                  </button>
+                </div>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Symbol:</span>
-                <span>rBTC-SYNTH</span>
+                <div className="flex items-center gap-1">
+                  <span>rBTC-SYNTH</span>
+                  <button
+                    onClick={() => copyAddress('rBTC-SYNTH')}
+                    className="p-1 hover:bg-accent rounded transition-colors"
+                    title="Copy symbol"
+                  >
+                    {copiedAddress === 'rBTC-SYNTH' ? (
+                      <CheckCircle className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <Copy className="h-3 w-3 text-muted-foreground" />
+                    )}
+                  </button>
+                </div>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Decimals:</span>
-                <span>8</span>
+                <div className="flex items-center gap-1">
+                  <span>8</span>
+                  <button
+                    onClick={() => copyAddress('8')}
+                    className="p-1 hover:bg-accent rounded transition-colors"
+                    title="Copy decimals"
+                  >
+                    {copiedAddress === '8' ? (
+                      <CheckCircle className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <Copy className="h-3 w-3 text-muted-foreground" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
             <button
-              onClick={() => {
-                if (window.ethereum) {
-                  window.ethereum.request({
-                    method: 'wallet_watchAsset',
-                    params: {
-                      type: 'ERC20',
-                      options: {
-                        address: CONTRACTS.RBTC_SYNTH,
-                        symbol: 'rBTC-SYNTH',
-                        decimals: 8,
-                        image: 'https://app.reservebtc.io/favicon.svg',
-                      },
-                    },
-                  })
-                }
-              }}
+              onClick={() => addTokenToMetaMask(CONTRACTS.RBTC_SYNTH, 'rBTC-SYNTH', 8)}
               className="w-full bg-orange-600 text-white px-3 py-2 rounded-lg text-xs font-medium hover:bg-orange-700 transition-colors"
             >
               Add to MetaMask
@@ -452,34 +570,58 @@ export function DashboardContent() {
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Contract:</span>
-                <span className="font-mono">{CONTRACTS.VAULT_WRBTC.slice(0, 10)}...</span>
+                <div className="flex items-center gap-1">
+                  <span className="font-mono">{CONTRACTS.VAULT_WRBTC.slice(0, 10)}...</span>
+                  <button
+                    onClick={() => copyAddress(CONTRACTS.VAULT_WRBTC)}
+                    className="p-1 hover:bg-accent rounded transition-colors"
+                    title="Copy contract address"
+                  >
+                    {copiedAddress === CONTRACTS.VAULT_WRBTC ? (
+                      <CheckCircle className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <Copy className="h-3 w-3 text-muted-foreground" />
+                    )}
+                  </button>
+                </div>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Symbol:</span>
-                <span>wrBTC</span>
+                <div className="flex items-center gap-1">
+                  <span>wrBTC</span>
+                  <button
+                    onClick={() => copyAddress('wrBTC')}
+                    className="p-1 hover:bg-accent rounded transition-colors"
+                    title="Copy symbol"
+                  >
+                    {copiedAddress === 'wrBTC' ? (
+                      <CheckCircle className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <Copy className="h-3 w-3 text-muted-foreground" />
+                    )}
+                  </button>
+                </div>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Decimals:</span>
-                <span>8</span>
+                <div className="flex items-center gap-1">
+                  <span>8</span>
+                  <button
+                    onClick={() => copyAddress('8')}
+                    className="p-1 hover:bg-accent rounded transition-colors"
+                    title="Copy decimals"
+                  >
+                    {copiedAddress === '8' ? (
+                      <CheckCircle className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <Copy className="h-3 w-3 text-muted-foreground" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
             <button
-              onClick={() => {
-                if (window.ethereum) {
-                  window.ethereum.request({
-                    method: 'wallet_watchAsset',
-                    params: {
-                      type: 'ERC20',
-                      options: {
-                        address: CONTRACTS.VAULT_WRBTC,
-                        symbol: 'wrBTC',
-                        decimals: 8,
-                        image: 'https://app.reservebtc.io/favicon.svg',
-                      },
-                    },
-                  })
-                }
-              }}
+              onClick={() => addTokenToMetaMask(CONTRACTS.VAULT_WRBTC, 'wrBTC', 8)}
               className="w-full bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-medium hover:bg-green-700 transition-colors"
             >
               Add to MetaMask
@@ -505,7 +647,7 @@ export function DashboardContent() {
           </span>
         </div>
         <a 
-          href={`https://explorer.megaeth.com/address/${address}`}
+          href={`https://www.megaexplorer.xyz/address/${address}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-primary hover:underline flex items-center gap-1"
