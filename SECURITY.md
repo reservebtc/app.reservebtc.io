@@ -6,6 +6,9 @@
 [![BIP-322 Verified](https://img.shields.io/badge/BIP--322%20Verified-IMPLEMENTED-brightgreen)](./backend/bitcoin-provider/src/bip322-verify.ts)
 [![Reentrancy Safe](https://img.shields.io/badge/Reentrancy%20Safe-PROTECTED-brightgreen)](./contracts/test/VaultWrBTC_ERC20_Unit.t.sol)
 [![Access Control](https://img.shields.io/badge/Access%20Control-COMMITTEE%20BASED-brightgreen)](./contracts/src/OracleAggregator.sol)
+[![Live Oracle](https://img.shields.io/badge/Live%20Oracle-24%2F7%20ACTIVE-brightgreen)](https://oracle.reservebtc.io)
+[![Dashboard](https://img.shields.io/badge/User%20Dashboard-TRANSACTION%20HISTORY-brightgreen)](https://app.reservebtc.io/dashboard)
+[![Testnet Faucet](https://img.shields.io/badge/Testnet%20Faucet-MEGAETH%20ETH-brightgreen)](https://app.reservebtc.io/faucet)
 
 ## 🔒 Repository Security
 
@@ -44,6 +47,25 @@ GITHUB_TOKEN=your_token ./deploy.sh
 - `secrets.json` - Secret configurations
 - `wallet.json` - Wallet files
 - `keyfile.json` - Key storage files
+
+## 🔮 Oracle Security & Monitoring
+
+### Live Oracle Infrastructure
+[![Oracle Status](https://img.shields.io/badge/Oracle%20Status-24%2F7%20MONITORED-brightgreen)](https://oracle.reservebtc.io)
+[![Committee Multi-sig](https://img.shields.io/badge/Committee-MULTI%20SIG%20SECURED-brightgreen)](https://app.reservebtc.io/oracle)
+
+- **Live Production Oracle**: [oracle.reservebtc.io](https://oracle.reservebtc.io) - 24/7 active monitoring
+- **Real-time Dashboard**: Performance metrics, uptime tracking, alert system
+- **Committee Security**: Multi-signature wallet control (`0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b`)
+- **Bitcoin Network Integration**: Secure BIP-322 verification and balance monitoring
+- **Automated Failsafes**: Spike detection, noise filtering, response time monitoring
+
+### Oracle Monitoring Features
+- **Response Time Tracking**: < 5 second alert threshold
+- **Uptime Monitoring**: 95%+ availability requirement  
+- **Failed Sync Detection**: Automatic alerts for sync failures
+- **Balance Validation**: Sanity checks on Bitcoin balance changes
+- **Performance History**: 100 sync history retention with analytics
 
 ## 🛡️ Smart Contract Security
 
@@ -229,7 +251,10 @@ function sync(address user, uint64 newBalanceSats, bytes calldata proof)
 ### Emergency Contacts
 - **Security Team**: reservebtcproof@gmail.com
 - **Repository**: https://github.com/reservebtc/app.reservebtc.io
-- **Documentation**: [Protocol Documentation](https://app.reservebtc.io/docs)
+- **Live Oracle**: [Oracle Dashboard](https://oracle.reservebtc.io)
+- **User Dashboard**: [app.reservebtc.io/dashboard](https://app.reservebtc.io/dashboard)
+- **Protocol Documentation**: [Complete Docs](https://app.reservebtc.io/docs)
+- **Oracle Management**: [Oracle Interface](https://app.reservebtc.io/oracle)
 - **Smart Contract Addresses**: [Live Deployment](https://app.reservebtc.io/docs/megaeth)
 
 ## 🔍 Security Testing

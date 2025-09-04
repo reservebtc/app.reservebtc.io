@@ -54,7 +54,19 @@
 
 ## 🚀 Live Deployment - MegaETH Testnet
 
-**Website**: [app.reservebtc.io](https://app.reservebtc.io)
+**Main Website**: [app.reservebtc.io](https://app.reservebtc.io)  
+**Oracle Dashboard**: [oracle.reservebtc.io](https://oracle.reservebtc.io)
+
+### 🌐 Live Pages & Features
+
+| Page | URL | Description |
+|------|-----|-------------|
+| **Main App** | [app.reservebtc.io](https://app.reservebtc.io) | Landing page with protocol overview |
+| **Dashboard** | [app.reservebtc.io/dashboard](https://app.reservebtc.io/dashboard) | User portfolio with rBTC/wrBTC balances & transaction history |
+| **Mint rBTC** | [app.reservebtc.io/mint](https://app.reservebtc.io/mint) | BIP-322 verification & token minting interface |
+| **Faucet** | [app.reservebtc.io/faucet](https://app.reservebtc.io/faucet) | MegaETH testnet ETH faucet & Bitcoin testnet resources |
+| **Oracle Management** | [app.reservebtc.io/oracle](https://app.reservebtc.io/oracle) | Oracle status monitoring & manual sync interface |
+| **Documentation** | [app.reservebtc.io/docs](https://app.reservebtc.io/docs) | Complete protocol documentation & API reference |
 
 ### 📋 Deployed Smart Contracts (MegaETH Testnet - Chain ID: 6342)
 
@@ -106,39 +118,50 @@ ReserveBTC uses an innovative Oracle-based architecture where token minting/burn
 | **FeeVault** | Fee management | `depositETH()`, `balances()` |
 | **FeePolicy** | Fee calculation | `quoteFees()`, `pctBps()`, `weiPerSat()` |
 
-### Oracle Server (`oracle-server.js`)
+### Oracle Infrastructure
 
-Real production Oracle server with CLI interface:
-- **Bitcoin Monitoring**: Tracks Bitcoin testnet addresses via BlockCypher API
-- **Balance Sync**: Automatically calls `sync()` when Bitcoin balances change  
+#### Live Oracle Server
+- **Production URL**: [oracle.reservebtc.io](https://oracle.reservebtc.io)
+- **Real-time Monitoring**: Active 24/7 Bitcoin address tracking
+- **Dashboard**: Live activity monitoring with performance metrics
+- **Committee Address**: `0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b`
+
+#### Oracle Features
+- **Bitcoin Monitoring**: Tracks Bitcoin testnet addresses via multiple APIs
+- **Automatic Sync**: Calls `sync()` when Bitcoin balances change  
 - **Fee Management**: Handles fee deduction from user's prepaid ETH
-- **CLI Commands**: `add`, `remove`, `list`, `sync`, `status` commands
+- **Real-time Dashboard**: Live monitoring of Oracle operations and health
 - **Resilience**: Handles +1/-1 noise deltas and large spike validation
+- **Performance Tracking**: Uptime monitoring, response time metrics, alert system
 
 ## 🔄 How It Works
 
-### Step 1: User Verification (Web Interface)
+### Step 1: User Verification ([Mint Page](https://app.reservebtc.io/mint))
 1. **Connect EVM Wallet**: MetaMask/WalletConnect on MegaETH network
-2. **Enter Bitcoin Address**: User provides their Bitcoin address  
-3. **BIP-322 Signature**: Sign message proving Bitcoin address ownership
-4. **Oracle Registration**: Oracle server adds address to monitoring list
+2. **Deposit ETH**: Add funds to Fee Vault for Oracle operations
+3. **Enter Bitcoin Address**: User provides their Bitcoin testnet address  
+4. **BIP-322 Signature**: Sign message proving Bitcoin address ownership
+5. **Oracle Registration**: [Oracle server](https://oracle.reservebtc.io) adds address to monitoring
 
-### Step 2: Automatic Oracle Monitoring
-```bash
-# Oracle server monitors Bitcoin addresses
-oracle> add 0x... bc1q...  # Add user to tracking
-oracle> sync               # Manual sync trigger
-```
-- **Real-time Monitoring**: Oracle checks Bitcoin balances every 5 minutes
-- **Delta Detection**: Compares current vs last synced balance
-- **Auto-Sync**: Calls `sync()` function when balance changes
-- **Fee Deduction**: Takes fees from user's prepaid ETH balance
+### Step 2: Live Oracle Monitoring ([Oracle Dashboard](https://oracle.reservebtc.io))
+- **24/7 Bitcoin Tracking**: Oracle monitors registered Bitcoin addresses
+- **Real-time Dashboard**: Live activity feed and performance metrics
+- **Balance Detection**: Detects Bitcoin balance changes automatically
+- **Smart Sync**: Calls `sync()` function when balances change
+- **Fee Management**: Deducts fees from user's prepaid ETH balance
 
-### Step 3: Token Management
+### Step 3: Token Management ([Dashboard](https://app.reservebtc.io/dashboard))
 - **Positive Delta**: Bitcoin balance increased → mint rBTC-SYNTH tokens
 - **Negative Delta**: Bitcoin balance decreased → burn rBTC-SYNTH tokens  
 - **1:1 Backing**: All tokens backed by real Bitcoin holdings
 - **Soulbound**: rBTC-SYNTH cannot be transferred (tied to user)
+- **Portfolio View**: Real-time balance tracking and transaction history
+- **wrBTC Wrapping**: Convert rBTC-SYNTH to transferable wrBTC tokens
+
+### Step 4: Get Testnet Funds ([Faucet Page](https://app.reservebtc.io/faucet))
+- **MegaETH ETH**: Get testnet ETH for gas fees and Oracle deposits
+- **Bitcoin Testnet**: Links to reliable Bitcoin testnet faucets
+- **Developer Resources**: API documentation and integration guides
 
 ## 🧪 Testing & Security
 
@@ -196,10 +219,11 @@ app.reservebtc.io/
 ## 🚀 Quick Start
 
 ### For Users
-1. **Visit Website**: [app.reservebtc.io](https://app.reservebtc.io)
-2. **Connect Wallet**: Use MetaMask with MegaETH Testnet  
-3. **Verify Bitcoin Address**: Prove ownership via BIP-322 signature
-4. **Get Tokens**: Oracle automatically mints rBTC-SYNTH based on Bitcoin balance
+1. **Get Testnet Funds**: Visit [Faucet](https://app.reservebtc.io/faucet) for MegaETH ETH and Bitcoin testnet coins
+2. **Connect Wallet**: Use MetaMask with MegaETH Testnet on [main app](https://app.reservebtc.io)
+3. **Mint rBTC**: Go to [Mint page](https://app.reservebtc.io/mint) and verify Bitcoin address via BIP-322
+4. **Monitor Portfolio**: Check [Dashboard](https://app.reservebtc.io/dashboard) for balances and transaction history
+5. **Oracle Status**: View [Oracle Dashboard](https://oracle.reservebtc.io) for real-time monitoring
 
 ### For Developers
 
@@ -230,16 +254,19 @@ npm run build              # Production build
 npm run type-check         # TypeScript validation
 ```
 
-#### Oracle Server
+#### Oracle Server (Production Running)
 ```bash
-# Start Oracle monitoring
-node oracle-server.js
+# Live Oracle Dashboard (24/7 active)
+https://oracle.reservebtc.io
 
-# CLI commands
-oracle> add 0x123... bc1q...  # Add user to tracking
-oracle> list                  # Show tracked users  
-oracle> sync                  # Manual balance sync
-oracle> status                # Oracle system status
+# Oracle monitoring dashboard (local development)
+node monitoring/oracle-dashboard.js
+
+# View tracked users
+cat oracle-users.json
+
+# Check Oracle status via web interface
+# Visit: https://app.reservebtc.io/oracle
 ```
 
 ## ⚙️ Configuration
@@ -274,12 +301,18 @@ export const FEE_CONFIG = {
 
 ### Oracle Configuration
 ```javascript
-// From oracle-server.js
+// Live Oracle Server Configuration
 const CONFIG = {
-  ORACLE_PRIVATE_KEY: process.env.ORACLE_PRIVATE_KEY,
-  MEGAETH_RPC: 'https://carrot.megaeth.com/rpc',
-  SYNC_INTERVAL: 300,             // 5 minutes
-  CONTRACT_ADDRESS: '0x717D12a23Bb46743b15019a52184DF7F250B061a'
+  oracleUrl: 'https://oracle.reservebtc.io',
+  oracleContract: '0x717D12a23Bb46743b15019a52184DF7F250B061a',
+  committeeAddress: '0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b',
+  feeVault: '0x298b3746B593df83E5bB2122cb80d17bdE2AB5fF',
+  refreshInterval: 10000,         // 10 seconds monitoring
+  alertThresholds: {
+    maxResponseTime: 5000,        // 5 seconds
+    minUptime: 95,               // 95%
+    maxFailedSyncs: 3
+  }
 }
 ```
 
