@@ -40,6 +40,7 @@ export function useOracleSync() {
       const syncTimestamp = timestamp || Math.floor(Date.now() / 1000);
 
       // Call oracle sync function
+      // Note: sync function only accepts (address user, uint64 newBalanceSats, bytes proof)
       const hash = await writeContract({
         address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
         abi: CONTRACT_ABIS.ORACLE_AGGREGATOR,
@@ -47,8 +48,7 @@ export function useOracleSync() {
         args: [
           userAddress,
           newBalanceSats, // uint64 newBalanceSats
-          blockHeight, // uint32 height  
-          BigInt(syncTimestamp), // uint64 timestamp
+          '0x', // bytes proof (empty for testnet)
         ],
       });
 
