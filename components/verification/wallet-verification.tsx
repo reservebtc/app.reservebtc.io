@@ -29,7 +29,9 @@ export function WalletVerification({ onVerificationComplete }: WalletVerificatio
         <div className="p-3 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
           <Bitcoin className="h-8 w-8 text-white" />
         </div>
-        <h1 className="text-3xl font-bold">Bitcoin Wallet Verification</h1>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-500 via-yellow-500 to-red-500 bg-clip-text text-transparent">
+          Bitcoin Wallet Verification
+        </h1>
         <p className="text-muted-foreground">
           Prove ownership of your Bitcoin address to mint rBTC on MegaETH
         </p>
