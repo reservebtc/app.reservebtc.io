@@ -188,3 +188,10 @@ contracts/script/DeployFeePolicy.s.sol
 # Forge broadcast directories
 contracts/broadcast/
 contracts/cache/
+
+# Test scripts - не для GitHub
+test-fee-vault-topup.js
+test-new-contracts-link.js
+test-complete-integration.js
+test-oracle-smart-contract-sync.js
+test-mint-burn-functionality.js

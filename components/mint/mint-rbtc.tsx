@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowRight, ArrowLeft, AlertCircle, Loader2, CheckCircle, Info, Bitcoin, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Copy, Wallet } from 'lucide-react'
+import { ArrowRight, ArrowLeft, AlertCircle, Loader2, CheckCircle, Info, Bitcoin, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Copy, Wallet, Shield } from 'lucide-react'
 import { mintFormSchema, MintForm } from '@/lib/validation-schemas'
 import { validateBitcoinAddress, getBitcoinAddressTypeLabel } from '@/lib/bitcoin-validation'
 import { useAccount } from 'wagmi'
@@ -311,32 +311,39 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                 </div>
               )}
               {bitcoinBalance === 0 && !isLoadingBalance && verifiedBitcoinAddress && (
-                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <div className="flex items-start gap-3">
-                    <div className="text-amber-600 dark:text-amber-400 text-xl flex-shrink-0">⚠️</div>
-                    <div className="space-y-2 flex-1">
-                      <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-                        No Balance Detected
+                    <div className="text-blue-600 dark:text-blue-400 text-xl flex-shrink-0">🔐</div>
+                    <div className="space-y-3 flex-1">
+                      <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">
+                        Quantum-Safe Protocol: Address Balance Empty
                       </p>
-                      <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                        <strong>Why this happens:</strong> Bitcoin uses UTXO model. When you make any transaction (even sending 1% of your balance), 
-                        your entire balance moves to new addresses controlled by your seed phrase.
+                      <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
+                        <strong>Important:</strong> This address has made an outgoing transaction, exposing its public key on the blockchain. 
+                        For quantum security, Bitcoin automatically moves funds to new addresses after any spending transaction.
                       </p>
-                      <div className="space-y-1.5 text-xs text-amber-700 dark:text-amber-400">
-                        <p className="font-medium">Solutions:</p>
-                        <ul className="space-y-1 ml-4">
-                          <li>• Send BTC back to this exact address: <span className="font-mono text-[10px] break-all">{verifiedBitcoinAddress}</span></li>
-                          <li>• Or verify a different address from your wallet that holds BTC</li>
+                      <div className="bg-blue-100/50 dark:bg-blue-800/30 rounded-lg p-3 space-y-2">
+                        <p className="text-xs font-medium text-blue-900 dark:text-blue-200">🛡️ Quantum Protection Explained:</p>
+                        <ul className="space-y-1 text-xs text-blue-700 dark:text-blue-400 ml-2">
+                          <li>• <strong>Incoming only:</strong> Safe from quantum attacks (public key hidden)</li>
+                          <li>• <strong>After spending:</strong> Public key revealed, theoretically vulnerable</li>
+                          <li>• <strong>Best practice:</strong> Use fresh addresses for receiving</li>
                         </ul>
                       </div>
-                      <div className="pt-2">
-                        <Link 
-                          href="/verify" 
-                          className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
-                        >
-                          <ArrowLeft className="h-3 w-3" />
-                          Verify another address (free)
-                        </Link>
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-blue-800 dark:text-blue-300">Next Steps:</p>
+                        <div className="bg-white/60 dark:bg-gray-900/40 rounded-lg p-3">
+                          <p className="text-xs text-blue-700 dark:text-blue-400 mb-2">
+                            <strong>Recommended:</strong> Verify a new address from your wallet that contains Bitcoin and has never made outgoing transactions.
+                          </p>
+                          <Link 
+                            href="/verify" 
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-all"
+                          >
+                            <Shield className="h-3 w-3" />
+                            Verify Quantum-Safe Address
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   </div>

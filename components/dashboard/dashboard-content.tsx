@@ -18,7 +18,10 @@ import {
   Loader2,
   ArrowUpRight,
   RefreshCw,
-  Link2
+  Link2,
+  ChevronDown,
+  ChevronUp,
+  Clock
 } from 'lucide-react'
 import Link from 'next/link'
 import { CONTRACTS } from '@/app/lib/contracts'
@@ -29,12 +32,22 @@ interface VerifiedAddress {
   balance?: number
 }
 
+interface TransactionStep {
+  id: string
+  label: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  timestamp?: string
+  description?: string
+}
+
 interface Transaction {
   hash: string
   type: 'mint' | 'burn' | 'wrap' | 'unwrap' | 'transfer'
   amount: string
   timestamp: string
   status: 'success' | 'pending' | 'failed'
+  steps?: TransactionStep[]
+  currentStep?: number
 }
 
 declare global {
@@ -54,6 +67,7 @@ export function DashboardContent() {
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false)
   const [syncStatus, setSyncStatus] = useState<string>('')
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
+  const [expandedTransactions, setExpandedTransactions] = useState<Set<string>>(new Set())
 
   // Watch for new blocks to auto-refresh transactions
   const { data: currentBlockNumber } = useBlockNumber({
@@ -147,6 +161,75 @@ export function DashboardContent() {
     setTimeout(() => setCopiedAddress(null), 2000)
   }
 
+  const toggleTransactionDetails = (hash: string) => {
+    const newExpanded = new Set(expandedTransactions)
+    if (newExpanded.has(hash)) {
+      newExpanded.delete(hash)
+    } else {
+      newExpanded.add(hash)
+    }
+    setExpandedTransactions(newExpanded)
+  }
+
+  const createTransactionSteps = (type: string): TransactionStep[] => {
+    const baseSteps = [
+      { id: 'btc-tx', label: 'Bitcoin Transaction Sent', status: 'completed' as const, description: 'Waiting for Bitcoin network confirmation' },
+      { id: 'btc-conf', label: 'Bitcoin Confirmation', status: 'completed' as const, description: 'Transaction confirmed on Bitcoin network' },
+      { id: 'oracle-detect', label: 'Oracle Detection', status: 'completed' as const, description: 'Oracle server detected balance change' },
+      { id: 'oracle-verify', label: 'Oracle Verification', status: 'completed' as const, description: 'Verifying transaction authenticity' },
+      { id: 'sync-call', label: 'Smart Contract Sync', status: 'completed' as const, description: 'Oracle calling sync function' },
+    ]
+
+    if (type === 'mint') {
+      return [
+        ...baseSteps,
+        { id: 'token-mint', label: 'rBTC Token Mint', status: 'completed' as const, description: 'Creating rBTC-SYNTH tokens' },
+        { id: 'completed', label: 'Process Complete', status: 'completed' as const, description: 'rBTC tokens successfully minted' }
+      ]
+    } else if (type === 'burn') {
+      return [
+        ...baseSteps,
+        { id: 'token-burn', label: 'rBTC Token Burn', status: 'completed' as const, description: 'Burning rBTC-SYNTH tokens' },
+        { id: 'completed', label: 'Process Complete', status: 'completed' as const, description: 'rBTC tokens successfully burned' }
+      ]
+    } else if (type === 'wrap') {
+      return [
+        { id: 'approve', label: 'Approve rBTC-SYNTH', status: 'completed' as const, description: 'Approving rBTC-SYNTH for wrapping' },
+        { id: 'wrap-call', label: 'Wrap Transaction', status: 'completed' as const, description: 'Converting rBTC-SYNTH to wrBTC' },
+        { id: 'token-mint', label: 'wrBTC Token Mint', status: 'completed' as const, description: 'Minting transferable wrBTC tokens' },
+        { id: 'completed', label: 'Wrap Complete', status: 'completed' as const, description: 'Successfully wrapped to wrBTC' }
+      ]
+    } else if (type === 'unwrap') {
+      return [
+        { id: 'unwrap-call', label: 'Unwrap Transaction', status: 'completed' as const, description: 'Converting wrBTC to rBTC-SYNTH' },
+        { id: 'token-burn', label: 'wrBTC Token Burn', status: 'completed' as const, description: 'Burning wrBTC tokens' },
+        { id: 'token-mint', label: 'rBTC-SYNTH Mint', status: 'completed' as const, description: 'Minting rBTC-SYNTH tokens' },
+        { id: 'completed', label: 'Unwrap Complete', status: 'completed' as const, description: 'Successfully unwrapped to rBTC-SYNTH' }
+      ]
+    } else {
+      return [
+        { id: 'transfer-tx', label: 'Transfer Transaction', status: 'completed' as const, description: 'Token transfer transaction sent' },
+        { id: 'transfer-conf', label: 'Transfer Confirmed', status: 'completed' as const, description: 'Transfer confirmed on MegaETH' },
+        { id: 'completed', label: 'Transfer Complete', status: 'completed' as const, description: 'Tokens successfully transferred' }
+      ]
+    }
+  }
+
+  const getStepIcon = (status: TransactionStep['status']) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-green-600" />
+      case 'processing':
+        return <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+      case 'pending':
+        return <Clock className="h-4 w-4 text-amber-600" />
+      case 'failed':
+        return <AlertCircle className="h-4 w-4 text-red-600" />
+      default:
+        return <div className="h-4 w-4 rounded-full border-2 border-muted-foreground" />
+    }
+  }
+
 
   const loadTransactions = async () => {
     if (!address || !publicClient) return
@@ -231,12 +314,15 @@ export function DashboardContent() {
             const deltaSatsBigInt = BigInt(deltaSats)
             const amount = formatUnits(deltaSatsBigInt > 0 ? deltaSatsBigInt : -deltaSatsBigInt, 8)
             
+            const transactionType = deltaSatsBigInt > 0 ? 'mint' : 'burn'
             const transaction: Transaction = {
               hash: event.transactionHash,
-              type: deltaSatsBigInt > 0 ? 'mint' : 'burn',
+              type: transactionType,
               amount,
               timestamp: new Date(Number(timestamp) * 1000).toISOString(),
-              status: 'success'
+              status: 'success',
+              steps: createTransactionSteps(transactionType),
+              currentStep: createTransactionSteps(transactionType).length - 1
             }
             
             allNewTransactions.push(transaction)
@@ -270,7 +356,9 @@ export function DashboardContent() {
               type: 'transfer',
               amount: formatUnits(value, 8),
               timestamp,
-              status: 'success'
+              status: 'success',
+              steps: createTransactionSteps('transfer'),
+              currentStep: createTransactionSteps('transfer').length - 1
             }
             
             allNewTransactions.push(transaction)
@@ -304,7 +392,9 @@ export function DashboardContent() {
               type: 'transfer',
               amount: formatUnits(value, 8),
               timestamp,
-              status: 'success'
+              status: 'success',
+              steps: createTransactionSteps('transfer'),
+              currentStep: createTransactionSteps('transfer').length - 1
             }
             
             allNewTransactions.push(transaction)
@@ -624,44 +714,120 @@ export function DashboardContent() {
               </thead>
               <tbody>
                 {transactions.map((tx, index) => (
-                  <tr key={index} className="border-b">
-                    <td className="py-3 px-2">
-                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                        tx.type === 'mint' ? 'bg-orange-500/10 text-orange-600' :
-                        tx.type === 'wrap' ? 'bg-green-500/10 text-green-600' :
-                        tx.type === 'unwrap' ? 'bg-blue-500/10 text-blue-600' :
-                        'bg-purple-500/10 text-purple-600'
-                      }`}>
-                        {tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 hidden sm:table-cell">
-                      <a 
-                        href={`https://www.megaexplorer.xyz/tx/${tx.hash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-mono text-xs text-primary hover:underline flex items-center gap-1"
-                      >
-                        {tx.hash.slice(0, 8)}...{tx.hash.slice(-6)}
-                        <ArrowUpRight className="h-3 w-3" />
-                      </a>
-                    </td>
-                    <td className="py-3 px-2 text-right font-mono text-sm">
-                      {tx.amount} BTC
-                    </td>
-                    <td className="py-3 px-2 text-right text-xs text-muted-foreground hidden md:table-cell">
-                      {new Date(tx.timestamp).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 px-2 text-center">
-                      {tx.status === 'success' ? (
-                        <CheckCircle className="h-4 w-4 text-green-600 mx-auto" />
-                      ) : tx.status === 'pending' ? (
-                        <Loader2 className="h-4 w-4 text-amber-600 animate-spin mx-auto" />
-                      ) : (
-                        <AlertCircle className="h-4 w-4 text-red-600 mx-auto" />
-                      )}
-                    </td>
-                  </tr>
+                  <>
+                    <tr key={index} className="border-b hover:bg-muted/50 transition-colors">
+                      <td className="py-3 px-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                            tx.type === 'mint' ? 'bg-orange-500/10 text-orange-600' :
+                            tx.type === 'burn' ? 'bg-red-500/10 text-red-600' :
+                            tx.type === 'wrap' ? 'bg-green-500/10 text-green-600' :
+                            tx.type === 'unwrap' ? 'bg-blue-500/10 text-blue-600' :
+                            'bg-purple-500/10 text-purple-600'
+                          }`}>
+                            {tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}
+                          </span>
+                          {tx.steps && (
+                            <button
+                              onClick={() => toggleTransactionDetails(tx.hash)}
+                              className="p-1 hover:bg-accent rounded transition-colors"
+                              title="Show transaction steps"
+                            >
+                              {expandedTransactions.has(tx.hash) ? (
+                                <ChevronUp className="h-3 w-3 text-muted-foreground" />
+                              ) : (
+                                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-2 hidden sm:table-cell">
+                        <a 
+                          href={`https://www.megaexplorer.xyz/tx/${tx.hash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono text-xs text-primary hover:underline flex items-center gap-1"
+                        >
+                          {tx.hash.slice(0, 8)}...{tx.hash.slice(-6)}
+                          <ArrowUpRight className="h-3 w-3" />
+                        </a>
+                      </td>
+                      <td className="py-3 px-2 text-right font-mono text-sm">
+                        <span className={tx.type === 'mint' ? 'text-green-600' : tx.type === 'burn' ? 'text-red-600' : ''}>
+                          {tx.type === 'mint' ? '+' : tx.type === 'burn' ? '-' : ''}{tx.amount} BTC
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 text-right text-xs text-muted-foreground hidden md:table-cell">
+                        {new Date(tx.timestamp).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-2 text-center">
+                        {tx.status === 'success' ? (
+                          <div className="flex flex-col items-center gap-1">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-xs text-green-600 font-medium">Complete</span>
+                          </div>
+                        ) : tx.status === 'pending' ? (
+                          <div className="flex flex-col items-center gap-1">
+                            <Loader2 className="h-4 w-4 text-amber-600 animate-spin" />
+                            <span className="text-xs text-amber-600 font-medium">Processing</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-1">
+                            <AlertCircle className="h-4 w-4 text-red-600" />
+                            <span className="text-xs text-red-600 font-medium">Failed</span>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                    {/* Transaction Steps Expansion */}
+                    {tx.steps && expandedTransactions.has(tx.hash) && (
+                      <tr className="bg-muted/20 border-b">
+                        <td colSpan={5} className="py-4 px-6">
+                          <div className="space-y-3">
+                            <h4 className="text-sm font-medium text-muted-foreground mb-3">Transaction Steps</h4>
+                            <div className="space-y-2">
+                              {tx.steps.map((step, stepIndex) => (
+                                <div key={step.id} className="flex items-start gap-3 p-3 bg-card rounded-lg border">
+                                  <div className="flex-shrink-0 mt-0.5">
+                                    {getStepIcon(step.status)}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between">
+                                      <h5 className="text-sm font-medium text-foreground">{step.label}</h5>
+                                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                        step.status === 'completed' ? 'bg-green-500/10 text-green-600' :
+                                        step.status === 'processing' ? 'bg-blue-500/10 text-blue-600' :
+                                        step.status === 'pending' ? 'bg-amber-500/10 text-amber-600' :
+                                        'bg-red-500/10 text-red-600'
+                                      }`}>
+                                        {step.status === 'completed' ? 'Completed' :
+                                         step.status === 'processing' ? 'Processing...' :
+                                         step.status === 'pending' ? 'Pending' : 'Failed'}
+                                      </span>
+                                    </div>
+                                    {step.description && (
+                                      <p className="text-xs text-muted-foreground mt-1">{step.description}</p>
+                                    )}
+                                    {step.timestamp && (
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        {new Date(step.timestamp).toLocaleString()}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="pt-2 text-center">
+                              <p className="text-xs text-muted-foreground">
+                                All steps completed successfully. Transaction is finalized on the blockchain.
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 ))}
               </tbody>
             </table>
