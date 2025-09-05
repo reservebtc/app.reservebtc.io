@@ -175,13 +175,14 @@ body {
     font-weight: 800;
     line-height: 1.1;
     margin-bottom: 1.5rem;
-    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     background: linear-gradient(135deg, #ff6b35 0%, #f7931e 25%, #ffcd3c 50%, #4fc3f7 75%, #7c4dff 100%);
-    background-size: 200% 200%;
+    background-size: 300% 300%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    animation: gradientText 8s ease-in-out infinite;
+    animation: gradientText 6s ease-in-out infinite;
+    /* Fallback for browsers that don't support background-clip: text */
+    color: #ff6b35;
 }
 
 .protocol-abbr {
