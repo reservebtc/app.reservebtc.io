@@ -190,6 +190,8 @@ contracts/broadcast/
 contracts/cache/
 
 # Test scripts - не для GitHub
+test-dashboard-transactions.js
+debug-user-bitcoin-sync.js
 test-fee-vault-topup.js
 test-new-contracts-link.js
 test-complete-integration.js

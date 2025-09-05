@@ -349,8 +349,8 @@ export function DashboardContent() {
       setSyncStatus(`🔍 ${syncDescription}...`)
       
       // Use smaller chunks due to MegaETH rate limits
-      const CHUNK_SIZE = BigInt(50) // Larger chunks for better efficiency
-      const MAX_CHUNKS_PER_SYNC = 50 // Reasonable limit to prevent timeout
+      const CHUNK_SIZE = BigInt(100) // Larger chunks for better efficiency
+      const MAX_CHUNKS_PER_SYNC = 500 // Enough to cover 50k blocks (100 * 500 = 50000)
       
       const allNewTransactions: Transaction[] = []
       let chunksProcessed = 0
@@ -793,39 +793,62 @@ export function DashboardContent() {
                     🔄 Bitcoin → rBTC-SYNTH Process
                   </div>
                   <div className="space-y-2 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 bg-orange-500 rounded-full"></div>
-                      <span><strong>Step 1:</strong> Send Bitcoin to your verified address</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 bg-yellow-500 rounded-full animate-pulse"></div>
-                      <span><strong>Step 2:</strong> Bitcoin network confirmation (1+ blocks)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse"></div>
-                      <span><strong>Step 3:</strong> Oracle server detects balance change</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 bg-purple-500 rounded-full animate-pulse"></div>
-                      <span><strong>Step 4:</strong> Oracle calls sync() on smart contract</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 bg-green-500 rounded-full"></div>
-                      <span><strong>Step 5:</strong> rBTC-SYNTH tokens minted to your wallet</span>
-                    </div>
+                    {(() => {
+                      // Determine process status based on user's current state
+                      const hasVerifiedAddress = verifiedAddresses.length > 0
+                      const hasBitcoinBalance = verifiedAddresses.some(addr => (addr.balance || 0) > 0)
+                      const hasRBTCTokens = rbtcBalance && Number(rbtcBalance) > 0
+                      const hasTransactions = transactions.length > 0
+                      
+                      const steps = [
+                        {
+                          label: "Send Bitcoin to your verified address",
+                          completed: hasVerifiedAddress && hasBitcoinBalance,
+                          inProgress: hasVerifiedAddress && !hasBitcoinBalance
+                        },
+                        {
+                          label: "Bitcoin network confirmation (1+ blocks)",
+                          completed: hasBitcoinBalance,
+                          inProgress: hasVerifiedAddress && !hasBitcoinBalance
+                        },
+                        {
+                          label: "Oracle server detects balance change",
+                          completed: hasTransactions || hasRBTCTokens,
+                          inProgress: hasBitcoinBalance && !hasRBTCTokens
+                        },
+                        {
+                          label: "Oracle calls sync() on smart contract",
+                          completed: hasTransactions || hasRBTCTokens,
+                          inProgress: hasBitcoinBalance && !hasRBTCTokens
+                        },
+                        {
+                          label: "rBTC-SYNTH tokens minted to your wallet",
+                          completed: hasRBTCTokens,
+                          inProgress: hasTransactions && !hasRBTCTokens
+                        }
+                      ]
+                      
+                      return steps.map((step, index) => {
+                        const stepNumber = index + 1
+                        let dotClass = "h-1.5 w-1.5 border-2 border-muted-foreground rounded-full"
+                        
+                        if (step.completed) {
+                          dotClass = "h-1.5 w-1.5 bg-green-500 rounded-full"
+                        } else if (step.inProgress) {
+                          dotClass = "h-1.5 w-1.5 bg-yellow-500 rounded-full animate-pulse"
+                        }
+                        
+                        return (
+                          <div key={stepNumber} className="flex items-center gap-2">
+                            <div className={dotClass}></div>
+                            <span><strong>Step {stepNumber}:</strong> {step.label}</span>
+                          </div>
+                        )
+                      })
+                    })()}
                   </div>
                   <div className="mt-2 text-xs text-muted-foreground">
                     ⏱️ <em>Typical completion time: 10-30 minutes</em>
-                  </div>
-                </div>
-                
-                {/* Contract Information */}
-                <div className="bg-muted/30 p-2 rounded-lg text-xs">
-                  <div className="font-medium text-muted-foreground mb-1">📋 New Atomic Contracts (Active)</div>
-                  <div className="space-y-1 text-muted-foreground">
-                    <div>• Oracle: <span className="font-mono text-xs">{CONTRACTS.ORACLE_AGGREGATOR.slice(0,10)}...</span></div>
-                    <div>• rBTC-SYNTH: <span className="font-mono text-xs">{CONTRACTS.RBTC_SYNTH.slice(0,10)}...</span></div>
-                    <div>• FeeVault: <span className="font-mono text-xs">{CONTRACTS.FEE_VAULT.slice(0,10)}...</span></div>
                   </div>
                 </div>
               </div>
