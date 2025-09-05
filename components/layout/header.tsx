@@ -36,6 +36,22 @@ export function Header() {
             </Link>
             
             <div className="flex items-center justify-between sm:justify-end space-x-2 sm:space-x-4">
+              <div className="hidden md:flex items-center space-x-2">
+                <Link 
+                  href="/verify" 
+                  className="inline-flex items-center space-x-1 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 text-green-600 dark:text-green-400 px-3 py-1 rounded-full text-xs font-medium hover:from-green-500/20 hover:to-emerald-500/20 transition-all duration-200"
+                >
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>Verify</span>
+                </Link>
+                <Link 
+                  href="/mint" 
+                  className="inline-flex items-center space-x-1 bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400 px-3 py-1 rounded-full text-xs font-medium hover:from-orange-500/20 hover:to-amber-500/20 transition-all duration-200"
+                >
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  <span>Mint</span>
+                </Link>
+              </div>
               <Link 
                 href="/dashboard"
                 onClick={handleDashboardClick}
