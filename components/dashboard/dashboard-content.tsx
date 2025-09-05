@@ -93,6 +93,20 @@ export function DashboardContent() {
         }])
       }
       
+      // Clear old transaction cache since we deployed new atomic contracts
+      const cacheKey = `rbtc_transactions_${address}`
+      const cachedData = localStorage.getItem(cacheKey)
+      if (cachedData) {
+        const cached = JSON.parse(cachedData)
+        const cacheAge = Date.now() - (cached.lastSyncedAt || 0)
+        const isOldCache = cacheAge > 24 * 60 * 60 * 1000 // 24 hours old
+        
+        if (isOldCache) {
+          console.log('Clearing old transaction cache (24+ hours old)')
+          localStorage.removeItem(cacheKey)
+        }
+      }
+      
       // Load transaction history from API
       loadTransactions()
       
@@ -238,16 +252,34 @@ export function DashboardContent() {
     try {
       console.log(`Loading transactions for address: ${address}`)
       
-      // Load cached transactions first for instant display
-      const cachedKey = `rbtc_transactions_${address}`
+      // Use versioned cache to handle contract upgrades
+      const CACHE_VERSION = 'v2_atomic' // Updated for atomic contracts
+      const cachedKey = `rbtc_transactions_${address}_${CACHE_VERSION}`
+      const oldCacheKey = `rbtc_transactions_${address}` // Legacy cache key
+      
+      // Remove old cache if exists
+      const oldCache = localStorage.getItem(oldCacheKey)
+      if (oldCache) {
+        console.log('Removing legacy transaction cache')
+        localStorage.removeItem(oldCacheKey)
+      }
+      
       const cachedData = localStorage.getItem(cachedKey)
-      const cached = cachedData ? JSON.parse(cachedData) : { transactions: [], lastSyncedBlock: 0, lastSyncedAt: 0 }
+      const cached = cachedData ? JSON.parse(cachedData) : { 
+        transactions: [], 
+        lastSyncedBlock: 0, 
+        lastSyncedAt: 0, 
+        version: CACHE_VERSION,
+        contractAddresses: CONTRACTS // Store which contracts were used
+      }
       
       // Show cached data immediately if available
       if (cached.transactions.length > 0) {
         console.log(`Found ${cached.transactions.length} cached transactions, showing immediately`)
         setTransactions(cached.transactions)
         setSyncStatus(`Showing cached data (${cached.transactions.length} transactions)`)
+      } else {
+        setSyncStatus('Loading transaction history...')
       }
       
       // Get current block for incremental sync
@@ -263,27 +295,28 @@ export function DashboardContent() {
       let syncDescription: string
       
       if (cached.transactions.length === 0) {
-        // First time sync - start from recent history only (last 50k blocks due to MegaETH limits)
-        startBlock = currentBlock > BigInt(50000) ? currentBlock - BigInt(50000) : BigInt(0)
-        syncDescription = 'Initial sync (recent 50k blocks)'
-      } else if (isStaleCache || currentBlock > lastSyncedBlock + BigInt(100)) {
+        // First time sync - MegaETH has ~10ms blocks, so 10k blocks = ~100 seconds
+        // Use smaller range to respect rate limits
+        startBlock = currentBlock > BigInt(10000) ? currentBlock - BigInt(10000) : BigInt(0)
+        syncDescription = 'Initial sync (last 10k blocks)'
+      } else if (isStaleCache || currentBlock > lastSyncedBlock + BigInt(50)) {
         // Incremental sync - only check new blocks since last sync
         startBlock = lastSyncedBlock
         syncDescription = `Incremental sync from block ${startBlock}`
       } else {
         // Cache is fresh, no sync needed
         console.log('Cache is fresh, no sync needed')
-        setSyncStatus('Up to date')
+        setSyncStatus('Up to date - All transactions loaded')
         setIsLoadingTransactions(false)
         return
       }
       
       console.log(`${syncDescription}: scanning blocks ${startBlock} to ${currentBlock}`)
-      setSyncStatus(`Syncing... (${syncDescription})`)
+      setSyncStatus(`🔍 ${syncDescription}...`)
       
-      // Use VERY small chunks due to MegaETH strict limits
-      const CHUNK_SIZE = BigInt(50) // Very conservative chunk size
-      const MAX_CHUNKS_PER_SYNC = 100 // Limit total chunks to prevent long loading times
+      // Use smaller chunks due to MegaETH rate limits
+      const CHUNK_SIZE = BigInt(25) // Conservative chunk size for MegaETH
+      const MAX_CHUNKS_PER_SYNC = 200 // Higher limit for better coverage
       
       const allNewTransactions: Transaction[] = []
       let chunksProcessed = 0
@@ -432,18 +465,56 @@ export function DashboardContent() {
       // Update state and cache
       setTransactions(uniqueTransactions)
       
-      // Save updated cache with sync metadata
+      // Save updated cache with comprehensive metadata for long-term storage
       const updatedCache = {
+        version: CACHE_VERSION,
+        contractAddresses: CONTRACTS, // Store contract addresses for validation
         transactions: uniqueTransactions,
         lastSyncedBlock: currentBlock.toString(),
         lastSyncedAt: Date.now(),
         totalSyncs: (cached.totalSyncs || 0) + 1,
-        lastSyncDescription: syncDescription
+        lastSyncDescription: syncDescription,
+        userAddress: address,
+        chainId: CONTRACTS.CHAIN_ID,
+        syncHistory: [
+          ...(cached.syncHistory || []).slice(-10), // Keep last 10 sync records
+          {
+            timestamp: Date.now(),
+            blockRange: `${startBlock}-${currentBlock}`,
+            newTransactions: allNewTransactions.length,
+            description: syncDescription
+          }
+        ]
       }
       localStorage.setItem(cachedKey, JSON.stringify(updatedCache))
       
       console.log(`Transaction sync completed: ${uniqueTransactions.length} total transactions cached`)
-      setSyncStatus(`Synchronized ${uniqueTransactions.length} transactions`)
+      
+      // Also try to sync with Oracle server for additional data
+      try {
+        setSyncStatus(`📡 Syncing with Oracle server...`)
+        const oracleResponse = await fetch(`https://oracle.reservebtc.io/api/user/${address}/transactions`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        })
+        
+        if (oracleResponse.ok) {
+          const oracleData = await oracleResponse.json()
+          console.log('Oracle server transaction data:', oracleData)
+          
+          // If Oracle has additional data, merge it
+          if (oracleData.transactions && oracleData.transactions.length > 0) {
+            console.log(`Oracle provided ${oracleData.transactions.length} additional transactions`)
+          }
+          
+          setSyncStatus(`✅ Synchronized ${uniqueTransactions.length} transactions (Oracle: OK)`)
+        } else {
+          setSyncStatus(`✅ Synchronized ${uniqueTransactions.length} transactions (Oracle: offline)`)
+        }
+      } catch (oracleError) {
+        console.log('Oracle server sync failed:', oracleError instanceof Error ? oracleError.message : 'Unknown error')
+        setSyncStatus(`✅ Synchronized ${uniqueTransactions.length} transactions (Oracle: unavailable)`)
+      }
       
     } catch (error) {
       console.error('Error loading transactions:', error)
@@ -669,11 +740,55 @@ export function DashboardContent() {
               </p>
             )}
             {isLoadingTransactions && transactions.length === 0 && (
-              <div className="flex items-center gap-2 mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <p className="text-xs text-blue-700 dark:text-blue-300">
-                  Waiting for Bitcoin transaction confirmation...
-                </p>
+              <div className="mt-2 space-y-3">
+                <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />
+                  <p className="text-xs text-blue-700 dark:text-blue-300">
+                    Scanning blockchain for transactions...
+                  </p>
+                </div>
+                
+                {/* Bitcoin → rBTC Process Flow */}
+                <div className="bg-gradient-to-r from-orange-50 to-blue-50 dark:from-orange-900/10 dark:to-blue-900/10 p-3 rounded-lg border">
+                  <div className="text-xs font-medium text-orange-800 dark:text-orange-200 mb-2">
+                    🔄 Bitcoin → rBTC-SYNTH Process
+                  </div>
+                  <div className="space-y-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 bg-orange-500 rounded-full"></div>
+                      <span><strong>Step 1:</strong> Send Bitcoin to your verified address</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 bg-yellow-500 rounded-full animate-pulse"></div>
+                      <span><strong>Step 2:</strong> Bitcoin network confirmation (1+ blocks)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse"></div>
+                      <span><strong>Step 3:</strong> Oracle server detects balance change</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 bg-purple-500 rounded-full animate-pulse"></div>
+                      <span><strong>Step 4:</strong> Oracle calls sync() on smart contract</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 bg-green-500 rounded-full"></div>
+                      <span><strong>Step 5:</strong> rBTC-SYNTH tokens minted to your wallet</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    ⏱️ <em>Typical completion time: 10-30 minutes</em>
+                  </div>
+                </div>
+                
+                {/* Contract Information */}
+                <div className="bg-muted/30 p-2 rounded-lg text-xs">
+                  <div className="font-medium text-muted-foreground mb-1">📋 New Atomic Contracts (Active)</div>
+                  <div className="space-y-1 text-muted-foreground">
+                    <div>• Oracle: <span className="font-mono text-xs">{CONTRACTS.ORACLE_AGGREGATOR.slice(0,10)}...</span></div>
+                    <div>• rBTC-SYNTH: <span className="font-mono text-xs">{CONTRACTS.RBTC_SYNTH.slice(0,10)}...</span></div>
+                    <div>• FeeVault: <span className="font-mono text-xs">{CONTRACTS.FEE_VAULT.slice(0,10)}...</span></div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

@@ -73,7 +73,7 @@
 | Contract | Address | Purpose |
 |----------|---------|---------|
 | **OracleAggregator** | `0x74E64267a4d19357dd03A0178b5edEC79936c643` | Core Oracle system |
-| **RBTCSynth** | `0x37fE059490B70e2605cb3D6fD64F5292d3eB46dE` | rBTC-SYNTH (soulbound) |
+| **RBTCSynth** | `0x4BC51d94937f145C7D995E146C32EC3b9CeB3ACC` | rBTC-SYNTH (soulbound) |
 | **VaultWrBTC** | `0xa10FC332f12d102Dddf431F8136E4E89279EFF87` | wrBTC (transferable) |
 | **FeeVault** | `0x9C0Bc4E6794544F8DAA39C2d913e16063898bEa1` | Fee management |
 | **FeePolicy** | `0xc10fD3a2DF480CFAE8a7aBC2862a9c5724f5f4b4` | Fee calculation |
