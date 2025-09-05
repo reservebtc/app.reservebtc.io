@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0f0f23">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>ReserveBTC - Bitcoin-Backed Synthetic Token Protocol (BBSTP)</title>
+    <title>ReserveBTC - Bitcoin-Backed Synthetic Token Protocol [BBSTP]</title>
     <meta name="description" content="Mint 1:1 backed rBTC tokens on MegaETH. Your Bitcoin stays secure in your wallet.">
     
     <!-- Fonts -->
@@ -181,14 +181,27 @@
             font-weight: 800;
             line-height: 1.2;
             margin-bottom: 1rem;
-            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 25%, #ffcd3c 50%, #4fc3f7 75%, #7c4dff 100%);
-            background-size: 300% 300%;
+            /* Professional DeFi protocol gradient styling */
+            background: linear-gradient(135deg, 
+                #ff6b35 0%,    /* Vibrant Orange */
+                #f7931e 15%,   /* Bitcoin Orange */
+                #ffcd3c 35%,   /* Golden Yellow */
+                #4fc3f7 65%,   /* Cyan Blue */
+                #7c4dff 85%,   /* Crypto Purple */
+                #e91e63 100%   /* Accent Pink */
+            );
+            background-size: 400% 400%;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            animation: gradientText 6s ease-in-out infinite;
-            /* Fallback for browsers that don't support background-clip: text */
-            color: #ff6b35;
+            animation: gradientText 8s ease-in-out infinite;
+            /* Enhanced fallbacks */
+            color: transparent;
+            text-shadow: none;
+            /* Force hardware acceleration */
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            will-change: background-position;
         }
 
         .protocol-abbr {
@@ -205,8 +218,11 @@
         }
 
         @keyframes gradientText {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
+            0% { background-position: 0% 50%; }
+            25% { background-position: 100% 50%; }
+            50% { background-position: 200% 50%; }
+            75% { background-position: 300% 50%; }
+            100% { background-position: 400% 50%; }
         }
 
         @keyframes gradientTextFast {
@@ -214,9 +230,29 @@
             50% { background-position: 100% 50%; }
         }
 
+        @keyframes subtitleGradient {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
         .subtitle {
             font-size: 1rem;
-            opacity: 0.85;
+            /* Beautiful subtitle gradient */
+            background: linear-gradient(90deg, 
+                #64b5f6 0%,    /* Light Blue */
+                #81c784 25%,   /* Light Green */
+                #ffb74d 50%,   /* Warm Orange */
+                #f06292 75%,   /* Pink */
+                #9575cd 100%   /* Purple */
+            );
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: subtitleGradient 6s ease-in-out infinite alternate;
+            /* Enhanced fallback */
+            color: rgba(255, 255, 255, 0.85);
+            text-shadow: none;
             margin-bottom: 2rem;
             padding: 0 0.5rem;
             color: #cbd5e1;
@@ -509,22 +545,22 @@
 
         <!-- Main content -->
         <div class="main-content">
-            <h2 class="main-title">Bitcoin-Backed Synthetic Token Protocol<br><span class="protocol-abbr">(BBSTP)</span></h2>
+            <h2 class="main-title">Bitcoin-Backed Synthetic Token Protocol<br><span class="protocol-abbr">[BBSTP]</span></h2>
             <p class="subtitle">Mint synthetic Bitcoin tokens on MegaETH — your Bitcoin stays secure in your wallet</p>
             
             <!-- Features -->
             <div class="features">
                 <div class="feature">
-                    <div class="feature-icon">✓</div>
-                    <span class="feature-text">Decentralized</span>
+                    <div class="feature-icon">🤖</div>
+                    <span class="feature-text">Synthetic Tokens</span>
                 </div>
                 <div class="feature">
-                    <div class="feature-icon">✓</div>
-                    <span class="feature-text">Proof-of-Reserves</span>
+                    <div class="feature-icon">⚡</div>
+                    <span class="feature-text">MegaETH Network</span>
                 </div>
                 <div class="feature">
-                    <div class="feature-icon">₿</div>
-                    <span class="feature-text">Your Bitcoin Stays Safe</span>
+                    <div class="feature-icon">🔒</div>
+                    <span class="feature-text">Non-Custodial</span>
                 </div>
             </div>
             

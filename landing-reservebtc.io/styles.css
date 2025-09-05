@@ -175,14 +175,27 @@ body {
     font-weight: 800;
     line-height: 1.1;
     margin-bottom: 1.5rem;
-    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 25%, #ffcd3c 50%, #4fc3f7 75%, #7c4dff 100%);
-    background-size: 300% 300%;
+    /* Professional DeFi protocol gradient styling */
+    background: linear-gradient(135deg, 
+        #ff6b35 0%,    /* Vibrant Orange */
+        #f7931e 15%,   /* Bitcoin Orange */
+        #ffcd3c 35%,   /* Golden Yellow */
+        #4fc3f7 65%,   /* Cyan Blue */
+        #7c4dff 85%,   /* Crypto Purple */
+        #e91e63 100%   /* Accent Pink */
+    );
+    background-size: 400% 400%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    animation: gradientText 6s ease-in-out infinite;
-    /* Fallback for browsers that don't support background-clip: text */
-    color: #ff6b35;
+    animation: gradientText 8s ease-in-out infinite;
+    /* Enhanced fallbacks */
+    color: transparent;
+    text-shadow: none;
+    /* Force hardware acceleration */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    will-change: background-position;
 }
 
 .protocol-abbr {
@@ -199,8 +212,11 @@ body {
 }
 
 @keyframes gradientText {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
+    0% { background-position: 0% 50%; }
+    25% { background-position: 100% 50%; }
+    50% { background-position: 200% 50%; }
+    75% { background-position: 300% 50%; }
+    100% { background-position: 400% 50%; }
 }
 
 @keyframes gradientTextFast {
@@ -208,9 +224,35 @@ body {
     50% { background-position: 100% 50%; }
 }
 
+@keyframes subtitleGradient {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+}
+
+@keyframes featureGradient {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
 .subtitle {
     font-size: 1.5rem;
     font-weight: 400;
+    /* Beautiful subtitle gradient */
+    background: linear-gradient(90deg, 
+        #64b5f6 0%,    /* Light Blue */
+        #81c784 25%,   /* Light Green */
+        #ffb74d 50%,   /* Warm Orange */
+        #f06292 75%,   /* Pink */
+        #9575cd 100%   /* Purple */
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: subtitleGradient 6s ease-in-out infinite alternate;
+    /* Enhanced fallback */
+    color: rgba(255, 255, 255, 0.8);
+    text-shadow: none;
     opacity: 0.9;
     margin-bottom: 3rem;
     max-width: 800px;
@@ -249,6 +291,19 @@ body {
 .feature-text {
     font-size: 1.25rem;
     font-weight: 600;
+    /* Feature text gradient */
+    background: linear-gradient(45deg, 
+        #ff9800 0%,    /* Orange */
+        #2196f3 50%,   /* Blue */
+        #9c27b0 100%   /* Purple */
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: featureGradient 4s ease-in-out infinite;
+    /* Fallback */
+    color: rgba(255, 255, 255, 0.8);
 }
 
 /* Launch button */
