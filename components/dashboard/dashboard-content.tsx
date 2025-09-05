@@ -541,13 +541,13 @@ export function DashboardContent() {
             console.log(`Oracle provided ${oracleData.transactions.length} additional transactions`)
           }
           
-          setSyncStatus(`✅ Synchronized ${uniqueTransactions.length} transactions (Oracle: OK)`)
+          setSyncStatus(`✅ Synchronized ${uniqueTransactions.length} transactions`)
         } else {
-          setSyncStatus(`✅ Synchronized ${uniqueTransactions.length} transactions (Oracle: offline)`)
+          setSyncStatus(`✅ Synchronized ${uniqueTransactions.length} transactions`)
         }
       } catch (oracleError) {
         console.log('Oracle server sync failed:', oracleError instanceof Error ? oracleError.message : 'Unknown error')
-        setSyncStatus(`✅ Synchronized ${uniqueTransactions.length} transactions (Oracle: unavailable)`)
+        setSyncStatus(`✅ Synchronized ${uniqueTransactions.length} transactions`)
       }
       
     } catch (error) {
@@ -932,7 +932,7 @@ export function DashboardContent() {
                       </td>
                       <td className="py-3 px-2 text-right font-mono text-sm">
                         <span className={tx.type === 'mint' ? 'text-green-600' : tx.type === 'burn' ? 'text-red-600' : ''}>
-                          {tx.type === 'mint' ? '+' : tx.type === 'burn' ? '-' : ''}{tx.amount} BTC
+                          {tx.type === 'mint' ? '+' : tx.type === 'burn' ? '-' : ''}{tx.amount} rBTC-SYNTH
                         </span>
                       </td>
                       <td className="py-3 px-2 text-right text-xs text-muted-foreground hidden md:table-cell">
