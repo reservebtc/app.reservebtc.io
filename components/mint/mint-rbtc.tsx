@@ -64,6 +64,9 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       setValue('bitcoinAddress', savedAddress, { shouldValidate: true })
       // Fetch Bitcoin balance for this address
       fetchBitcoinBalance(savedAddress)
+    } else {
+      // If no saved address, mark as attempted so warning doesn't show
+      setHasAttemptedFetch(true)
     }
   }, [setValue])
 
@@ -319,7 +322,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                   = {amountInSatoshis.toLocaleString()} satoshis
                 </div>
               )}
-              {bitcoinBalance === 0 && !isLoadingBalance && hasAttemptedFetch && verifiedBitcoinAddress && (
+              {bitcoinBalance === 0 && !isLoadingBalance && hasAttemptedFetch && verifiedBitcoinAddress && publicClient && (
                 <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <div className="flex items-start gap-3">
                     <div className="text-blue-600 dark:text-blue-400 text-xl flex-shrink-0">🔐</div>

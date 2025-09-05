@@ -764,13 +764,25 @@ body {
     }
 }
 
-/* Desktop/tablet - ensure horizontal layout for features */
-@media (min-width: 769px) {
+/* Desktop - force horizontal layout for features */
+@media (min-width: 1025px) {
     .features {
         flex-direction: row !important;
         justify-content: center !important;
         gap: 4rem !important;
-        flex-wrap: wrap;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+    }
+}
+
+/* Tablet - also horizontal but with wrap */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .features {
+        flex-direction: row !important;
+        justify-content: center !important;
+        gap: 2rem !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
     }
 }
 
