@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0f0f23">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>ReserveBTC - Bitcoin-Backed Synthetic Token Protocol [BBSTP]</title>
+    <title>ReserveBTC - Bitcoin-Backed Synthetic Token Protocol</title>
     <meta name="description" content="Mint 1:1 backed rBTC tokens on MegaETH. Your Bitcoin stays secure in your wallet.">
     
     <!-- Fonts -->
@@ -181,7 +181,8 @@
             font-weight: 800;
             line-height: 1.2;
             margin-bottom: 1rem;
-            /* Professional DeFi protocol gradient styling */
+            
+            /* Cross-browser gradient text */
             background: linear-gradient(135deg, 
                 #ff6b35 0%,    /* Vibrant Orange */
                 #f7931e 15%,   /* Bitcoin Orange */
@@ -191,17 +192,39 @@
                 #e91e63 100%   /* Accent Pink */
             );
             background-size: 400% 400%;
+            
+            /* Webkit browsers (Chrome, Safari, newer Edge) */
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            
+            /* Standard property for other browsers */
             background-clip: text;
-            animation: gradientText 8s ease-in-out infinite;
-            /* Enhanced fallbacks */
             color: transparent;
-            text-shadow: none;
-            /* Force hardware acceleration */
-            transform: translateZ(0);
+            
+            /* Animation */
+            animation: gradientText 8s ease-in-out infinite;
+            
+            /* Hardware acceleration */
             -webkit-transform: translateZ(0);
+            transform: translateZ(0);
             will-change: background-position;
+        }
+
+        /* Fallback for browsers that don't support background-clip: text */
+        @supports not (-webkit-background-clip: text) {
+            .main-title {
+                background: none !important;
+                color: #ff6b35 !important;
+                animation: colorShift 4s ease-in-out infinite;
+            }
+        }
+
+        @keyframes colorShift {
+            0% { color: #ff6b35; }
+            25% { color: #f7931e; }
+            50% { color: #ffcd3c; }
+            75% { color: #4fc3f7; }
+            100% { color: #7c4dff; }
         }
 
         .protocol-abbr {
@@ -545,7 +568,7 @@
 
         <!-- Main content -->
         <div class="main-content">
-            <h2 class="main-title">Bitcoin-Backed Synthetic Token Protocol<br><span class="protocol-abbr">[BBSTP]</span></h2>
+            <h2 class="main-title">Bitcoin-Backed Synthetic Token Protocol</h2>
             <p class="subtitle">Mint synthetic Bitcoin tokens on MegaETH — your Bitcoin stays secure in your wallet</p>
             
             <!-- Features -->

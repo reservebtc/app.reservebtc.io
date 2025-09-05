@@ -6,10 +6,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowRight, ArrowLeft, AlertCircle, Loader2, CheckCircle, Info, Bitcoin, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Copy, Wallet, Shield } from 'lucide-react'
 import { mintFormSchema, MintForm } from '@/lib/validation-schemas'
 import { validateBitcoinAddress, getBitcoinAddressTypeLabel } from '@/lib/bitcoin-validation'
-import { useAccount } from 'wagmi'
+import { useAccount, usePublicClient } from 'wagmi'
 import { DepositFeeVault } from './deposit-fee-vault'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { CONTRACTS } from '@/app/lib/contracts'
 
 interface MintRBTCProps {
   onMintComplete?: (data: MintForm) => void
@@ -29,6 +30,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const [showTermsDetails, setShowTermsDetails] = useState(false)
   const [copiedAddress, setCopiedAddress] = useState(false)
   const { address, isConnected } = useAccount()
+  const publicClient = usePublicClient()
   
   // Token Contract Addresses
   const RBTC_TOKEN_ADDRESS = '0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB' // rBTC-SYNTH (soulbound)
@@ -64,41 +66,39 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }, [setValue])
 
-  // Fetch Bitcoin balance from the verified address
+  // Fetch Bitcoin balance from Oracle Aggregator (same as Dashboard)
   const fetchBitcoinBalance = async (btcAddress: string) => {
     setIsLoadingBalance(true)
     try {
-      // For testnet addresses, use testnet API
-      const isTestnet = btcAddress.startsWith('tb1') || btcAddress.startsWith('2') || /^[mn]/.test(btcAddress)
+      if (!publicClient || !address) {
+        console.log('Missing publicClient or address')
+        return
+      }
+
+      // Get Bitcoin balance from Oracle Aggregator like Dashboard does
+      const lastSats = await publicClient.readContract({
+        address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
+        abi: [
+          {
+            name: 'lastSats',
+            type: 'function',
+            stateMutability: 'view',
+            inputs: [{ name: 'user', type: 'address' }],
+            outputs: [{ name: '', type: 'uint64' }]
+          }
+        ],
+        functionName: 'lastSats',
+        args: [address]
+      })
       
-      if (isTestnet) {
-        // Testnet API (example with blockstream)
-        const response = await fetch(`https://blockstream.info/testnet/api/address/${btcAddress}`)
-        if (response.ok) {
-          const data = await response.json()
-          // Calculate total balance (funded - spent)
-          const balanceSats = (data.chain_stats.funded_txo_sum - data.chain_stats.spent_txo_sum) || 0
-          const balanceBTC = balanceSats / 100_000_000
-          setBitcoinBalance(balanceBTC)
-          setValue('amount', balanceBTC.toString())
-        }
-      } else {
-        // Mainnet API
-        const response = await fetch(`https://blockchain.info/rawaddr/${btcAddress}?limit=0`)
-        if (response.ok) {
-          const data = await response.json()
-          const balanceBTC = (data.final_balance || 0) / 100_000_000
-          setBitcoinBalance(balanceBTC)
-          setValue('amount', balanceBTC.toString())
-        }
-      }
+      const bitcoinBalance = Number(lastSats) / 100000000 // Convert sats to BTC
+      setBitcoinBalance(bitcoinBalance)
+      setValue('amount', bitcoinBalance.toString())
     } catch (error) {
-      console.error('Failed to fetch Bitcoin balance:', error)
-      // For demo purposes, set a test balance for testnet
-      if (btcAddress.startsWith('tb1')) {
-        setBitcoinBalance(0.001) // Demo balance
-        setValue('amount', '0.001')
-      }
+      console.error('Failed to fetch Bitcoin balance from Oracle:', error)
+      // Fallback to 0
+      setBitcoinBalance(0)
+      setValue('amount', '0')
     } finally {
       setIsLoadingBalance(false)
     }

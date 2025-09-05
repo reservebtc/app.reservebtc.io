@@ -175,7 +175,8 @@ body {
     font-weight: 800;
     line-height: 1.1;
     margin-bottom: 1.5rem;
-    /* Professional DeFi protocol gradient styling */
+    
+    /* Cross-browser gradient text */
     background: linear-gradient(135deg, 
         #ff6b35 0%,    /* Vibrant Orange */
         #f7931e 15%,   /* Bitcoin Orange */
@@ -185,17 +186,39 @@ body {
         #e91e63 100%   /* Accent Pink */
     );
     background-size: 400% 400%;
+    
+    /* Webkit browsers (Chrome, Safari, newer Edge) */
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    
+    /* Standard property for other browsers */
     background-clip: text;
-    animation: gradientText 8s ease-in-out infinite;
-    /* Enhanced fallbacks */
     color: transparent;
-    text-shadow: none;
-    /* Force hardware acceleration */
-    transform: translateZ(0);
+    
+    /* Animation */
+    animation: gradientText 8s ease-in-out infinite;
+    
+    /* Hardware acceleration */
     -webkit-transform: translateZ(0);
+    transform: translateZ(0);
     will-change: background-position;
+}
+
+/* Fallback for browsers that don't support background-clip: text */
+@supports not (-webkit-background-clip: text) {
+    .main-title {
+        background: none !important;
+        color: #ff6b35 !important;
+        animation: colorShift 4s ease-in-out infinite;
+    }
+}
+
+@keyframes colorShift {
+    0% { color: #ff6b35; }
+    25% { color: #f7931e; }
+    50% { color: #ffcd3c; }
+    75% { color: #4fc3f7; }
+    100% { color: #7c4dff; }
 }
 
 .protocol-abbr {
