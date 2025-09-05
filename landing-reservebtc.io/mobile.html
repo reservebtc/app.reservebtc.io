@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0f0f23">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>ReserveBTC - On-Chain Proof-of-Reserves for Bitcoin</title>
+    <title>ReserveBTC - Bitcoin-Backed Synthetic Token Protocol (BBSTP)</title>
     <meta name="description" content="Mint 1:1 backed rBTC tokens on MegaETH. Your Bitcoin stays secure in your wallet.">
     
     <!-- Fonts -->
@@ -181,11 +181,36 @@
             font-weight: 800;
             line-height: 1.2;
             margin-bottom: 1rem;
-            background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 50%, #c7d2fe 100%);
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 25%, #ffcd3c 50%, #4fc3f7 75%, #7c4dff 100%);
+            background-size: 200% 200%;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            animation: gradientText 8s ease-in-out infinite;
             text-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .protocol-abbr {
+            display: inline-block;
+            font-size: 0.6em;
+            font-weight: 600;
+            opacity: 0.8;
+            background: linear-gradient(45deg, #ff6b35, #7c4dff);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientTextFast 4s ease-in-out infinite;
+        }
+
+        @keyframes gradientText {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes gradientTextFast {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
 
         .subtitle {
@@ -483,7 +508,7 @@
 
         <!-- Main content -->
         <div class="main-content">
-            <h2 class="main-title">On-Chain Proof-of-Reserves<br>for Bitcoin</h2>
+            <h2 class="main-title">Bitcoin-Backed Synthetic Token Protocol<br><span class="protocol-abbr">(BBSTP)</span></h2>
             <p class="subtitle">Decentralized, verifiable reserves — your Bitcoin stays in your wallet</p>
             
             <!-- Features -->
