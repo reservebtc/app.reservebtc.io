@@ -181,50 +181,77 @@
             font-weight: 800;
             line-height: 1.2;
             margin-bottom: 1rem;
+            position: relative;
             
-            /* Cross-browser gradient text */
-            background: linear-gradient(135deg, 
-                #ff6b35 0%,    /* Vibrant Orange */
-                #f7931e 15%,   /* Bitcoin Orange */
-                #ffcd3c 35%,   /* Golden Yellow */
-                #4fc3f7 65%,   /* Cyan Blue */
-                #7c4dff 85%,   /* Crypto Purple */
-                #e91e63 100%   /* Accent Pink */
+            /* Force bright rainbow gradient - mobile version */
+            background: linear-gradient(90deg, 
+                #ff0080 0%,     /* Magenta */
+                #ff4000 14%,    /* Red-Orange */
+                #ff8000 28%,    /* Orange */
+                #ffff00 42%,    /* Yellow */
+                #80ff00 56%,    /* Lime */
+                #00ff80 70%,    /* Spring Green */
+                #00ffff 84%,    /* Cyan */
+                #ff0080 100%    /* Back to Magenta */
             );
-            background-size: 400% 400%;
+            background-size: 200% 100%;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            background-clip: text !important;
+            color: transparent !important;
             
-            /* Webkit browsers (Chrome, Safari, newer Edge) */
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            /* Very visible sliding animation */
+            animation: hyperVividSlide 3s linear infinite;
             
-            /* Standard property for other browsers */
-            background-clip: text;
-            color: transparent;
-            
-            /* Animation */
-            animation: gradientText 8s ease-in-out infinite;
-            
-            /* Hardware acceleration */
-            -webkit-transform: translateZ(0);
-            transform: translateZ(0);
+            /* Force hardware acceleration */
+            transform: translate3d(0, 0, 0);
             will-change: background-position;
+            
+            /* Additional glow for visibility */
+            filter: drop-shadow(0 0 8px #ff0080) drop-shadow(0 0 15px #00ffff);
         }
 
-        /* Fallback for browsers that don't support background-clip: text */
-        @supports not (-webkit-background-clip: text) {
-            .main-title {
-                background: none !important;
-                color: #ff6b35 !important;
-                animation: colorShift 4s ease-in-out infinite;
+        @keyframes rainbowText {
+            0%, 100% { 
+                filter: hue-rotate(0deg) saturate(1.2) brightness(1.1);
+                text-shadow: 
+                    0 0 8px #ff6b35,
+                    0 0 15px #f7931e,
+                    0 0 25px #ffcd3c;
+            }
+            25% { 
+                filter: hue-rotate(60deg) saturate(1.4) brightness(1.2);
+                text-shadow: 
+                    0 0 8px #f7931e,
+                    0 0 15px #ffcd3c,
+                    0 0 25px #4fc3f7;
+            }
+            50% { 
+                filter: hue-rotate(120deg) saturate(1.3) brightness(1.15);
+                text-shadow: 
+                    0 0 8px #ffcd3c,
+                    0 0 15px #4fc3f7,
+                    0 0 25px #7c4dff;
+            }
+            75% { 
+                filter: hue-rotate(180deg) saturate(1.5) brightness(1.25);
+                text-shadow: 
+                    0 0 8px #4fc3f7,
+                    0 0 15px #7c4dff,
+                    0 0 25px #e91e63;
             }
         }
 
-        @keyframes colorShift {
-            0% { color: #ff6b35; }
-            25% { color: #f7931e; }
-            50% { color: #ffcd3c; }
-            75% { color: #4fc3f7; }
-            100% { color: #7c4dff; }
+        @keyframes gradientSlide {
+            0%, 100% { background-position: 0% 50%; }
+            25% { background-position: 50% 25%; }
+            50% { background-position: 100% 50%; }
+            75% { background-position: 50% 75%; }
+        }
+
+        @keyframes hyperVividSlide {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
         }
 
         .protocol-abbr {
