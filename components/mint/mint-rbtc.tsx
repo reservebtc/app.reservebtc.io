@@ -955,10 +955,11 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           <button
             onClick={() => {
               setMintStatus('idle')
+              router.push('/dashboard')
             }}
             className="px-6 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg font-medium transition-colors"
           >
-            Continue
+            Continue to Dashboard
           </button>
         </div>
       )}
