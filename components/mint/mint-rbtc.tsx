@@ -9,12 +9,14 @@ import { validateBitcoinAddress, getBitcoinAddressTypeLabel } from '@/lib/bitcoi
 import { useAccount } from 'wagmi'
 import { DepositFeeVault } from './deposit-fee-vault'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface MintRBTCProps {
   onMintComplete?: (data: MintForm) => void
 }
 
 export function MintRBTC({ onMintComplete }: MintRBTCProps) {
+  const router = useRouter()
   const [isMinting, setIsMinting] = useState(false)
   const [mintStatus, setMintStatus] = useState<'idle' | 'pending' | 'success' | 'error' | 'already-syncing'>('idle')
   const [txHash, setTxHash] = useState<string>('')
