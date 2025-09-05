@@ -195,3 +195,28 @@ test-new-contracts-link.js
 test-complete-integration.js
 test-oracle-smart-contract-sync.js
 test-mint-burn-functionality.js
+debug-oracle-error.js
+check-oracle-committee.js
+check-committee-mismatch.js
+create-correct-feevault.js
+fix-oracle-feevault.sh
+update-feevault-addresses.js
+migrate-feevault-balances.js
+check-fee-structure.js
+debug-sync-failure.js
+comprehensive-system-check.js
+fix-feevault-oracle-mismatch.js
+
+# Atomic deployment scripts and results
+deploy-atomic-system.js
+deploy-new-system.js
+contracts/broadcast/AtomicDeployFixed.s.sol/
+contracts/cache/AtomicDeployFixed.s.sol/
+test-new-atomic-contracts.js
+update-oracle-atomic-config.sh
+fund-new-feevault.js
+update-all-atomic-addresses.js
+test-complete-atomic-system.js
+
+# Atomic deployment documentation - KEEP THIS!  
+# ATOMIC_DEPLOYMENT_GUIDE.md
