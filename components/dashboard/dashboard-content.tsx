@@ -81,17 +81,51 @@ export function DashboardContent() {
     }
   }, [isConnected, router])
 
-  // Load verified addresses from localStorage
+  // Load verified addresses from localStorage and fetch real Bitcoin balance
   useEffect(() => {
-    if (address) {
+    const loadBitcoinBalance = async () => {
+      if (!address || !publicClient) return
+      
       const savedAddress = localStorage.getItem('verifiedBitcoinAddress')
-      if (savedAddress) {
+      if (!savedAddress) return
+      
+      try {
+        // Get Bitcoin balance from Oracle Aggregator
+        const lastSats = await publicClient.readContract({
+          address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
+          abi: [
+            {
+              name: 'lastSats',
+              type: 'function',
+              stateMutability: 'view',
+              inputs: [{ name: 'user', type: 'address' }],
+              outputs: [{ name: '', type: 'uint64' }]
+            }
+          ],
+          functionName: 'lastSats',
+          args: [address]
+        })
+        
+        const bitcoinBalance = Number(lastSats) / 100000000 // Convert sats to BTC
+        
         setVerifiedAddresses([{
           address: savedAddress,
           verifiedAt: new Date().toISOString(),
-          balance: 0 // Will be fetched from API
+          balance: bitcoinBalance
+        }])
+      } catch (error) {
+        console.error('Error fetching Bitcoin balance:', error)
+        // Fallback to 0 balance
+        setVerifiedAddresses([{
+          address: savedAddress,
+          verifiedAt: new Date().toISOString(),
+          balance: 0
         }])
       }
+    }
+
+    if (address) {
+      loadBitcoinBalance()
       
       // Clear old transaction cache since we deployed new atomic contracts
       const cacheKey = `rbtc_transactions_${address}`
@@ -295,10 +329,10 @@ export function DashboardContent() {
       let syncDescription: string
       
       if (cached.transactions.length === 0) {
-        // First time sync - MegaETH has ~10ms blocks, so 10k blocks = ~100 seconds
-        // Use smaller range to respect rate limits
-        startBlock = currentBlock > BigInt(10000) ? currentBlock - BigInt(10000) : BigInt(0)
-        syncDescription = 'Initial sync (last 10k blocks)'
+        // First time sync - scan more blocks to find historical transactions (24+ hours)
+        // Use smaller range but still cover recent days - 50k blocks should be enough
+        startBlock = currentBlock > BigInt(50000) ? currentBlock - BigInt(50000) : BigInt(0)
+        syncDescription = 'Initial sync (scanning last 50k blocks for historical data)'
       } else if (isStaleCache || currentBlock > lastSyncedBlock + BigInt(50)) {
         // Incremental sync - only check new blocks since last sync
         startBlock = lastSyncedBlock
@@ -315,8 +349,8 @@ export function DashboardContent() {
       setSyncStatus(`🔍 ${syncDescription}...`)
       
       // Use smaller chunks due to MegaETH rate limits
-      const CHUNK_SIZE = BigInt(25) // Conservative chunk size for MegaETH
-      const MAX_CHUNKS_PER_SYNC = 200 // Higher limit for better coverage
+      const CHUNK_SIZE = BigInt(50) // Larger chunks for better efficiency
+      const MAX_CHUNKS_PER_SYNC = 50 // Reasonable limit to prevent timeout
       
       const allNewTransactions: Transaction[] = []
       let chunksProcessed = 0
@@ -588,16 +622,21 @@ export function DashboardContent() {
           <p className="text-xs text-muted-foreground">Transferable</p>
         </div>
 
-        {/* Verified Addresses */}
+        {/* Bitcoin Balance */}
         <div className="bg-card border rounded-xl p-6 space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">Verified BTC</p>
-            <div className="p-2 bg-blue-500/10 rounded-lg">
-              <Shield className="h-4 w-4 text-blue-500" />
+            <p className="text-sm text-muted-foreground">Bitcoin Balance</p>
+            <div className="p-2 bg-yellow-500/10 rounded-lg">
+              <Bitcoin className="h-4 w-4 text-yellow-500" />
             </div>
           </div>
-          <p className="text-2xl font-bold">{verifiedAddresses.length}</p>
-          <p className="text-xs text-muted-foreground">Addresses</p>
+          <p className="text-2xl font-bold">
+            {verifiedAddresses.length > 0 && verifiedAddresses[0].balance 
+              ? `${verifiedAddresses[0].balance.toFixed(8)} BTC`
+              : '0.00000000 BTC'
+            }
+          </p>
+          <p className="text-xs text-muted-foreground">On Bitcoin Network</p>
         </div>
 
         {/* Total Transactions */}
