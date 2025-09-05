@@ -24,6 +24,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const [verifiedBitcoinAddress, setVerifiedBitcoinAddress] = useState<string>('')
   const [bitcoinBalance, setBitcoinBalance] = useState<number>(0)
   const [isLoadingBalance, setIsLoadingBalance] = useState(false)
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false)
   const [showFeeVaultWarning, setShowFeeVaultWarning] = useState(false)
   const [showAutoSyncDetails, setShowAutoSyncDetails] = useState(false)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
@@ -69,11 +70,16 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   // Fetch Bitcoin balance from Oracle Aggregator (same as Dashboard)
   const fetchBitcoinBalance = async (btcAddress: string) => {
     setIsLoadingBalance(true)
+    setHasAttemptedFetch(false)
+    
     try {
       if (!publicClient || !address) {
         console.log('Missing publicClient or address')
         return
       }
+
+      // Add small delay to avoid race conditions during Bitcoin transaction processing
+      await new Promise(resolve => setTimeout(resolve, 500))
 
       // Get Bitcoin balance from Oracle Aggregator like Dashboard does
       const lastSats = await publicClient.readContract({
@@ -101,6 +107,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       setValue('amount', '0')
     } finally {
       setIsLoadingBalance(false)
+      setHasAttemptedFetch(true)
     }
   }
 
@@ -312,7 +319,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                   = {amountInSatoshis.toLocaleString()} satoshis
                 </div>
               )}
-              {bitcoinBalance === 0 && !isLoadingBalance && verifiedBitcoinAddress && (
+              {bitcoinBalance === 0 && !isLoadingBalance && hasAttemptedFetch && verifiedBitcoinAddress && (
                 <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <div className="flex items-start gap-3">
                     <div className="text-blue-600 dark:text-blue-400 text-xl flex-shrink-0">🔐</div>

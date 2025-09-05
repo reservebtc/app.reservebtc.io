@@ -764,6 +764,16 @@ body {
     }
 }
 
+/* Desktop/tablet - ensure horizontal layout for features */
+@media (min-width: 769px) {
+    .features {
+        flex-direction: row !important;
+        justify-content: center !important;
+        gap: 4rem !important;
+        flex-wrap: wrap;
+    }
+}
+
 @media (max-width: 768px) {
     body {
         overflow-x: hidden;
