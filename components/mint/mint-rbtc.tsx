@@ -128,18 +128,21 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           const specificAddress = searchParams.get('address')
           
           let selectedAddress = ''
+          let forceBalanceReload = false
           
-          if (specificAddress && verifiedAddrs.some(addr => addr.address === specificAddress)) {
-            // Use specific address from URL if it exists in verified addresses
+          if (specificAddress) {
+            // Always use the specific address from URL, even if it's newly verified
             selectedAddress = specificAddress
-            console.log('✅ Using address from URL parameter:', selectedAddress)
+            forceBalanceReload = true // Force balance reload for URL address
+            console.log('✅ Using address from URL parameter (forcing balance reload):', selectedAddress)
           } else if (fromVerify) {
             // If coming from verification page, use the most recently verified address
             const sortedAddrs = verifiedAddrs.sort((a, b) => 
               new Date(b.verifiedAt).getTime() - new Date(a.verifiedAt).getTime()
             )
             selectedAddress = sortedAddrs[0].address
-            console.log('✅ Coming from verification page, selecting latest:', selectedAddress)
+            forceBalanceReload = true // Force balance reload from verification
+            console.log('✅ Coming from verification page, selecting latest (forcing balance reload):', selectedAddress)
           } else {
             // Default to latest verified address
             const sortedAddrs = verifiedAddrs.sort((a, b) => 
@@ -147,6 +150,14 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             )
             selectedAddress = sortedAddrs[0].address
             console.log('✅ Auto-selecting latest verified address:', selectedAddress)
+          }
+          
+          // Force reset balance and loading state when address changes
+          if (forceBalanceReload || selectedAddress !== verifiedBitcoinAddress) {
+            console.log('🔄 Forcing balance reset and reload for address:', selectedAddress)
+            setBitcoinBalance(0) // Reset balance immediately
+            setIsLoadingBalance(true) // Show loading state
+            setHasAttemptedFetch(false) // Reset fetch state
           }
           
           setVerifiedBitcoinAddress(selectedAddress)
