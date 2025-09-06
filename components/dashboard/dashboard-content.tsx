@@ -802,10 +802,13 @@ export function DashboardContent() {
             <ArrowRight className="h-4 w-4" />
             Wrap rBTC-SYNTH
           </Link>
-          <button className="inline-flex items-center justify-center gap-2 bg-card border px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent transition-colors">
+          <Link 
+            href="/wrap/learn-more"
+            className="inline-flex items-center justify-center gap-2 bg-card border px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent transition-colors"
+          >
             <Info className="h-4 w-4" />
             Learn More
-          </button>
+          </Link>
         </div>
       </div>
 
