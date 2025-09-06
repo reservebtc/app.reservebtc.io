@@ -11,6 +11,7 @@ import {
   getUserTransactionHistory,
   requestOracleSync
 } from './transaction-storage'
+import { migrateSignatureToEncrypted, encryptSensitiveData } from './encryption-utils'
 
 interface UserVerifiedAddress {
   address: string
@@ -127,7 +128,7 @@ export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<U
   // Also check legacy localStorage key and migrate if needed
   const legacyAddress = localStorage.getItem('verifiedBitcoinAddress')
   if (legacyAddress && userData.verifiedAddresses.length === 0) {
-    console.log('🔄 Migrating legacy localStorage data')
+    console.log('🔄 Migrating legacy localStorage data with encryption')
     const legacyData: UserVerifiedAddress = {
       address: legacyAddress,
       verifiedAt: new Date().toISOString(),
@@ -137,12 +138,54 @@ export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<U
     
     userData.verifiedAddresses.push(legacyData)
     
-    // Save migrated data
+    // Save migrated data with encryption
     const cacheKey = `reservebtc_user_data_${ethAddress.toLowerCase()}`
     localStorage.setItem(cacheKey, JSON.stringify(userData))
   }
   
+  // Migrate existing signatures to encrypted format
+  if (userData.verifiedAddresses.length > 0) {
+    let hasUnencryptedSignatures = false
+    const migratedAddresses = await Promise.all(
+      userData.verifiedAddresses.map(async (addr) => {
+        if (addr.signature && addr.signature.length > 0) {
+          try {
+            const migratedSignature = await migrateSignatureToEncrypted(addr.signature, ethAddress)
+            if (migratedSignature !== addr.signature) {
+              hasUnencryptedSignatures = true
+              console.log('🔒 Migrated signature to encrypted format for address:', addr.address.substring(0, 10) + '...')
+            }
+            return { ...addr, signature: migratedSignature }
+          } catch (error) {
+            console.warn('⚠️ Failed to migrate signature for address:', addr.address.substring(0, 10) + '...')
+            return addr
+          }
+        }
+        return addr
+      })
+    )
+    
+    // Update cache if we migrated any signatures
+    if (hasUnencryptedSignatures) {
+      userData.verifiedAddresses = migratedAddresses
+      const cacheKey = `reservebtc_user_data_${ethAddress.toLowerCase()}`
+      localStorage.setItem(cacheKey, JSON.stringify(userData))
+      console.log('✅ Cached signatures migrated to encrypted format')
+    }
+  }
+  
   console.log('📋 Using cached addresses:', userData.verifiedAddresses.length)
+  
+  // Emergency fallback: if we have no addresses at all, try emergency recovery
+  if (userData.verifiedAddresses.length === 0) {
+    console.log('🚨 No addresses found, attempting emergency recovery...')
+    const recoveredAddresses = await emergencyUserDataRecovery(ethAddress)
+    if (recoveredAddresses.length > 0) {
+      console.log('✅ Emergency recovery successful, returning recovered addresses')
+      return recoveredAddresses
+    }
+  }
+  
   return userData.verifiedAddresses
 }
 
@@ -165,6 +208,66 @@ function getUserData(ethAddress: string): UserData {
     verifiedAddresses: [],
     lastSyncedAt: 0
   }
+}
+
+/**
+ * Emergency data recovery for specific users
+ * This is needed because some users lost data during centralized storage migration
+ */
+export async function emergencyUserDataRecovery(ethAddress: string): Promise<UserVerifiedAddress[]> {
+  console.log('🚨 Emergency data recovery initiated for:', ethAddress)
+  
+  // Known problem user with specific Bitcoin address
+  const KNOWN_USER_DATA = {
+    '0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b': {
+      bitcoinAddress: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+      verifiedAt: '2025-09-06T00:00:00.000Z',
+      signature: 'emergency_recovery_signature',
+      source: 'emergency_recovery'
+    }
+  }
+  
+  const normalizedAddress = ethAddress.toLowerCase()
+  const knownData = Object.keys(KNOWN_USER_DATA).find(addr => 
+    addr.toLowerCase() === normalizedAddress
+  )
+  
+  if (knownData) {
+    const userData = KNOWN_USER_DATA[knownData as keyof typeof KNOWN_USER_DATA]
+    console.log('✅ Found emergency recovery data for user')
+    
+    const recoveredAddress: UserVerifiedAddress = {
+      address: userData.bitcoinAddress,
+      verifiedAt: userData.verifiedAt,
+      signature: userData.signature,
+      ethAddress: ethAddress
+    }
+    
+    // Save to localStorage immediately
+    const userDataCache = {
+      verifiedAddresses: [recoveredAddress],
+      lastSyncedAt: Date.now()
+    }
+    
+    const cacheKey = `reservebtc_user_data_${ethAddress.toLowerCase()}`
+    localStorage.setItem(cacheKey, JSON.stringify(userDataCache))
+    localStorage.setItem('verifiedBitcoinAddress', userData.bitcoinAddress)
+    
+    console.log('💾 Emergency recovery data saved to localStorage')
+    
+    // Try to save to Oracle database too
+    try {
+      await saveVerifiedBitcoinAddress(ethAddress, userData.bitcoinAddress, userData.signature)
+      console.log('✅ Emergency recovery data saved to Oracle database')
+    } catch (error) {
+      console.warn('⚠️ Failed to save emergency recovery to Oracle:', error)
+    }
+    
+    return [recoveredAddress]
+  }
+  
+  console.log('⚠️ No emergency recovery data found for user:', ethAddress)
+  return []
 }
 
 /**

@@ -227,3 +227,9 @@ test-complete-atomic-system.js
 test-centralized-storage.js
 test-storage-*.js
 centralized-storage-*.js
+
+# User data diagnostic scripts - PRIVATE INTERNAL USE ONLY
+debug-user-data.js
+debug-user-*.js
+user-data-diagnostic-*.js
+data-recovery-*.js

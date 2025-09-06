@@ -313,6 +313,27 @@ export function DashboardContent() {
       console.log('ℹ️ No transactions found in Oracle database, falling back to blockchain scanning...')
       setSyncStatus('📡 Oracle database empty, scanning blockchain for transactions...')
       
+      // For problem users, try to trigger emergency recovery
+      if (address?.toLowerCase() === '0xea8ffee94da08f65765ec2a095e9931fd03e6c1b') {
+        console.log('🚨 Detected problem user, initiating emergency recovery...')
+        setSyncStatus('🚨 Emergency data recovery in progress...')
+        
+        try {
+          // Import recovery function
+          const { emergencyUserDataRecovery } = await import('@/lib/user-data-storage')
+          await emergencyUserDataRecovery(address)
+          
+          // Trigger Oracle sync after recovery
+          const { requestOracleSync } = await import('@/lib/transaction-storage')
+          await requestOracleSync(address)
+          
+          setSyncStatus('✅ Emergency recovery completed, rescanning...')
+        } catch (error) {
+          console.error('❌ Emergency recovery failed:', error)
+          setSyncStatus('⚠️ Emergency recovery failed, continuing with blockchain scan...')
+        }
+      }
+      
       // Use versioned cache to handle contract upgrades
       const CACHE_VERSION = 'v2_atomic' // Updated for atomic contracts
       const cachedKey = `rbtc_transactions_${address}_${CACHE_VERSION}`

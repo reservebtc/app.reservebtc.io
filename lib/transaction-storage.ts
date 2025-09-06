@@ -3,7 +3,17 @@
  * 
  * This system automatically parses blockchain events, maintains user transaction history,
  * and provides professional data persistence beyond localStorage limitations.
+ * 
+ * Enhanced with AES-GCM encryption for sensitive data protection.
  */
+
+import { 
+  encryptSensitiveData, 
+  decryptSensitiveData, 
+  isEncryptedData, 
+  getDecryptedSignature,
+  migrateSignatureToEncrypted 
+} from './encryption-utils'
 
 interface TransactionEvent {
   txHash: string
@@ -188,7 +198,7 @@ export async function requestOracleSync(userAddress: string): Promise<void> {
 }
 
 /**
- * Get user's verified Bitcoin addresses from Oracle database
+ * Get user's verified Bitcoin addresses from Oracle database with automatic decryption
  */
 export async function getVerifiedAddressesFromOracle(
   userAddress: string
@@ -206,7 +216,35 @@ export async function getVerifiedAddressesFromOracle(
 
     if (response.ok) {
       const data = await response.json()
-      console.log('✅ Oracle verified addresses:', data)
+      console.log('✅ Oracle verified addresses retrieved:', data.addresses?.length || 0)
+      
+      // Decrypt signatures automatically for backward compatibility
+      if (data.addresses && data.addresses.length > 0) {
+        const decryptedAddresses = await Promise.all(
+          data.addresses.map(async (addr: any) => {
+            try {
+              // Decrypt signature if it's encrypted
+              const decryptedSignature = await getDecryptedSignature(addr.signature, userAddress)
+              return {
+                address: addr.address,
+                verifiedAt: addr.verifiedAt,
+                signature: decryptedSignature
+              }
+            } catch (error) {
+              console.warn('⚠️ Failed to decrypt signature for address:', addr.address.substring(0, 10) + '...')
+              return {
+                address: addr.address,
+                verifiedAt: addr.verifiedAt,
+                signature: addr.signature // Return as-is if decryption fails
+              }
+            }
+          })
+        )
+        
+        console.log('🔓 Signatures decrypted for', decryptedAddresses.length, 'addresses')
+        return decryptedAddresses
+      }
+      
       return data.addresses || []
     } else if (response.status === 404) {
       console.log('ℹ️ No verified addresses found for user')
@@ -221,7 +259,7 @@ export async function getVerifiedAddressesFromOracle(
 }
 
 /**
- * Save verified Bitcoin address to Oracle database
+ * Save verified Bitcoin address to Oracle database with encrypted signature
  */
 export async function saveAddressToOracle(
   userAddress: string,
@@ -229,7 +267,11 @@ export async function saveAddressToOracle(
   signature: string
 ): Promise<void> {
   try {
-    console.log('💾 Saving verified address to Oracle:', { userAddress, bitcoinAddress })
+    console.log('💾 Saving verified address to Oracle with encryption:', { userAddress, bitcoinAddress })
+    
+    // Encrypt the BIP-322 signature for security
+    const encryptedSignature = await encryptSensitiveData(signature, userAddress)
+    console.log('🔒 Signature encrypted for secure storage')
     
     const response = await fetch(`${ORACLE_API_BASE}/users/${userAddress}/verified-addresses`, {
       method: 'POST',
@@ -239,14 +281,15 @@ export async function saveAddressToOracle(
       },
       body: JSON.stringify({
         bitcoinAddress,
-        signature,
+        signature: encryptedSignature, // Store encrypted signature
         verifiedAt: new Date().toISOString(),
-        source: 'frontend'
+        source: 'frontend',
+        encrypted: true // Mark as encrypted for future reference
       })
     })
 
     if (response.ok) {
-      console.log('✅ Address saved to Oracle successfully')
+      console.log('✅ Address saved to Oracle successfully with encrypted signature')
     } else {
       throw new Error(`Oracle save failed: ${response.status}`)
     }
