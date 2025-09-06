@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowRight, ArrowLeft, AlertCircle, Loader2, CheckCircle, Info, Bitcoin, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Copy, Wallet, Shield } from 'lucide-react'
@@ -56,30 +56,9 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const bitcoinAddress = watch('bitcoinAddress')
   const bitcoinValidation = verifiedBitcoinAddress ? validateBitcoinAddress(verifiedBitcoinAddress) : null
 
-  // Load verified Bitcoin address from localStorage and auto-refresh
-  useEffect(() => {
-    const savedAddress = localStorage.getItem('verifiedBitcoinAddress')
-    if (savedAddress && publicClient && address) {
-      setVerifiedBitcoinAddress(savedAddress)
-      setValue('bitcoinAddress', savedAddress, { shouldValidate: true })
-      // Always fetch Bitcoin balance when component loads
-      fetchBitcoinBalance(savedAddress)
-    } else if (!savedAddress) {
-      // If no saved address, mark as attempted so warning doesn't show
-      setHasAttemptedFetch(true)
-    }
-  }, [setValue, publicClient, address])
-
-  // Auto-refresh when wallet connects or publicClient becomes available
-  useEffect(() => {
-    if (verifiedBitcoinAddress && publicClient && address && !isLoadingBalance) {
-      console.log('Wallet/publicClient ready, auto-refreshing balance')
-      fetchBitcoinBalance(verifiedBitcoinAddress)
-    }
-  }, [publicClient, address, verifiedBitcoinAddress])
-
-  // Fetch Bitcoin balance from Oracle Aggregator (same as Dashboard)
-  const fetchBitcoinBalance = async (btcAddress: string) => {
+  // Fetch Bitcoin balance from Oracle Aggregator (same as Dashboard) - using useCallback
+  const fetchBitcoinBalance = useCallback(async (btcAddress: string) => {
+    console.log('fetchBitcoinBalance called with:', btcAddress)
     setIsLoadingBalance(true)
     setHasAttemptedFetch(false)
     
@@ -109,6 +88,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       })
       
       const bitcoinBalance = Number(lastSats) / 100000000 // Convert sats to BTC
+      console.log('Balance fetched:', bitcoinBalance)
       setBitcoinBalance(bitcoinBalance)
       setValue('amount', bitcoinBalance.toString())
     } catch (error) {
@@ -120,10 +100,33 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       setIsLoadingBalance(false)
       setHasAttemptedFetch(true)
     }
-  }
+  }, [publicClient, address, setValue])
 
-  // Refresh balance - improved version
-  const refreshBalance = () => {
+  // Load verified Bitcoin address from localStorage and auto-refresh
+  useEffect(() => {
+    const savedAddress = localStorage.getItem('verifiedBitcoinAddress')
+    if (savedAddress && publicClient && address) {
+      setVerifiedBitcoinAddress(savedAddress)
+      setValue('bitcoinAddress', savedAddress, { shouldValidate: true })
+      // Always fetch Bitcoin balance when component loads
+      fetchBitcoinBalance(savedAddress)
+    } else if (!savedAddress) {
+      // If no saved address, mark as attempted so warning doesn't show
+      setHasAttemptedFetch(true)
+    }
+  }, [setValue, publicClient, address, fetchBitcoinBalance])
+
+  // Auto-refresh when wallet connects or publicClient becomes available
+  useEffect(() => {
+    if (verifiedBitcoinAddress && publicClient && address && !isLoadingBalance) {
+      console.log('Wallet/publicClient ready, auto-refreshing balance')
+      fetchBitcoinBalance(verifiedBitcoinAddress)
+    }
+  }, [publicClient, address, verifiedBitcoinAddress, fetchBitcoinBalance, isLoadingBalance])
+
+
+  // Refresh balance - improved version using useCallback
+  const refreshBalance = useCallback(() => {
     console.log('Refresh button clicked', { verifiedBitcoinAddress, publicClient: !!publicClient, address })
     
     if (verifiedBitcoinAddress && publicClient && address) {
@@ -149,7 +152,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         }
       }
     }
-  }
+  }, [verifiedBitcoinAddress, publicClient, address, fetchBitcoinBalance, setValue])
 
   // Convert BTC to satoshis (now using bitcoinBalance instead of amount)
   const amountInSatoshis = bitcoinBalance ? Math.round(bitcoinBalance * 100_000_000) : 0
