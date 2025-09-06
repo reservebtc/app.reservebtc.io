@@ -594,7 +594,8 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                         localStorage.setItem('verifiedBitcoinAddress', verifiedAddress)
                       }
                     }
-                    router.push('/mint')
+                    // Navigate to mint with parameters indicating we came from verification
+                    router.push(`/mint?from=verify&address=${encodeURIComponent(verifiedAddress || '')}`)
                   }}
                   className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl flex items-center justify-center gap-2 sm:gap-3 group"
                 >

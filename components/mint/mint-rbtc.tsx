@@ -3,14 +3,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowRight, ArrowLeft, AlertCircle, Loader2, CheckCircle, Info, Bitcoin, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Copy, Wallet, Shield } from 'lucide-react'
+import { ArrowRight, ArrowLeft, AlertCircle, Loader2, CheckCircle, Info, Bitcoin, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Copy, Wallet, Shield, Check } from 'lucide-react'
 import { mintFormSchema, MintForm } from '@/lib/validation-schemas'
 import { validateBitcoinAddress, getBitcoinAddressTypeLabel } from '@/lib/bitcoin-validation'
 import { useAccount, usePublicClient } from 'wagmi'
 import { formatEther } from 'viem'
 import { DepositFeeVault } from './deposit-fee-vault'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { CONTRACTS } from '@/app/lib/contracts'
 import { getVerifiedBitcoinAddresses } from '@/lib/user-data-storage'
 
@@ -20,6 +20,7 @@ interface MintRBTCProps {
 
 export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isMinting, setIsMinting] = useState(false)
   const [mintStatus, setMintStatus] = useState<'idle' | 'pending' | 'success' | 'error' | 'already-syncing'>('idle')
   const [txHash, setTxHash] = useState<string>('')
@@ -33,6 +34,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [showTermsDetails, setShowTermsDetails] = useState(false)
   const [copiedAddress, setCopiedAddress] = useState(false)
+  const [showAddressDropdown, setShowAddressDropdown] = useState(false)
   const { address, isConnected } = useAccount()
   const publicClient = usePublicClient()
   
@@ -121,14 +123,34 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             verifiedAt: addr.verifiedAt
           })))
           
-          // Auto-select the latest verified address (most recently added)
-          const sortedAddrs = verifiedAddrs.sort((a, b) => 
-            new Date(b.verifiedAt).getTime() - new Date(a.verifiedAt).getTime()
-          )
-          const latestAddress = sortedAddrs[0].address
-          console.log('✅ Auto-selecting latest verified address:', latestAddress)
-          setVerifiedBitcoinAddress(latestAddress)
-          setValue('bitcoinAddress', latestAddress, { shouldValidate: true })
+          // Check if coming from verification page or if there's a specific address in URL
+          const fromVerify = searchParams.get('from') === 'verify'
+          const specificAddress = searchParams.get('address')
+          
+          let selectedAddress = ''
+          
+          if (specificAddress && verifiedAddrs.some(addr => addr.address === specificAddress)) {
+            // Use specific address from URL if it exists in verified addresses
+            selectedAddress = specificAddress
+            console.log('✅ Using address from URL parameter:', selectedAddress)
+          } else if (fromVerify) {
+            // If coming from verification page, use the most recently verified address
+            const sortedAddrs = verifiedAddrs.sort((a, b) => 
+              new Date(b.verifiedAt).getTime() - new Date(a.verifiedAt).getTime()
+            )
+            selectedAddress = sortedAddrs[0].address
+            console.log('✅ Coming from verification page, selecting latest:', selectedAddress)
+          } else {
+            // Default to latest verified address
+            const sortedAddrs = verifiedAddrs.sort((a, b) => 
+              new Date(b.verifiedAt).getTime() - new Date(a.verifiedAt).getTime()
+            )
+            selectedAddress = sortedAddrs[0].address
+            console.log('✅ Auto-selecting latest verified address:', selectedAddress)
+          }
+          
+          setVerifiedBitcoinAddress(selectedAddress)
+          setValue('bitcoinAddress', selectedAddress, { shouldValidate: true })
         } else {
           console.log('⚠️ No verified Bitcoin address found')
           setHasAttemptedFetch(true)
@@ -140,7 +162,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
     
     loadVerifiedAddress()
-  }, [address, setValue])
+  }, [address, setValue, searchParams])
 
   // Auto-refresh when all required data is available
   useEffect(() => {
@@ -477,48 +499,143 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             {/* Verified Bitcoin Address Selection */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Your Verified Bitcoin Address</label>
-              {allVerifiedAddresses.length > 1 ? (
-                <select
-                  value={verifiedBitcoinAddress}
-                  onChange={(e) => {
-                    const selectedAddress = e.target.value
-                    setVerifiedBitcoinAddress(selectedAddress)
-                    setValue('bitcoinAddress', selectedAddress, { shouldValidate: true })
-                    // Refresh balance for new address
-                    if (selectedAddress) {
-                      fetchBitcoinBalance(selectedAddress)
-                    }
-                  }}
-                  className="w-full px-4 py-3 border rounded-lg bg-background font-mono text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                >
-                  {allVerifiedAddresses.map((addr, index) => (
-                    <option key={addr.address} value={addr.address}>
-                      {addr.address} {index === 0 ? '(Latest)' : ''}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  type="text"
-                  readOnly
-                  value={verifiedBitcoinAddress || 'No verified address'}
-                  className="w-full px-4 py-3 border rounded-lg bg-muted/50 cursor-not-allowed font-mono text-sm"
-                />
-              )}
+              
+              {/* Current selected address display */}
+              <div className="relative">
+                {verifiedBitcoinAddress ? (
+                  <div className="w-full px-4 py-3 border rounded-lg bg-background font-mono text-sm flex items-center justify-between group">
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      <div className="p-1.5 bg-green-100 dark:bg-green-900/30 rounded-full">
+                        <Bitcoin className="h-3 w-3 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-mono text-sm truncate">
+                          {verifiedBitcoinAddress}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {verifiedBitcoinAddress.startsWith('tb1') ? 'Testnet' : 'Mainnet'} • {getBitcoinAddressTypeLabel(bitcoinValidation?.type || 'unknown')}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {allVerifiedAddresses.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAddressDropdown(!showAddressDropdown)}
+                        className="flex items-center space-x-2 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors ml-3"
+                      >
+                        <span className="text-xs font-medium text-primary">
+                          {allVerifiedAddresses.length} addresses
+                        </span>
+                        <ChevronDown className={`h-4 w-4 text-primary transition-transform ${showAddressDropdown ? 'rotate-180' : ''}`} />
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="w-full px-4 py-3 border rounded-lg bg-muted/50 cursor-not-allowed font-mono text-sm text-muted-foreground">
+                    No verified address
+                  </div>
+                )}
+                
+                {/* Dropdown menu */}
+                {showAddressDropdown && allVerifiedAddresses.length > 1 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
+                    <div className="p-2">
+                      <div className="text-xs font-medium text-muted-foreground px-3 py-2 border-b mb-2">
+                        Select Bitcoin Address ({allVerifiedAddresses.length} verified)
+                      </div>
+                      {allVerifiedAddresses.map((addr, index) => {
+                        const isSelected = addr.address === verifiedBitcoinAddress
+                        const isLatest = index === 0 // Addresses are sorted by verifiedAt desc
+                        const verificationDate = new Date(addr.verifiedAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })
+                        
+                        return (
+                          <button
+                            key={addr.address}
+                            type="button"
+                            onClick={() => {
+                              setVerifiedBitcoinAddress(addr.address)
+                              setValue('bitcoinAddress', addr.address, { shouldValidate: true })
+                              setShowAddressDropdown(false)
+                              // Refresh balance for new address
+                              if (addr.address) {
+                                fetchBitcoinBalance(addr.address)
+                              }
+                            }}
+                            className={`w-full text-left px-3 py-3 rounded-lg transition-colors flex items-center justify-between hover:bg-muted/50 ${
+                              isSelected ? 'bg-primary/10 ring-1 ring-primary/20' : ''
+                            }`}
+                          >
+                            <div className="flex items-center space-x-3 flex-1 min-w-0">
+                              <div className="flex items-center space-x-2">
+                                <div className={`p-1 rounded-full ${isSelected ? 'bg-primary/20' : 'bg-muted'}`}>
+                                  <Bitcoin className={`h-3 w-3 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                                </div>
+                                {isSelected && <Check className="h-3 w-3 text-primary" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center space-x-2">
+                                  <span className="font-mono text-sm truncate">
+                                    {addr.address}
+                                  </span>
+                                  {isLatest && (
+                                    <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded font-medium">
+                                      Latest
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {addr.address.startsWith('tb1') ? 'Testnet' : 'Mainnet'} • Verified {verificationDate}
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Verification status */}
               {bitcoinValidation?.isValid && (
                 <div className="flex items-center space-x-2 text-sm text-green-600">
                   <CheckCircle className="h-4 w-4" />
                   <span>Verified {getBitcoinAddressTypeLabel(bitcoinValidation.type)}</span>
                 </div>
               )}
+              
+              {/* No address warning */}
               {!verifiedBitcoinAddress && (
-                <div className="text-xs text-amber-600">
-                  ⚠️ Please verify your Bitcoin address first on the /verify page
+                <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                  <div className="flex items-start space-x-2">
+                    <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-medium text-amber-800 dark:text-amber-200">No Verified Address</p>
+                      <p className="text-amber-700 dark:text-amber-300 mt-1">
+                        You need to verify at least one Bitcoin address to mint rBTC.
+                      </p>
+                      <Link 
+                        href="/verify" 
+                        className="inline-flex items-center gap-1 mt-2 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-medium transition-colors"
+                      >
+                        <Shield className="h-3 w-3" />
+                        Verify Address
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               )}
+              
+              {/* Multiple addresses info */}
               {allVerifiedAddresses.length > 1 && (
-                <div className="text-xs text-blue-600">
-                  💡 You have {allVerifiedAddresses.length} verified addresses. Select one to mint from.
+                <div className="text-xs text-blue-600 flex items-center space-x-1">
+                  <Info className="h-3 w-3" />
+                  <span>You have {allVerifiedAddresses.length} verified addresses. Click the button above to switch between them.</span>
                 </div>
               )}
             </div>

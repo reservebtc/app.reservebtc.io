@@ -823,33 +823,88 @@ export function DashboardContent() {
         
         {verifiedAddresses.length > 0 ? (
           <div className="space-y-3">
-            {verifiedAddresses.map((addr, index) => (
-              <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted/50 rounded-lg gap-2">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Bitcoin className="h-4 w-4 text-orange-500" />
-                    <span className="font-mono text-sm break-all">{addr.address}</span>
-                    <button
-                      onClick={() => copyAddress(addr.address)}
-                      className="p-1 hover:bg-accent rounded transition-colors"
-                    >
-                      {copiedAddress === addr.address ? (
-                        <CheckCircle className="h-3 w-3 text-green-600" />
-                      ) : (
-                        <Copy className="h-3 w-3 text-muted-foreground" />
-                      )}
-                    </button>
+            {/* Sort by verification date - newest first */}
+            {verifiedAddresses
+              .sort((a, b) => new Date(b.verifiedAt).getTime() - new Date(a.verifiedAt).getTime())
+              .map((addr, index) => {
+                const isLatest = index === 0
+                const verificationDate = new Date(addr.verifiedAt)
+                const isToday = verificationDate.toDateString() === new Date().toDateString()
+                const isYesterday = verificationDate.toDateString() === new Date(Date.now() - 86400000).toDateString()
+                
+                let dateDisplay = ''
+                if (isToday) {
+                  dateDisplay = `Today at ${verificationDate.toLocaleTimeString('en-US', { 
+                    hour: 'numeric', minute: '2-digit', hour12: true 
+                  })}`
+                } else if (isYesterday) {
+                  dateDisplay = `Yesterday at ${verificationDate.toLocaleTimeString('en-US', { 
+                    hour: 'numeric', minute: '2-digit', hour12: true 
+                  })}`
+                } else {
+                  dateDisplay = verificationDate.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit'
+                  })
+                }
+
+                return (
+                  <div 
+                    key={addr.address} 
+                    className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg gap-2 transition-all ${
+                      isLatest 
+                        ? 'bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/10 dark:to-blue-900/10 border border-green-200 dark:border-green-800' 
+                        : 'bg-muted/50 border border-transparent'
+                    }`}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`p-1.5 rounded-full ${isLatest ? 'bg-green-100 dark:bg-green-900/30' : 'bg-muted'}`}>
+                          <Bitcoin className={`h-3 w-3 ${isLatest ? 'text-green-600 dark:text-green-400' : 'text-orange-500'}`} />
+                        </div>
+                        <span className="font-mono text-sm break-all">{addr.address}</span>
+                        <button
+                          onClick={() => copyAddress(addr.address)}
+                          className="p-1 hover:bg-accent rounded transition-colors"
+                          title="Copy address"
+                        >
+                          {copiedAddress === addr.address ? (
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Copy className="h-3 w-3 text-muted-foreground" />
+                          )}
+                        </button>
+                        {isLatest && (
+                          <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full font-medium">
+                            Latest
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                          <p className="text-xs text-muted-foreground">
+                            Verified {dateDisplay}
+                          </p>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {addr.address.startsWith('tb1') ? '🧪 Testnet' : '🌐 Mainnet'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 self-start sm:self-center">
+                      <span className="text-sm font-medium">{addr.balance?.toFixed(8) || '0.00000000'} BTC</span>
+                      <div className="flex items-center gap-1">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-xs text-green-600 hidden sm:inline">Verified</span>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Verified on {new Date(addr.verifiedAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{addr.balance || 0} BTC</span>
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                </div>
-              </div>
-            ))}
+                )
+              })}
           </div>
         ) : (
           <div className="text-center py-8 space-y-2">
