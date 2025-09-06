@@ -56,19 +56,27 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const bitcoinAddress = watch('bitcoinAddress')
   const bitcoinValidation = verifiedBitcoinAddress ? validateBitcoinAddress(verifiedBitcoinAddress) : null
 
-  // Load verified Bitcoin address from localStorage
+  // Load verified Bitcoin address from localStorage and auto-refresh
   useEffect(() => {
     const savedAddress = localStorage.getItem('verifiedBitcoinAddress')
-    if (savedAddress) {
+    if (savedAddress && publicClient && address) {
       setVerifiedBitcoinAddress(savedAddress)
       setValue('bitcoinAddress', savedAddress, { shouldValidate: true })
-      // Fetch Bitcoin balance for this address
+      // Always fetch Bitcoin balance when component loads
       fetchBitcoinBalance(savedAddress)
-    } else {
+    } else if (!savedAddress) {
       // If no saved address, mark as attempted so warning doesn't show
       setHasAttemptedFetch(true)
     }
-  }, [setValue])
+  }, [setValue, publicClient, address])
+
+  // Auto-refresh when wallet connects or publicClient becomes available
+  useEffect(() => {
+    if (verifiedBitcoinAddress && publicClient && address && !isLoadingBalance) {
+      console.log('Wallet/publicClient ready, auto-refreshing balance')
+      fetchBitcoinBalance(verifiedBitcoinAddress)
+    }
+  }, [publicClient, address, verifiedBitcoinAddress])
 
   // Fetch Bitcoin balance from Oracle Aggregator (same as Dashboard)
   const fetchBitcoinBalance = async (btcAddress: string) => {
@@ -114,10 +122,32 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }
 
-  // Refresh balance
+  // Refresh balance - improved version
   const refreshBalance = () => {
-    if (verifiedBitcoinAddress) {
+    console.log('Refresh button clicked', { verifiedBitcoinAddress, publicClient: !!publicClient, address })
+    
+    if (verifiedBitcoinAddress && publicClient && address) {
+      console.log('Refreshing balance for address:', verifiedBitcoinAddress)
       fetchBitcoinBalance(verifiedBitcoinAddress)
+    } else {
+      console.warn('Cannot refresh: missing required data', {
+        hasAddress: !!verifiedBitcoinAddress,
+        hasPublicClient: !!publicClient,
+        hasWalletAddress: !!address
+      })
+      
+      // Try to reload the address from localStorage if missing
+      if (!verifiedBitcoinAddress) {
+        const savedAddress = localStorage.getItem('verifiedBitcoinAddress')
+        if (savedAddress) {
+          console.log('Reloading address from localStorage:', savedAddress)
+          setVerifiedBitcoinAddress(savedAddress)
+          setValue('bitcoinAddress', savedAddress, { shouldValidate: true })
+          if (publicClient && address) {
+            fetchBitcoinBalance(savedAddress)
+          }
+        }
+      }
     }
   }
 
