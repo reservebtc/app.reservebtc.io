@@ -445,27 +445,59 @@ body {
 
 /* Launch button */
 .launch-button {
-    background: linear-gradient(45deg, #0066ff, #6633ff);
+    /* Dynamic pulsing gradient background */
+    background: linear-gradient(45deg, 
+        #ff0080, #ff4000, #ff8000, #ffff00, 
+        #80ff00, #00ff80, #00ffff, #8000ff, #ff0080
+    );
+    background-size: 400% 400%;
     border: none;
-    padding: 1rem 3rem;
-    font-size: 1.25rem;
-    font-weight: 600;
+    padding: 1.2rem 3.5rem;
+    font-size: 1.4rem;
+    font-weight: 800;
     color: white;
-    border-radius: 12px;
+    border-radius: 20px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 8px 32px rgba(0, 100, 255, 0.3);
     position: relative;
     overflow: hidden;
+    
+    /* Pulsing glow animation */
+    box-shadow: 
+        0 0 20px rgba(255, 0, 128, 0.6),
+        0 0 40px rgba(255, 128, 0, 0.4),
+        0 0 60px rgba(0, 255, 255, 0.3),
+        0 8px 32px rgba(0, 0, 0, 0.3);
+    
+    /* Multiple animations */
+    animation: 
+        launchButtonPulse 2s ease-in-out infinite,
+        launchButtonGlow 3s ease-in-out infinite alternate,
+        launchButtonGradient 4s linear infinite;
+    
+    /* Hardware acceleration */
+    transform: translateZ(0);
+    will-change: transform, box-shadow, background-position;
+    
+    /* Text styling */
+    text-shadow: 
+        0 0 10px rgba(255, 255, 255, 0.8),
+        0 2px 4px rgba(0, 0, 0, 0.5);
+    letter-spacing: 0.5px;
 }
 
 .launch-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 48px rgba(0, 100, 255, 0.4);
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 
+        0 0 30px rgba(255, 0, 128, 0.8),
+        0 0 60px rgba(255, 128, 0, 0.6),
+        0 0 90px rgba(0, 255, 255, 0.4),
+        0 15px 50px rgba(0, 0, 0, 0.4);
+    animation-duration: 1.5s, 2s, 3s; /* Speed up animations on hover */
 }
 
 .launch-button:active {
-    transform: translateY(0);
+    transform: translateY(-2px) scale(1.02);
+    transition: transform 0.1s ease;
 }
 
 .launch-button::before {
@@ -952,4 +984,39 @@ body {
     .logo-circle {
         animation: rotateIcon 20s linear infinite;
     }
+}
+
+/* Launch Button Animations */
+@keyframes launchButtonPulse {
+    0%, 100% { 
+        transform: scale(1) translateZ(0); 
+    }
+    50% { 
+        transform: scale(1.02) translateZ(0); 
+    }
+}
+
+@keyframes launchButtonGlow {
+    0% {
+        box-shadow: 
+            0 0 20px rgba(255, 0, 128, 0.4),
+            0 0 40px rgba(255, 128, 0, 0.3),
+            0 0 60px rgba(0, 255, 255, 0.2),
+            0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    100% {
+        box-shadow: 
+            0 0 30px rgba(255, 0, 128, 0.8),
+            0 0 60px rgba(255, 128, 0, 0.6),
+            0 0 90px rgba(0, 255, 255, 0.4),
+            0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+}
+
+@keyframes launchButtonGradient {
+    0% { background-position: 0% 50%; }
+    25% { background-position: 100% 50%; }
+    50% { background-position: 200% 50%; }
+    75% { background-position: 300% 50%; }
+    100% { background-position: 400% 50%; }
 }
