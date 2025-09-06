@@ -172,6 +172,15 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }, [verifiedBitcoinAddress, publicClient, address, hasAttemptedFetch, fetchBitcoinBalance])
 
+  // Always reload balance when Bitcoin address changes (including from URL params)
+  useEffect(() => {
+    if (verifiedBitcoinAddress && publicClient && address) {
+      console.log('💰 Bitcoin address changed, reloading balance for:', verifiedBitcoinAddress)
+      setHasAttemptedFetch(false) // Reset fetch state
+      fetchBitcoinBalance(verifiedBitcoinAddress)
+    }
+  }, [verifiedBitcoinAddress, publicClient, address, fetchBitcoinBalance])
+
 
   // Refresh balance - force refresh regardless of current state
   const refreshBalance = useCallback(() => {
