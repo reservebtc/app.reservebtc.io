@@ -327,7 +327,27 @@ export function DashboardContent() {
           const { requestOracleSync } = await import('@/lib/transaction-storage')
           await requestOracleSync(address)
           
-          setSyncStatus('✅ Emergency recovery completed, rescanning...')
+          setSyncStatus('✅ Emergency recovery completed, retrying Oracle API...')
+          
+          // Clear all transaction caches to force fresh blockchain scan
+          const CACHE_VERSION = 'v2_atomic'
+          const cachedKey = `rbtc_transactions_${address}_${CACHE_VERSION}`
+          const oracleCacheKey = `rbtc_oracle_transactions_${address.toLowerCase()}`
+          localStorage.removeItem(cachedKey)
+          localStorage.removeItem(oracleCacheKey)
+          console.log('🗑️ Cleared all transaction caches for fresh scan')
+          
+          // After emergency recovery, try Oracle API again
+          const recoveryTransactions = await getUserTransactionHistory(address, true) // Force refresh
+          if (recoveryTransactions.length > 0) {
+            console.log(`✅ Recovery successful! Found ${recoveryTransactions.length} transactions in Oracle after recovery`)
+            setTransactions(recoveryTransactions)
+            setSyncStatus(`✅ Recovery complete - loaded ${recoveryTransactions.length} transactions`)
+            setIsLoadingTransactions(false)
+            return
+          }
+          
+          // If Oracle still empty, force blockchain scan by continuing without return
         } catch (error) {
           console.error('❌ Emergency recovery failed:', error)
           setSyncStatus('⚠️ Emergency recovery failed, continuing with blockchain scan...')
@@ -376,21 +396,27 @@ export function DashboardContent() {
       let startBlock: bigint
       let syncDescription: string
       
-      if (cached.transactions.length === 0) {
-        // First time sync - scan more blocks to find historical transactions (24+ hours)
-        // Use smaller range but still cover recent days - 50k blocks should be enough
-        startBlock = currentBlock > BigInt(50000) ? currentBlock - BigInt(50000) : BigInt(0)
-        syncDescription = 'Initial sync (scanning last 50k blocks for historical data)'
-      } else if (isStaleCache || currentBlock > lastSyncedBlock + BigInt(50)) {
+      // Check if we already have complete historical data
+      const hasCompleteData = cached.transactions.length > 0 && cached.version === CACHE_VERSION && cached.historicalScanComplete
+      
+      if (hasCompleteData && !isStaleCache && currentBlock <= lastSyncedBlock + BigInt(50)) {
+        // We have complete data and cache is fresh, no need to scan
+        console.log('Cache is fresh with complete data, no sync needed')
+        setSyncStatus(`Up to date - ${cached.transactions.length} transactions loaded`)
+        setIsLoadingTransactions(false)
+        return
+      }
+      
+      if (!hasCompleteData) {
+        // First time sync - scan last 7 days of blocks for historical data
+        // Professional approach: scan once, save permanently  
+        const BLOCKS_PER_WEEK = BigInt(100000) // Estimate for MegaETH
+        startBlock = currentBlock > BLOCKS_PER_WEEK ? currentBlock - BLOCKS_PER_WEEK : BigInt(0)
+        syncDescription = 'Initial historical sync (one-time scan of last 7 days)'
+      } else {
         // Incremental sync - only check new blocks since last sync
         startBlock = lastSyncedBlock
         syncDescription = `Incremental sync from block ${startBlock}`
-      } else {
-        // Cache is fresh, no sync needed
-        console.log('Cache is fresh, no sync needed')
-        setSyncStatus('Up to date - All transactions loaded')
-        setIsLoadingTransactions(false)
-        return
       }
       
       console.log(`${syncDescription}: scanning blocks ${startBlock} to ${currentBlock}`)
@@ -398,7 +424,8 @@ export function DashboardContent() {
       
       // Use smaller chunks due to MegaETH rate limits
       const CHUNK_SIZE = BigInt(100) // Larger chunks for better efficiency
-      const MAX_CHUNKS_PER_SYNC = 500 // Enough to cover 50k blocks (100 * 500 = 50000)
+      // Limit chunks based on sync type to prevent overload
+      const MAX_CHUNKS_PER_SYNC = hasCompleteData ? 100 : 1000 // Less for incremental, more for initial
       
       const allNewTransactions: Transaction[] = []
       let chunksProcessed = 0
@@ -558,6 +585,7 @@ export function DashboardContent() {
         lastSyncDescription: syncDescription,
         userAddress: address,
         chainId: CONTRACTS.CHAIN_ID,
+        historicalScanComplete: !hasCompleteData || cached.historicalScanComplete, // Mark historical scan as complete
         syncHistory: [
           ...(cached.syncHistory || []).slice(-10), // Keep last 10 sync records
           {
