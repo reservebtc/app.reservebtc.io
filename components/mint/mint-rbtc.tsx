@@ -7,6 +7,7 @@ import { ArrowRight, ArrowLeft, AlertCircle, Loader2, CheckCircle, Info, Bitcoin
 import { mintFormSchema, MintForm } from '@/lib/validation-schemas'
 import { validateBitcoinAddress, getBitcoinAddressTypeLabel } from '@/lib/bitcoin-validation'
 import { useAccount, usePublicClient } from 'wagmi'
+import { formatEther } from 'viem'
 import { DepositFeeVault } from './deposit-fee-vault'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -23,6 +24,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const [mintStatus, setMintStatus] = useState<'idle' | 'pending' | 'success' | 'error' | 'already-syncing'>('idle')
   const [txHash, setTxHash] = useState<string>('')
   const [verifiedBitcoinAddress, setVerifiedBitcoinAddress] = useState<string>('')
+  const [allVerifiedAddresses, setAllVerifiedAddresses] = useState<{address: string, verifiedAt: string}[]>([])
   const [bitcoinBalance, setBitcoinBalance] = useState<number>(0)
   const [isLoadingBalance, setIsLoadingBalance] = useState(false)
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false)
@@ -113,10 +115,20 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         console.log('📋 Loading verified addresses from centralized storage:', verifiedAddrs)
         
         if (verifiedAddrs.length > 0) {
-          const firstAddress = verifiedAddrs[0].address
-          console.log('✅ Loading saved address:', firstAddress)
-          setVerifiedBitcoinAddress(firstAddress)
-          setValue('bitcoinAddress', firstAddress, { shouldValidate: true })
+          // Store all addresses for dropdown
+          setAllVerifiedAddresses(verifiedAddrs.map(addr => ({
+            address: addr.address,
+            verifiedAt: addr.verifiedAt
+          })))
+          
+          // Auto-select the latest verified address (most recently added)
+          const sortedAddrs = verifiedAddrs.sort((a, b) => 
+            new Date(b.verifiedAt).getTime() - new Date(a.verifiedAt).getTime()
+          )
+          const latestAddress = sortedAddrs[0].address
+          console.log('✅ Auto-selecting latest verified address:', latestAddress)
+          setVerifiedBitcoinAddress(latestAddress)
+          setValue('bitcoinAddress', latestAddress, { shouldValidate: true })
         } else {
           console.log('⚠️ No verified Bitcoin address found')
           setHasAttemptedFetch(true)
@@ -211,28 +223,53 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       return
     }
     
-    // First check FeeVault balance
-    const feeVaultBalance = localStorage.getItem(`feeVault_deposited_${address}`)
-    console.log('FeeVault deposit status:', feeVaultBalance, 'for address:', address)
-    
-    if (!feeVaultBalance || feeVaultBalance !== 'true') {
-      console.log('FeeVault not deposited, showing warning')
-      // Show FeeVault warning instead of minting
+    // Check actual FeeVault balance from contract
+    try {
+      const feeVaultBalance = await publicClient.readContract({
+        address: CONTRACTS.FEE_VAULT as `0x${string}`,
+        abi: [
+          {
+            name: 'balanceOf',
+            type: 'function',
+            stateMutability: 'view',
+            inputs: [{ name: 'account', type: 'address' }],
+            outputs: [{ name: '', type: 'uint256' }]
+          }
+        ],
+        functionName: 'balanceOf',
+        args: [address as `0x${string}`]
+      }) as unknown as bigint
+      
+      const balanceInEth = parseFloat(formatEther(feeVaultBalance))
+      console.log('Actual FeeVault balance:', balanceInEth, 'ETH for address:', address)
+      
+      // Require minimum 0.01 ETH in Fee Vault
+      if (balanceInEth < 0.01) {
+        console.log(`FeeVault balance ${balanceInEth} ETH is below minimum 0.01 ETH, showing warning`)
+        setShowFeeVaultWarning(true)
+        
+        // Smooth scroll to FeeVault component with a slight delay for visual feedback
+        setTimeout(() => {
+          const feeVaultElement = document.querySelector('#fee-vault-section')
+          if (feeVaultElement) {
+            // Add visual highlight effect
+            feeVaultElement.classList.add('ring-2', 'ring-amber-500', 'ring-offset-2')
+            feeVaultElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            
+            // Remove highlight after animation
+            setTimeout(() => {
+              feeVaultElement.classList.remove('ring-2', 'ring-amber-500', 'ring-offset-2')
+            }, 3000)
+          }
+        }, 100)
+        return
+      }
+      
+      console.log(`✅ FeeVault has sufficient balance: ${balanceInEth} ETH`)
+    } catch (error) {
+      console.error('❌ Error checking FeeVault balance:', error)
+      // Fallback to warning if we can't check balance
       setShowFeeVaultWarning(true)
-      // Smooth scroll to FeeVault component with a slight delay for visual feedback
-      setTimeout(() => {
-        const feeVaultElement = document.querySelector('#fee-vault-section')
-        if (feeVaultElement) {
-          // Add visual highlight effect
-          feeVaultElement.classList.add('ring-2', 'ring-amber-500', 'ring-offset-2')
-          feeVaultElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-          
-          // Remove highlight after animation
-          setTimeout(() => {
-            feeVaultElement.classList.remove('ring-2', 'ring-amber-500', 'ring-offset-2')
-          }, 3000)
-        }
-      }, 100)
       return
     }
 
@@ -437,15 +474,37 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               </p>
             </div>
 
-            {/* Verified Bitcoin Address */}
+            {/* Verified Bitcoin Address Selection */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Your Verified Bitcoin Address</label>
-              <input
-                type="text"
-                readOnly
-                value={verifiedBitcoinAddress || 'No verified address'}
-                className="w-full px-4 py-3 border rounded-lg bg-muted/50 cursor-not-allowed font-mono text-sm"
-              />
+              {allVerifiedAddresses.length > 1 ? (
+                <select
+                  value={verifiedBitcoinAddress}
+                  onChange={(e) => {
+                    const selectedAddress = e.target.value
+                    setVerifiedBitcoinAddress(selectedAddress)
+                    setValue('bitcoinAddress', selectedAddress, { shouldValidate: true })
+                    // Refresh balance for new address
+                    if (selectedAddress) {
+                      fetchBitcoinBalance(selectedAddress)
+                    }
+                  }}
+                  className="w-full px-4 py-3 border rounded-lg bg-background font-mono text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                >
+                  {allVerifiedAddresses.map((addr, index) => (
+                    <option key={addr.address} value={addr.address}>
+                      {addr.address} {index === 0 ? '(Latest)' : ''}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  readOnly
+                  value={verifiedBitcoinAddress || 'No verified address'}
+                  className="w-full px-4 py-3 border rounded-lg bg-muted/50 cursor-not-allowed font-mono text-sm"
+                />
+              )}
               {bitcoinValidation?.isValid && (
                 <div className="flex items-center space-x-2 text-sm text-green-600">
                   <CheckCircle className="h-4 w-4" />
@@ -455,6 +514,11 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               {!verifiedBitcoinAddress && (
                 <div className="text-xs text-amber-600">
                   ⚠️ Please verify your Bitcoin address first on the /verify page
+                </div>
+              )}
+              {allVerifiedAddresses.length > 1 && (
+                <div className="text-xs text-blue-600">
+                  💡 You have {allVerifiedAddresses.length} verified addresses. Select one to mint from.
                 </div>
               )}
             </div>
