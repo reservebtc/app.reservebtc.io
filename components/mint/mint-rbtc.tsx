@@ -13,6 +13,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CONTRACTS } from '@/app/lib/contracts'
 import { getVerifiedBitcoinAddresses } from '@/lib/user-data-storage'
+import { requestOracleSync } from '@/lib/transaction-storage'
 
 interface MintRBTCProps {
   onMintComplete?: (data: MintForm) => void
@@ -76,11 +77,49 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       // Add small delay to avoid race conditions during Bitcoin transaction processing
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      // Try to get balance from Oracle Aggregator contract - this should work with the currently active address
-      if (publicClient) {
-        console.log('🔄 Fetching balance from Oracle Aggregator for selected address:', btcAddress)
+      // Try to get balance directly from Bitcoin blockchain for this specific address
+      console.log('🌐 Fetching Bitcoin balance directly from blockchain for:', btcAddress)
+      
+      try {
+        // Use Blockstream API for testnet (tb1 addresses)
+        const isTestnet = btcAddress.startsWith('tb1') || btcAddress.startsWith('2') || btcAddress.startsWith('m') || btcAddress.startsWith('n')
+        const apiUrl = isTestnet 
+          ? `https://blockstream.info/testnet/api/address/${btcAddress}`
+          : `https://blockstream.info/api/address/${btcAddress}`
         
-        // Check if this Bitcoin address is currently synced and active
+        console.log('🔗 Using Bitcoin API:', apiUrl)
+        
+        const bitcoinResponse = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'ReserveBTC-Frontend/1.0'
+          }
+        })
+
+        if (bitcoinResponse.ok) {
+          const bitcoinData = await bitcoinResponse.json()
+          console.log('⚡ Bitcoin API response:', bitcoinData)
+          
+          const balanceInSats = bitcoinData.chain_stats?.funded_txo_sum || 0
+          const spentInSats = bitcoinData.chain_stats?.spent_txo_sum || 0
+          const currentBalanceInSats = balanceInSats - spentInSats
+          
+          const bitcoinBalance = currentBalanceInSats / 100000000 // Convert sats to BTC
+          console.log('✅ Direct Bitcoin balance for', btcAddress, ':', bitcoinBalance, 'BTC')
+          setBitcoinBalance(bitcoinBalance)
+          setValue('amount', bitcoinBalance.toString())
+          return
+        } else {
+          console.log('⚠️ Bitcoin API failed, trying Oracle fallback...')
+        }
+      } catch (bitcoinError) {
+        console.log('⚠️ Bitcoin API error, trying Oracle fallback:', bitcoinError)
+      }
+
+      // Fallback: Try Oracle system (may have outdated data for new addresses)
+      if (publicClient) {
+        console.log('🔄 Fallback: Using Oracle Aggregator contract...')
+        
         const lastSats = await publicClient.readContract({
           address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
           abi: [
@@ -96,37 +135,8 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           args: [address]
         })
         
-        // Get additional information from verified addresses to ensure we have the right balance
-        try {
-          const verifiedResponse = await fetch(`https://oracle.reservebtc.io/api/users/${address}/verified-addresses`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'User-Agent': 'ReserveBTC-Frontend/1.0'
-            }
-          })
-
-          if (verifiedResponse.ok) {
-            const verifiedData = await verifiedResponse.json()
-            const addresses = verifiedData.addresses || []
-            
-            // Find the selected address in the list
-            const selectedAddressData = addresses.find((addr: any) => addr.address === btcAddress)
-            if (selectedAddressData && selectedAddressData.balance !== undefined) {
-              const bitcoinBalance = selectedAddressData.balance / 100000000 // Convert sats to BTC
-              console.log('✅ Got balance from verified addresses data for', btcAddress, ':', bitcoinBalance, 'BTC')
-              setBitcoinBalance(bitcoinBalance)
-              setValue('amount', bitcoinBalance.toString())
-              return
-            }
-          }
-        } catch (verifiedError) {
-          console.log('⚠️ Could not get verified address data, using Oracle Aggregator only:', verifiedError)
-        }
-        
-        // Fallback to Oracle Aggregator result
         const bitcoinBalance = Number(lastSats) / 100000000 // Convert sats to BTC
-        console.log('📊 Balance from Oracle Aggregator:', bitcoinBalance, 'BTC')
+        console.log('📊 Fallback balance from Oracle Aggregator:', bitcoinBalance, 'BTC')
         setBitcoinBalance(bitcoinBalance)
         setValue('amount', bitcoinBalance.toString())
       }
@@ -198,7 +208,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           setValue('bitcoinAddress', selectedAddress, { shouldValidate: true })
           
           // Immediately fetch balance for the new address if we have all required data
-          if (selectedAddress && publicClient && address && (forceBalanceReload || selectedAddress !== verifiedBitcoinAddress)) {
+          if (selectedAddress && address && (forceBalanceReload || selectedAddress !== verifiedBitcoinAddress)) {
             console.log('🚀 Immediately fetching balance for new address from URL:', selectedAddress)
             fetchBitcoinBalance(selectedAddress)
           }
