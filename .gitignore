@@ -233,3 +233,4 @@ debug-user-data.js
 debug-user-*.js
 user-data-diagnostic-*.js
 data-recovery-*.js
+check-real-transactions.js
