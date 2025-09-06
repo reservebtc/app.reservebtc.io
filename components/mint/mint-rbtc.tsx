@@ -578,11 +578,21 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                             key={addr.address}
                             type="button"
                             onClick={() => {
+                              console.log('🔄 Dropdown: Address selected, switching to:', addr.address)
+                              
+                              // Reset balance state immediately to show loading
+                              setBitcoinBalance(0)
+                              setIsLoadingBalance(true)
+                              setHasAttemptedFetch(false)
+                              
+                              // Update address state
                               setVerifiedBitcoinAddress(addr.address)
                               setValue('bitcoinAddress', addr.address, { shouldValidate: true })
                               setShowAddressDropdown(false)
-                              // Refresh balance for new address
+                              
+                              // Force refresh balance for new address
                               if (addr.address) {
+                                console.log('🔄 Dropdown: Force fetching balance for new address:', addr.address)
                                 fetchBitcoinBalance(addr.address)
                               }
                             }}
