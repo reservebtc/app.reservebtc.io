@@ -30,6 +30,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const [bitcoinBalance, setBitcoinBalance] = useState<number>(0)
   const [isLoadingBalance, setIsLoadingBalance] = useState(false)
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false)
+  const [addressHasSpentCoins, setAddressHasSpentCoins] = useState(false)
   const [showFeeVaultWarning, setShowFeeVaultWarning] = useState(false)
   const [showAutoSyncDetails, setShowAutoSyncDetails] = useState(false)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
@@ -103,6 +104,17 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           const balanceInSats = bitcoinData.chain_stats?.funded_txo_sum || 0
           const spentInSats = bitcoinData.chain_stats?.spent_txo_sum || 0
           const currentBalanceInSats = balanceInSats - spentInSats
+          
+          // Check if address has made outgoing transactions (spent coins)
+          const hasSpentCoins = spentInSats > 0
+          console.log('🔍 Address transaction analysis:', {
+            received: balanceInSats,
+            spent: spentInSats,
+            currentBalance: currentBalanceInSats,
+            hasSpentCoins
+          })
+          
+          setAddressHasSpentCoins(hasSpentCoins)
           
           const bitcoinBalance = currentBalanceInSats / 100000000 // Convert sats to BTC
           console.log('✅ Direct Bitcoin balance for', btcAddress, ':', bitcoinBalance, 'BTC')
@@ -202,6 +214,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             setBitcoinBalance(0) // Reset balance immediately
             setIsLoadingBalance(true) // Show loading state
             setHasAttemptedFetch(false) // Reset fetch state
+            setAddressHasSpentCoins(false) // Reset spent coins state
           }
           
           setVerifiedBitcoinAddress(selectedAddress)
@@ -522,8 +535,8 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                 </div>
               )}
               
-              {/* Quantum protection warning - only after loading is complete and balance is zero */}
-              {bitcoinBalance === 0 && !isLoadingBalance && hasAttemptedFetch && verifiedBitcoinAddress && publicClient && (
+              {/* Quantum protection warning - only if address has spent coins (made outgoing transactions) */}
+              {addressHasSpentCoins && !isLoadingBalance && hasAttemptedFetch && verifiedBitcoinAddress && (
                 <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <div className="flex items-start gap-3">
                     <div className="text-blue-600 dark:text-blue-400 text-xl flex-shrink-0">🔐</div>
@@ -635,6 +648,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                               setBitcoinBalance(0)
                               setIsLoadingBalance(true)
                               setHasAttemptedFetch(false)
+                              setAddressHasSpentCoins(false)
                               
                               // Update address state
                               setVerifiedBitcoinAddress(addr.address)
