@@ -102,57 +102,67 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }, [publicClient, address, setValue])
 
-  // Load verified Bitcoin address from localStorage and auto-refresh
+  // Load verified Bitcoin address from localStorage
   useEffect(() => {
     const savedAddress = localStorage.getItem('verifiedBitcoinAddress')
-    if (savedAddress && publicClient && address) {
+    if (savedAddress) {
+      console.log('Loading saved address:', savedAddress)
       setVerifiedBitcoinAddress(savedAddress)
       setValue('bitcoinAddress', savedAddress, { shouldValidate: true })
-      // Always fetch Bitcoin balance when component loads
-      fetchBitcoinBalance(savedAddress)
-    } else if (!savedAddress) {
-      // If no saved address, mark as attempted so warning doesn't show
+    } else {
+      console.log('No saved Bitcoin address found')
       setHasAttemptedFetch(true)
     }
-  }, [setValue, publicClient, address, fetchBitcoinBalance])
+  }, [setValue])
 
-  // Auto-refresh when wallet connects or publicClient becomes available
+  // Auto-refresh when all required data is available
   useEffect(() => {
-    if (verifiedBitcoinAddress && publicClient && address && !isLoadingBalance) {
-      console.log('Wallet/publicClient ready, auto-refreshing balance')
+    if (verifiedBitcoinAddress && publicClient && address && !hasAttemptedFetch) {
+      console.log('All data ready, starting balance fetch:', { verifiedBitcoinAddress, hasPublicClient: !!publicClient, hasAddress: !!address })
       fetchBitcoinBalance(verifiedBitcoinAddress)
     }
-  }, [publicClient, address, verifiedBitcoinAddress, fetchBitcoinBalance, isLoadingBalance])
+  }, [verifiedBitcoinAddress, publicClient, address, hasAttemptedFetch, fetchBitcoinBalance])
 
 
-  // Refresh balance - improved version using useCallback
+  // Refresh balance - force refresh regardless of current state
   const refreshBalance = useCallback(() => {
-    console.log('Refresh button clicked', { verifiedBitcoinAddress, publicClient: !!publicClient, address })
+    console.log('🔄 Manual Refresh button clicked')
+    console.log('Current state:', { 
+      verifiedBitcoinAddress, 
+      hasPublicClient: !!publicClient, 
+      hasAddress: !!address,
+      isLoadingBalance,
+      hasAttemptedFetch
+    })
     
-    if (verifiedBitcoinAddress && publicClient && address) {
-      console.log('Refreshing balance for address:', verifiedBitcoinAddress)
+    if (!verifiedBitcoinAddress) {
+      // Try to reload from localStorage first
+      const savedAddress = localStorage.getItem('verifiedBitcoinAddress')
+      if (savedAddress) {
+        console.log('🔄 Reloading address from localStorage:', savedAddress)
+        setVerifiedBitcoinAddress(savedAddress)
+        setValue('bitcoinAddress', savedAddress, { shouldValidate: true })
+        
+        if (publicClient && address) {
+          console.log('🔄 Triggering balance fetch after reload')
+          fetchBitcoinBalance(savedAddress)
+        }
+      } else {
+        console.warn('❌ No Bitcoin address available for refresh')
+        return
+      }
+    } else if (publicClient && address) {
+      console.log('🔄 Triggering manual balance fetch')
+      // Force refresh by resetting hasAttemptedFetch
+      setHasAttemptedFetch(false)
       fetchBitcoinBalance(verifiedBitcoinAddress)
     } else {
-      console.warn('Cannot refresh: missing required data', {
-        hasAddress: !!verifiedBitcoinAddress,
+      console.warn('❌ Missing wallet connection for refresh:', {
         hasPublicClient: !!publicClient,
-        hasWalletAddress: !!address
+        hasAddress: !!address
       })
-      
-      // Try to reload the address from localStorage if missing
-      if (!verifiedBitcoinAddress) {
-        const savedAddress = localStorage.getItem('verifiedBitcoinAddress')
-        if (savedAddress) {
-          console.log('Reloading address from localStorage:', savedAddress)
-          setVerifiedBitcoinAddress(savedAddress)
-          setValue('bitcoinAddress', savedAddress, { shouldValidate: true })
-          if (publicClient && address) {
-            fetchBitcoinBalance(savedAddress)
-          }
-        }
-      }
     }
-  }, [verifiedBitcoinAddress, publicClient, address, fetchBitcoinBalance, setValue])
+  }, [verifiedBitcoinAddress, publicClient, address, fetchBitcoinBalance, setValue, isLoadingBalance, hasAttemptedFetch])
 
   // Convert BTC to satoshis (now using bitcoinBalance instead of amount)
   const amountInSatoshis = bitcoinBalance ? Math.round(bitcoinBalance * 100_000_000) : 0
