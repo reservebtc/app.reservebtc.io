@@ -61,43 +61,77 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const bitcoinAddress = watch('bitcoinAddress')
   const bitcoinValidation = verifiedBitcoinAddress ? validateBitcoinAddress(verifiedBitcoinAddress) : null
 
-  // Fetch Bitcoin balance from Oracle Aggregator (same as Dashboard) - using useCallback
+  // Fetch Bitcoin balance for specific Bitcoin address using existing Oracle infrastructure
   const fetchBitcoinBalance = useCallback(async (btcAddress: string) => {
-    console.log('fetchBitcoinBalance called with:', btcAddress)
+    console.log('🔍 Fetching balance for specific Bitcoin address:', btcAddress)
     setIsLoadingBalance(true)
     setHasAttemptedFetch(false)
     
     try {
-      if (!publicClient || !address) {
-        console.log('Missing publicClient or address')
+      if (!address) {
+        console.log('Missing Ethereum address')
         return
       }
 
       // Add small delay to avoid race conditions during Bitcoin transaction processing
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      // Get Bitcoin balance from Oracle Aggregator like Dashboard does
-      const lastSats = await publicClient.readContract({
-        address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
-        abi: [
-          {
-            name: 'lastSats',
-            type: 'function',
-            stateMutability: 'view',
-            inputs: [{ name: 'user', type: 'address' }],
-            outputs: [{ name: '', type: 'uint64' }]
+      // Try to get balance from Oracle Aggregator contract - this should work with the currently active address
+      if (publicClient) {
+        console.log('🔄 Fetching balance from Oracle Aggregator for selected address:', btcAddress)
+        
+        // Check if this Bitcoin address is currently synced and active
+        const lastSats = await publicClient.readContract({
+          address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
+          abi: [
+            {
+              name: 'lastSats',
+              type: 'function',
+              stateMutability: 'view',
+              inputs: [{ name: 'user', type: 'address' }],
+              outputs: [{ name: '', type: 'uint64' }]
+            }
+          ],
+          functionName: 'lastSats',
+          args: [address]
+        })
+        
+        // Get additional information from verified addresses to ensure we have the right balance
+        try {
+          const verifiedResponse = await fetch(`https://oracle.reservebtc.io/api/users/${address}/verified-addresses`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'User-Agent': 'ReserveBTC-Frontend/1.0'
+            }
+          })
+
+          if (verifiedResponse.ok) {
+            const verifiedData = await verifiedResponse.json()
+            const addresses = verifiedData.addresses || []
+            
+            // Find the selected address in the list
+            const selectedAddressData = addresses.find((addr: any) => addr.address === btcAddress)
+            if (selectedAddressData && selectedAddressData.balance !== undefined) {
+              const bitcoinBalance = selectedAddressData.balance / 100000000 // Convert sats to BTC
+              console.log('✅ Got balance from verified addresses data for', btcAddress, ':', bitcoinBalance, 'BTC')
+              setBitcoinBalance(bitcoinBalance)
+              setValue('amount', bitcoinBalance.toString())
+              return
+            }
           }
-        ],
-        functionName: 'lastSats',
-        args: [address]
-      })
-      
-      const bitcoinBalance = Number(lastSats) / 100000000 // Convert sats to BTC
-      console.log('Balance fetched:', bitcoinBalance)
-      setBitcoinBalance(bitcoinBalance)
-      setValue('amount', bitcoinBalance.toString())
+        } catch (verifiedError) {
+          console.log('⚠️ Could not get verified address data, using Oracle Aggregator only:', verifiedError)
+        }
+        
+        // Fallback to Oracle Aggregator result
+        const bitcoinBalance = Number(lastSats) / 100000000 // Convert sats to BTC
+        console.log('📊 Balance from Oracle Aggregator:', bitcoinBalance, 'BTC')
+        setBitcoinBalance(bitcoinBalance)
+        setValue('amount', bitcoinBalance.toString())
+      }
     } catch (error) {
-      console.error('Failed to fetch Bitcoin balance from Oracle:', error)
+      console.error('❌ Failed to fetch Bitcoin balance:', error)
       // Fallback to 0
       setBitcoinBalance(0)
       setValue('amount', '0')
