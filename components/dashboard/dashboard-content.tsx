@@ -299,6 +299,25 @@ export function DashboardContent() {
     try {
       console.log(`📊 Loading transactions professionally for address: ${address}`)
       
+      // Special handling for problem user - force cache clear and deep scan
+      if (address?.toLowerCase() === '0xea8ffee94da08f65765ec2a095e9931fd03e6c1b') {
+        console.log('🚨 Problem user detected - forcing fresh scan')
+        setSyncStatus('🚨 Problem user - clearing cache and scanning...')
+        
+        // Clear all caches immediately for this user
+        const CACHE_VERSION = 'v2_atomic'
+        const cachedKey = `rbtc_transactions_${address}_${CACHE_VERSION}`
+        const oracleCacheKey = `rbtc_oracle_transactions_${address.toLowerCase()}`
+        localStorage.removeItem(cachedKey)
+        localStorage.removeItem(oracleCacheKey)
+        console.log('🗑️ Cleared all caches for problem user')
+        
+        // Import and run emergency recovery
+        const { emergencyUserDataRecovery } = await import('@/lib/user-data-storage')
+        await emergencyUserDataRecovery(address)
+        console.log('✅ Emergency recovery completed for problem user')
+      }
+      
       // Primary data source: Professional Oracle API
       const oracleTransactions = await getUserTransactionHistory(address, false)
       
