@@ -189,7 +189,7 @@ contracts/script/DeployFeePolicy.s.sol
 contracts/broadcast/
 contracts/cache/
 
-# Test scripts - не для GitHub
+# Test scripts - not for GitHub
 test-dashboard-transactions.js
 debug-user-bitcoin-sync.js
 test-fee-vault-topup.js

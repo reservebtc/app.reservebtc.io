@@ -47,7 +47,7 @@ contract FeePolicyTest is Test {
         uint256 expected = pct + 5e14;
         assertEq(p.quoteFees(address(1), delta), expected);
 
-        // negative delta → только фикс
+        // negative delta → only fixed fee
         assertEq(p.quoteFees(address(1), -delta), 5e14);
     }
 

@@ -3,7 +3,7 @@
 /**
  * Blockchain Address Recovery Script
  * 
- * Восстанавливает Bitcoin адрес пользователя путем анализа блокчейн событий
+ * Recovers user's Bitcoin address through blockchain event analysis
  * DO NOT COMMIT TO GITHUB - INTERNAL RECOVERY TOOL
  */
 
@@ -12,8 +12,8 @@ const PROBLEM_USER = '0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b';
 console.log('🔍 Blockchain Address Recovery');
 console.log('Target user:', PROBLEM_USER);
 
-// Поскольку у пользователя есть rBTC-SYNTH токены, он должен был пройти верификацию
-// По тестам на локальном интерфейсе, этот адрес был привязан к Bitcoin адресу
+// Since user has rBTC-SYNTH tokens, they must have completed verification
+// From local interface tests, this address was linked to Bitcoin address
 
 // Based on previous test interactions, this user's Bitcoin address is known
 const RECOVERED_BITCOIN_ADDRESS = 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh';

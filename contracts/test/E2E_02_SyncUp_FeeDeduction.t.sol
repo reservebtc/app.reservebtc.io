@@ -79,7 +79,7 @@ contract E2E_02_SyncUp_FeeDeduction is Test {
     address internal committee;
     address internal user;
 
-    // Match project params (как и в первом мини-тесте)
+    // Match project params (same as in first mini-test)
     uint256 constant PCT_BPS     = 10;             // 0.10%
     uint256 constant FIXED_WEI   = 0;
     uint256 constant WEI_PER_SAT = 1_000_000_000;  // 1 gwei per sat
