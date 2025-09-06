@@ -764,25 +764,23 @@ body {
     }
 }
 
-/* Desktop - force horizontal layout for features */
-@media (min-width: 1025px) {
+/* Force horizontal layout for all screens larger than mobile */
+@media (min-width: 769px) {
     .features {
+        display: flex !important;
         flex-direction: row !important;
         justify-content: center !important;
-        gap: 4rem !important;
+        align-items: center !important;
+        gap: 3rem !important;
         flex-wrap: nowrap !important;
-        align-items: center !important;
+        margin-bottom: 3rem !important;
     }
-}
-
-/* Tablet - also horizontal but with wrap */
-@media (min-width: 769px) and (max-width: 1024px) {
-    .features {
-        flex-direction: row !important;
-        justify-content: center !important;
-        gap: 2rem !important;
-        flex-wrap: wrap !important;
+    
+    .feature {
+        display: flex !important;
         align-items: center !important;
+        gap: 0.5rem !important;
+        flex-shrink: 0 !important;
     }
 }
 

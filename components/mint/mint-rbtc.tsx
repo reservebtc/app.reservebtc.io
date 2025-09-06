@@ -322,6 +322,19 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                   = {amountInSatoshis.toLocaleString()} satoshis
                 </div>
               )}
+              {/* Loading spinner for balance */}
+              {isLoadingBalance && verifiedBitcoinAddress && (
+                <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Checking Bitcoin balance...
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Quantum protection warning - only after loading is complete and balance is zero */}
               {bitcoinBalance === 0 && !isLoadingBalance && hasAttemptedFetch && verifiedBitcoinAddress && publicClient && (
                 <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <div className="flex items-start gap-3">
