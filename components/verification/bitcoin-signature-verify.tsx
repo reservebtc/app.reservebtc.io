@@ -5,6 +5,7 @@ import { CheckCircle, AlertCircle, Copy, Check, ChevronDown, ChevronUp, Info, Ar
 import { useAccount } from 'wagmi'
 import { Verifier } from 'bip322-js'
 import { useRouter } from 'next/navigation'
+import { saveVerifiedBitcoinAddress } from '@/lib/user-data-storage'
 
 interface BitcoinSignatureVerifyProps {
   onVerificationComplete?: (data: { address: string; signature: string; verified: boolean }) => void
@@ -581,10 +582,17 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
               {/* Continue to Mint Button - Only shown on successful verification */}
               {verificationResult.success && (
                 <button
-                  onClick={() => {
-                    // Save verified address to localStorage for mint page
-                    if (verifiedAddress) {
-                      localStorage.setItem('verifiedBitcoinAddress', verifiedAddress)
+                  onClick={async () => {
+                    // Save verified address using centralized storage system
+                    if (verifiedAddress && ethAddress) {
+                      try {
+                        await saveVerifiedBitcoinAddress(ethAddress, verifiedAddress, signature)
+                        console.log('✅ Bitcoin address saved to centralized storage')
+                      } catch (error) {
+                        console.error('❌ Failed to save Bitcoin address:', error)
+                        // Fallback to localStorage for immediate functionality
+                        localStorage.setItem('verifiedBitcoinAddress', verifiedAddress)
+                      }
                     }
                     router.push('/mint')
                   }}

@@ -11,6 +11,7 @@ import { DepositFeeVault } from './deposit-fee-vault'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { CONTRACTS } from '@/app/lib/contracts'
+import { getVerifiedBitcoinAddresses } from '@/lib/user-data-storage'
 
 interface MintRBTCProps {
   onMintComplete?: (data: MintForm) => void
@@ -102,18 +103,32 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }, [publicClient, address, setValue])
 
-  // Load verified Bitcoin address from localStorage
+  // Load verified Bitcoin address from centralized storage
   useEffect(() => {
-    const savedAddress = localStorage.getItem('verifiedBitcoinAddress')
-    if (savedAddress) {
-      console.log('Loading saved address:', savedAddress)
-      setVerifiedBitcoinAddress(savedAddress)
-      setValue('bitcoinAddress', savedAddress, { shouldValidate: true })
-    } else {
-      console.log('No saved Bitcoin address found')
-      setHasAttemptedFetch(true)
+    const loadVerifiedAddress = async () => {
+      if (!address) return
+      
+      try {
+        const verifiedAddrs = await getVerifiedBitcoinAddresses(address)
+        console.log('📋 Loading verified addresses from centralized storage:', verifiedAddrs)
+        
+        if (verifiedAddrs.length > 0) {
+          const firstAddress = verifiedAddrs[0].address
+          console.log('✅ Loading saved address:', firstAddress)
+          setVerifiedBitcoinAddress(firstAddress)
+          setValue('bitcoinAddress', firstAddress, { shouldValidate: true })
+        } else {
+          console.log('⚠️ No verified Bitcoin address found')
+          setHasAttemptedFetch(true)
+        }
+      } catch (error) {
+        console.error('❌ Error loading verified addresses:', error)
+        setHasAttemptedFetch(true)
+      }
     }
-  }, [setValue])
+    
+    loadVerifiedAddress()
+  }, [address, setValue])
 
   // Auto-refresh when all required data is available
   useEffect(() => {
@@ -135,32 +150,32 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       hasAttemptedFetch
     })
     
-    if (!verifiedBitcoinAddress) {
-      // Try to reload from localStorage first
-      const savedAddress = localStorage.getItem('verifiedBitcoinAddress')
-      if (savedAddress) {
-        console.log('🔄 Reloading address from localStorage:', savedAddress)
-        setVerifiedBitcoinAddress(savedAddress)
-        setValue('bitcoinAddress', savedAddress, { shouldValidate: true })
-        
-        if (publicClient && address) {
-          console.log('🔄 Triggering balance fetch after reload')
-          fetchBitcoinBalance(savedAddress)
+    if (!verifiedBitcoinAddress && address) {
+      // Try to reload from centralized storage first
+      const reloadAddress = async () => {
+        try {
+          const verifiedAddrs = await getVerifiedBitcoinAddresses(address)
+          if (verifiedAddrs.length > 0) {
+            const firstAddress = verifiedAddrs[0].address
+            console.log('🔄 Reloading address from centralized storage:', firstAddress)
+            setVerifiedBitcoinAddress(firstAddress)
+            setValue('bitcoinAddress', firstAddress, { shouldValidate: true })
+          }
+        } catch (error) {
+          console.error('❌ Failed to reload address:', error)
         }
-      } else {
-        console.warn('❌ No Bitcoin address available for refresh')
-        return
       }
-    } else if (publicClient && address) {
-      console.log('🔄 Triggering manual balance fetch')
-      // Force refresh by resetting hasAttemptedFetch
+      reloadAddress()
+      return // Exit early to let the address reload complete
+    }
+    
+    if (verifiedBitcoinAddress && publicClient && address) {
+      console.log('🔄 Triggering balance fetch')
       setHasAttemptedFetch(false)
       fetchBitcoinBalance(verifiedBitcoinAddress)
     } else {
-      console.warn('❌ Missing wallet connection for refresh:', {
-        hasPublicClient: !!publicClient,
-        hasAddress: !!address
-      })
+      console.warn('❌ No Bitcoin address available for refresh')
+      return
     }
   }, [verifiedBitcoinAddress, publicClient, address, fetchBitcoinBalance, setValue, isLoadingBalance, hasAttemptedFetch])
 

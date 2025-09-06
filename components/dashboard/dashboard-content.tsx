@@ -25,6 +25,8 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { CONTRACTS } from '@/app/lib/contracts'
+import { getVerifiedBitcoinAddresses } from '@/lib/user-data-storage'
+import { getUserTransactionHistory, requestOracleSync } from '@/lib/transaction-storage'
 
 interface VerifiedAddress {
   address: string
@@ -81,16 +83,24 @@ export function DashboardContent() {
     }
   }, [isConnected, router])
 
-  // Load verified addresses from localStorage and fetch real Bitcoin balance
+  // Load verified addresses from centralized storage and fetch real Bitcoin balance
   useEffect(() => {
     const loadBitcoinBalance = async () => {
       if (!address || !publicClient) return
       
-      const savedAddress = localStorage.getItem('verifiedBitcoinAddress')
-      if (!savedAddress) return
-      
       try {
-        // Get Bitcoin balance from Oracle Aggregator
+        // Get verified addresses from centralized storage
+        const verifiedAddrs = await getVerifiedBitcoinAddresses(address)
+        console.log('📋 Retrieved verified addresses from centralized storage:', verifiedAddrs)
+        
+        if (verifiedAddrs.length === 0) {
+          console.log('⚠️ No verified Bitcoin addresses found')
+          setVerifiedAddresses([])
+          return
+        }
+        
+        // Get Bitcoin balance from Oracle Aggregator for the first address
+        const firstAddress = verifiedAddrs[0]
         const lastSats = await publicClient.readContract({
           address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
           abi: [
@@ -107,20 +117,20 @@ export function DashboardContent() {
         })
         
         const bitcoinBalance = Number(lastSats) / 100000000 // Convert sats to BTC
+        console.log('₿ Bitcoin balance from Oracle:', bitcoinBalance)
         
-        setVerifiedAddresses([{
-          address: savedAddress,
-          verifiedAt: new Date().toISOString(),
+        // Update addresses with current balance
+        const updatedAddresses = verifiedAddrs.map(addr => ({
+          address: addr.address,
+          verifiedAt: addr.verifiedAt,
           balance: bitcoinBalance
-        }])
+        }))
+        
+        setVerifiedAddresses(updatedAddresses)
       } catch (error) {
-        console.error('Error fetching Bitcoin balance:', error)
-        // Fallback to 0 balance
-        setVerifiedAddresses([{
-          address: savedAddress,
-          verifiedAt: new Date().toISOString(),
-          balance: 0
-        }])
+        console.error('❌ Error loading Bitcoin addresses and balance:', error)
+        // Set empty array if no addresses found
+        setVerifiedAddresses([])
       }
     }
 
@@ -280,23 +290,27 @@ export function DashboardContent() {
 
 
   const loadTransactions = async () => {
-    if (!address || !publicClient) return
+    if (!address) return
 
     setIsLoadingTransactions(true)
+    setSyncStatus('🔍 Loading transaction history from Oracle database...')
+    
     try {
-      console.log(`Loading transactions for address: ${address}`)
+      console.log(`📊 Loading transactions professionally for address: ${address}`)
       
-      // Use versioned cache to handle contract upgrades
-      const CACHE_VERSION = 'v2_atomic' // Updated for atomic contracts
-      const cachedKey = `rbtc_transactions_${address}_${CACHE_VERSION}`
-      const oldCacheKey = `rbtc_transactions_${address}` // Legacy cache key
+      // Primary data source: Professional Oracle API
+      const oracleTransactions = await getUserTransactionHistory(address, false)
       
-      // Remove old cache if exists
-      const oldCache = localStorage.getItem(oldCacheKey)
-      if (oldCache) {
-        console.log('Removing legacy transaction cache')
-        localStorage.removeItem(oldCacheKey)
+      if (oracleTransactions.length > 0) {
+        console.log(`✅ Retrieved ${oracleTransactions.length} transactions from Oracle database`)
+        setTransactions(oracleTransactions)
+        setSyncStatus(`✅ Loaded ${oracleTransactions.length} transactions from professional database`)
+        setIsLoadingTransactions(false)
+        return
       }
+      
+      console.log('ℹ️ No transactions found in Oracle database, falling back to blockchain scanning...')
+      setSyncStatus('📡 Oracle database empty, scanning blockchain for transactions...')
       
       const cachedData = localStorage.getItem(cachedKey)
       const cached = cachedData ? JSON.parse(cachedData) : { 

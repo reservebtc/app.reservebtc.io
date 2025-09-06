@@ -222,3 +222,8 @@ test-complete-atomic-system.js
 
 # Atomic deployment documentation - KEEP THIS!  
 # ATOMIC_DEPLOYMENT_GUIDE.md
+
+# Centralized storage system test script - PRIVATE INTERNAL USE ONLY
+test-centralized-storage.js
+test-storage-*.js
+centralized-storage-*.js

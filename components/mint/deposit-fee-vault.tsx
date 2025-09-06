@@ -6,6 +6,7 @@ import { parseEther, formatEther } from 'viem';
 import { CONTRACTS, CONTRACT_ABIS, FEE_CONFIG } from '@/app/lib/contracts';
 import { getOracleAbi } from '@/app/lib/abi-utils';
 import { Loader2, AlertCircle, CheckCircle, Wallet, Plus, Info } from 'lucide-react';
+import { getUserFeeVaultHistory, saveFeeVaultDeposit } from '@/lib/transaction-storage';
 
 export function DepositFeeVault() {
   const { address, isConnected } = useAccount();
@@ -38,13 +39,25 @@ export function DepositFeeVault() {
 
   const recommendedAmount = calculateRecommendedDeposit(10);
 
-  // Check if user has ever deposited (from localStorage)
+  // Check if user has ever deposited using professional Oracle database
   useEffect(() => {
-    if (address) {
-      const storageKey = `feeVault_deposited_${address}`;
-      const hasDeposited = localStorage.getItem(storageKey) === 'true';
-      setHasEverDeposited(hasDeposited);
-    }
+    const checkDepositHistory = async () => {
+      if (!address) return;
+      
+      try {
+        const history = await getUserFeeVaultHistory(address);
+        console.log('💰 Fee vault deposit history:', history);
+        setHasEverDeposited(history.hasDeposited);
+      } catch (error) {
+        console.warn('⚠️ Failed to check deposit history, using localStorage fallback:', error);
+        // Fallback to localStorage
+        const storageKey = `feeVault_deposited_${address}`;
+        const hasDeposited = localStorage.getItem(storageKey) === 'true';
+        setHasEverDeposited(hasDeposited);
+      }
+    };
+    
+    checkDepositHistory();
   }, [address]);
 
   // Fetch FeeVault balance
@@ -66,9 +79,8 @@ export function DepositFeeVault() {
         // Check if user has ever deposited (balance > 0 or had balance before)
         if (parseFloat(balanceInEth) > 0) {
           setHasEverDeposited(true);
-          // Save to localStorage that this user has deposited
-          const storageKey = `feeVault_deposited_${address}`;
-          localStorage.setItem(storageKey, 'true');
+          // Save to Oracle database (no need for localStorage when we have professional storage)
+          // The deposit history is already tracked by the Oracle API
         }
       } catch (err) {
         console.error('Failed to fetch FeeVault balance:', err);
@@ -112,9 +124,17 @@ export function DepositFeeVault() {
       
       setStatus('success');
       setHasEverDeposited(true); // Mark that user has deposited
-      // Save to localStorage
-      const storageKey = `feeVault_deposited_${address}`;
-      localStorage.setItem(storageKey, 'true');
+      
+      // Save to professional Oracle database
+      try {
+        await saveFeeVaultDeposit(address, amount, hash);
+        console.log('✅ Fee deposit saved to Oracle database');
+      } catch (error) {
+        console.warn('⚠️ Failed to save to Oracle, using localStorage fallback:', error);
+        // Fallback to localStorage
+        const storageKey = `feeVault_deposited_${address}`;
+        localStorage.setItem(storageKey, 'true');
+      }
     } catch (err: any) {
       console.error('Deposit failed:', err);
       setError(err.message || 'Failed to deposit');
