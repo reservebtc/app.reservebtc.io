@@ -163,7 +163,8 @@ export function DashboardContent() {
     if (!address || !currentBlockNumber || !autoRefreshEnabled) return
 
     // Check if we have cached data
-    const cachedKey = `rbtc_transactions_${address}`
+    const CACHE_VERSION = 'v2_atomic' // Updated for atomic contracts
+    const cachedKey = `rbtc_transactions_${address}_${CACHE_VERSION}`
     const cachedData = localStorage.getItem(cachedKey)
     if (!cachedData) return // No cache yet, initial load will handle it
 
@@ -311,6 +312,18 @@ export function DashboardContent() {
       
       console.log('ℹ️ No transactions found in Oracle database, falling back to blockchain scanning...')
       setSyncStatus('📡 Oracle database empty, scanning blockchain for transactions...')
+      
+      // Use versioned cache to handle contract upgrades
+      const CACHE_VERSION = 'v2_atomic' // Updated for atomic contracts
+      const cachedKey = `rbtc_transactions_${address}_${CACHE_VERSION}`
+      const oldCacheKey = `rbtc_transactions_${address}` // Legacy cache key
+      
+      // Remove old cache if exists
+      const oldCache = localStorage.getItem(oldCacheKey)
+      if (oldCache) {
+        console.log('Removing legacy transaction cache')
+        localStorage.removeItem(oldCacheKey)
+      }
       
       const cachedData = localStorage.getItem(cachedKey)
       const cached = cachedData ? JSON.parse(cachedData) : { 
@@ -568,7 +581,8 @@ export function DashboardContent() {
       console.error('Error loading transactions:', error)
       
       // On error, still try to show cached data if available
-      const cachedKey = `rbtc_transactions_${address}`
+      const CACHE_VERSION = 'v2_atomic' // Updated for atomic contracts
+      const cachedKey = `rbtc_transactions_${address}_${CACHE_VERSION}`
       const cachedData = localStorage.getItem(cachedKey)
       if (cachedData) {
         const cached = JSON.parse(cachedData)
