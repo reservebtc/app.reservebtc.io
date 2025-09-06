@@ -162,6 +162,12 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           
           setVerifiedBitcoinAddress(selectedAddress)
           setValue('bitcoinAddress', selectedAddress, { shouldValidate: true })
+          
+          // Immediately fetch balance for the new address if we have all required data
+          if (selectedAddress && publicClient && address && (forceBalanceReload || selectedAddress !== verifiedBitcoinAddress)) {
+            console.log('🚀 Immediately fetching balance for new address from URL:', selectedAddress)
+            fetchBitcoinBalance(selectedAddress)
+          }
         } else {
           console.log('⚠️ No verified Bitcoin address found')
           setHasAttemptedFetch(true)
@@ -183,14 +189,15 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }, [verifiedBitcoinAddress, publicClient, address, hasAttemptedFetch, fetchBitcoinBalance])
 
-  // Always reload balance when Bitcoin address changes (including from URL params)
+  // Reload balance when Bitcoin address changes (but not on initial load from URL)
   useEffect(() => {
-    if (verifiedBitcoinAddress && publicClient && address) {
-      console.log('💰 Bitcoin address changed, reloading balance for:', verifiedBitcoinAddress)
+    // Only run if we have a previous address (not initial load)
+    if (verifiedBitcoinAddress && publicClient && address && hasAttemptedFetch) {
+      console.log('💰 Bitcoin address changed after initial load, reloading balance for:', verifiedBitcoinAddress)
       setHasAttemptedFetch(false) // Reset fetch state
       fetchBitcoinBalance(verifiedBitcoinAddress)
     }
-  }, [verifiedBitcoinAddress, publicClient, address, fetchBitcoinBalance])
+  }, [verifiedBitcoinAddress, publicClient, address, fetchBitcoinBalance, hasAttemptedFetch])
 
 
   // Refresh balance - force refresh regardless of current state
