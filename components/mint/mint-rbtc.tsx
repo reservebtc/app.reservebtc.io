@@ -369,14 +369,8 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       address
     })
     
-    // Check if Oracle sync was already initiated
-    const syncInitiated = localStorage.getItem(`oracle_sync_initiated_${address}`)
-    if (syncInitiated === 'true') {
-      console.log('Oracle sync already initiated for this address')
-      // Oracle is already syncing automatically, show info message
-      setMintStatus('already-syncing')
-      return
-    }
+    // Always allow mint operations - no localStorage blocking
+    console.log('🚀 Processing mint request - localStorage check removed for proper functionality')
     
     // Check actual FeeVault balance from contract
     try {
