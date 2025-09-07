@@ -70,10 +70,8 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     setHasAttemptedFetch(false)
     
     try {
-      if (!address) {
-        console.log('Missing Ethereum address')
-        return
-      }
+      // For direct Bitcoin API, we don't need Ethereum address
+      console.log('Starting Bitcoin balance fetch, Ethereum address available:', !!address)
 
       // Add small delay to avoid race conditions during Bitcoin transaction processing
       await new Promise(resolve => setTimeout(resolve, 500))
@@ -128,8 +126,8 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         console.log('⚠️ Bitcoin API error, trying Oracle fallback:', bitcoinError)
       }
 
-      // Fallback: Try Oracle system (may have outdated data for new addresses)
-      if (publicClient) {
+      // Fallback: Try Oracle system (only if we have Ethereum address and publicClient)
+      if (publicClient && address) {
         console.log('🔄 Fallback: Using Oracle Aggregator contract...')
         
         const lastSats = await publicClient.readContract({
@@ -151,6 +149,10 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         console.log('📊 Fallback balance from Oracle Aggregator:', bitcoinBalance, 'BTC')
         setBitcoinBalance(bitcoinBalance)
         setValue('amount', bitcoinBalance.toString())
+      } else {
+        console.log('⚠️ No fallback available - missing Ethereum connection')
+        setBitcoinBalance(0)
+        setValue('amount', '0')
       }
     } catch (error) {
       console.error('❌ Failed to fetch Bitcoin balance:', error)
@@ -166,6 +168,29 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   // Load verified Bitcoin address from centralized storage
   useEffect(() => {
     const loadVerifiedAddress = async () => {
+      // Check if we have URL parameters that indicate we should load an address
+      const fromVerify = searchParams.get('from') === 'verify'
+      const specificAddress = searchParams.get('address')
+      
+      // If no address but we have URL params, try to load anyway for Bitcoin balance
+      if (!address && !specificAddress) {
+        console.log('⏳ Waiting for Ethereum address or URL params...')
+        return
+      }
+      
+      // If we have URL params but no Ethereum address, we can still fetch Bitcoin balance
+      if (specificAddress && !address) {
+        console.log('📱 No Ethereum address yet, but we have Bitcoin address from URL:', specificAddress)
+        setVerifiedBitcoinAddress(specificAddress)
+        setValue('bitcoinAddress', specificAddress, { shouldValidate: true })
+        setBitcoinBalance(0)
+        setIsLoadingBalance(true)
+        setHasAttemptedFetch(false)
+        setAddressHasSpentCoins(false)
+        fetchBitcoinBalance(specificAddress)
+        return
+      }
+      
       if (!address) return
       
       try {
@@ -220,8 +245,8 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           setVerifiedBitcoinAddress(selectedAddress)
           setValue('bitcoinAddress', selectedAddress, { shouldValidate: true })
           
-          // Immediately fetch balance for the new address if we have all required data
-          if (selectedAddress && address && (forceBalanceReload || selectedAddress !== verifiedBitcoinAddress)) {
+          // Immediately fetch balance for the new address if we have URL params (works without address)
+          if (selectedAddress && (forceBalanceReload || selectedAddress !== verifiedBitcoinAddress)) {
             console.log('🚀 Immediately fetching balance for new address from URL:', selectedAddress)
             fetchBitcoinBalance(selectedAddress)
           }
