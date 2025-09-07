@@ -8,6 +8,12 @@ coverage/
 .npm/
 .yarn/
 
+# Debug and test scripts
+debug-*.js
+test-*.js
+*-debug.js
+*-test.js
+
 # Env & local configs - CRITICAL SECURITY
 .env
 .env.*

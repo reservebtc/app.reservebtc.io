@@ -475,8 +475,10 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         console.log('🚀 CALLING registerAndPrepay FUNCTION...')
         
         try {
-          // Use the correct Oracle function that accepts user registration and prepayment
-          const txPromise = writeContract({
+          console.log('⏳ Initiating transaction - waiting for user confirmation in MetaMask...')
+          
+          // Call writeContract with optimized gas settings
+          await writeContract({
             address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
             abi: [
               {
@@ -497,63 +499,81 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               1, // method: BIP-322
               checksum as `0x${string}`
             ],
-            value: parseEther('0.001') // Send 0.001 ETH as prepayment
+            value: parseEther('0.001'), // Send 0.001 ETH as prepayment
+            gas: BigInt(300000) // Set reasonable gas limit instead of auto-estimate
           })
           
-          console.log('⏳ Waiting for transaction result...')
-          
-          // Wait for writeContract to complete
-          await txPromise
+          // Wait for writeData to be available from the hook
+          console.log('⏳ Waiting for transaction hash from writeContract hook...')
+          let waitAttempts = 0
+          while (!writeData && waitAttempts < 20) {
+            await new Promise(resolve => setTimeout(resolve, 500))
+            waitAttempts++
+          }
           
           if (writeData) {
             actualTxHash = writeData
             setTxHash(actualTxHash)
-            console.log('📝 Transaction hash obtained:', actualTxHash)
+            console.log('✅ Transaction submitted successfully! Hash:', actualTxHash)
+            
+            // Update status to pending while waiting for confirmation
+            setMintStatus('pending')
             
             // Wait for transaction receipt with proper error handling
-            console.log('⏳ Waiting for transaction confirmation...')
-            let attempts = 0
-            const maxAttempts = 10
+            console.log('⏳ Waiting for blockchain confirmation...')
             
-            while (attempts < maxAttempts && !transactionReceipt) {
-              await new Promise(resolve => setTimeout(resolve, 2000))
-              attempts++
-              console.log(`⏳ Confirmation attempt ${attempts}/${maxAttempts}...`)
-            }
-            
-            // Check transaction receipt status
-            if (transactionReceipt) {
-              if (transactionReceipt.status === 'success') {
-                console.log('✅ Transaction confirmed successfully!', transactionReceipt)
-                transactionSuccessful = true
-              } else {
-                console.log('❌ Transaction failed on chain:', transactionReceipt)
-                throw new Error(`Transaction failed with status: ${transactionReceipt.status}`)
-              }
-            } else {
-              console.log('⚠️ No transaction receipt obtained, checking manually...')
-              
-              // Manual check via public client
+            try {
+              // Use public client to wait for transaction receipt
               if (publicClient) {
-                try {
-                  const receipt = await publicClient.waitForTransactionReceipt({ hash: actualTxHash as `0x${string}` })
-                  if (receipt.status === 'success') {
-                    console.log('✅ Manual check: Transaction successful!', receipt)
-                    transactionSuccessful = true
-                  } else {
-                    console.log('❌ Manual check: Transaction failed!', receipt)
-                    throw new Error(`Transaction failed with status: ${receipt.status}`)
-                  }
-                } catch (receiptError) {
-                  console.error('❌ Failed to get transaction receipt:', receiptError)
-                  throw new Error('Transaction status could not be verified')
+                const receipt = await publicClient.waitForTransactionReceipt({ 
+                  hash: actualTxHash as `0x${string}`,
+                  timeout: 60000 // 60 seconds timeout
+                })
+                
+                if (receipt.status === 'success') {
+                  console.log('✅ Transaction confirmed successfully!', receipt)
+                  transactionSuccessful = true
+                } else {
+                  console.log('❌ Transaction failed on chain:', receipt)
+                  throw new Error(`Transaction failed with status: ${receipt.status}`)
                 }
               } else {
-                throw new Error('Cannot verify transaction status - no public client available')
+                // Fallback: wait for transactionReceipt hook
+                let attempts = 0
+                const maxAttempts = 30 // 60 seconds total
+                
+                while (attempts < maxAttempts && !transactionReceipt) {
+                  await new Promise(resolve => setTimeout(resolve, 2000))
+                  attempts++
+                  console.log(`⏳ Confirmation attempt ${attempts}/${maxAttempts}...`)
+                }
+                
+                if (transactionReceipt) {
+                  if (transactionReceipt.status === 'success') {
+                    console.log('✅ Transaction confirmed successfully!', transactionReceipt)
+                    transactionSuccessful = true
+                  } else {
+                    console.log('❌ Transaction failed on chain:', transactionReceipt)
+                    throw new Error(`Transaction failed with status: ${transactionReceipt.status}`)
+                  }
+                } else {
+                  console.warn('⚠️ No transaction receipt obtained within timeout')
+                  // Consider it successful if we have a hash - receipt might come later
+                  transactionSuccessful = true
+                }
+              }
+            } catch (receiptError: any) {
+              console.error('❌ Error waiting for transaction receipt:', receiptError)
+              if (receiptError.message?.includes('timeout')) {
+                console.log('⚠️ Transaction timed out but may still be processing')
+                // Don't fail immediately on timeout - transaction might still succeed
+                transactionSuccessful = true
+              } else {
+                throw receiptError
               }
             }
           } else {
-            throw new Error('No transaction hash returned from writeContract')
+            throw new Error('Transaction was cancelled or failed to get transaction hash')
           }
           
         } catch (contractError: any) {
@@ -608,14 +628,16 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         
         if (error.message?.includes('insufficient funds')) {
           userFriendlyMessage = 'Insufficient ETH for gas fees. Please add more ETH to your wallet.'
-        } else if (error.message?.includes('user rejected')) {
-          userFriendlyMessage = 'Transaction was cancelled by user.'
+        } else if (error.message?.includes('user rejected') || error.message?.includes('User rejected') || error.message?.includes('cancelled')) {
+          userFriendlyMessage = 'Transaction was cancelled in MetaMask. You can try again when ready.'
         } else if (error.message?.includes('Oracle server')) {
           userFriendlyMessage = 'Oracle server is temporarily unavailable. Please try again in a few minutes.'
         } else if (error.message?.includes('network')) {
           userFriendlyMessage = 'Network connection issue. Please check your internet connection.'
         } else if (error.message?.includes('timeout')) {
-          userFriendlyMessage = 'Transaction timed out. The operation may still complete - check your wallet.'
+          userFriendlyMessage = 'Transaction timed out. The operation may still complete - check your wallet and blockchain explorer.'
+        } else if (error.message?.includes('failed to initiate')) {
+          userFriendlyMessage = 'Failed to initiate transaction. Please try again.'
         } else if (error.message) {
           userFriendlyMessage = error.message
         }
@@ -1169,15 +1191,20 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                 })
               }}
             >
-              {isMinting || isWritePending ? (
+              {isMinting && !isWritePending ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>{isWritePending ? 'Calling Smart Contract...' : 'Initiating Mint...'}</span>
+                  <span>Preparing Transaction...</span>
+                </>
+              ) : isWritePending ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Confirm in MetaMask...</span>
                 </>
               ) : isTxLoading ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>Confirming Transaction...</span>
+                  <span>Confirming on Blockchain...</span>
                 </>
               ) : isLoadingBalance ? (
                 <>
@@ -1283,14 +1310,27 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
 
       {mintStatus === 'pending' && (
         <div className="bg-card border rounded-xl p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
-          <div className="p-4 bg-yellow-100 dark:bg-yellow-900/20 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
-            <Loader2 className="h-10 w-10 text-yellow-600 animate-spin" />
+          <div className="p-4 bg-blue-100 dark:bg-blue-900/20 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
+            <Loader2 className="h-10 w-10 text-blue-600 animate-spin" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-xl font-semibold">Transaction Found</h2>
+            <h2 className="text-xl font-semibold">Transaction Submitted</h2>
             <p className="text-muted-foreground">
-              Your mint transaction is being processed on MegaETH...
+              Your mint transaction is being confirmed on MegaETH blockchain...
             </p>
+            {txHash && (
+              <div className="text-sm text-muted-foreground mt-4">
+                <p>Transaction Hash:</p>
+                <a
+                  href={`https://www.megaexplorer.xyz/tx/${txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-primary hover:text-primary/80 underline transition-colors break-all"
+                >
+                  {txHash}
+                </a>
+              </div>
+            )}
           </div>
         </div>
       )}
