@@ -202,15 +202,18 @@ export async function requestOracleSync(userAddress: string): Promise<void> {
   try {
     console.log('🔄 Requesting Oracle sync for user:', userAddress)
     
-    const response = await fetch(`${ORACLE_API_BASE}/users/${userAddress}/sync`, {
+    // Use correct Oracle API endpoint for user-specific sync
+    const response = await fetch(`${ORACLE_API_BASE}/sync`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'ReserveBTC-Frontend/1.0'
       },
       body: JSON.stringify({
+        userAddress: userAddress,
         force_sync: true,
-        source: 'frontend_request'
+        scan_recent_blocks: true,
+        source: 'frontend_automatic'
       })
     })
 
