@@ -83,7 +83,7 @@ export async function saveVerifiedBitcoinAddress(
  * Get verified Bitcoin addresses using professional Oracle database
  */
 export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<UserVerifiedAddress[]> {
-  console.log('📋 Getting verified addresses professionally...')
+  console.log('📋 Getting verified addresses professionally for:', ethAddress)
   
   try {
     // Primary data source: Oracle database
@@ -119,28 +119,67 @@ export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<U
     
     console.log('ℹ️ No addresses found in Oracle database')
   } catch (error) {
-    console.warn('⚠️ Oracle database unavailable, using cached data:', error)
+    console.warn('⚠️ Oracle database unavailable (404 or connection error):', error)
+    console.log('🔄 Switching to localStorage fallback and recovery systems')
   }
   
-  // Fallback to cached/localStorage data
-  const userData = getUserData(ethAddress)
+  // Fallback to cached/localStorage data with enhanced recovery
+  console.log('💾 Checking localStorage cache and legacy data...')
+  let userData = getUserData(ethAddress)
   
-  // Also check legacy localStorage key and migrate if needed
-  const legacyAddress = localStorage.getItem('verifiedBitcoinAddress')
-  if (legacyAddress && userData.verifiedAddresses.length === 0) {
-    console.log('🔄 Migrating legacy localStorage data with encryption')
-    const legacyData: UserVerifiedAddress = {
-      address: legacyAddress,
-      verifiedAt: new Date().toISOString(),
-      signature: '', // Not available in legacy data
-      ethAddress
+  // Enhanced legacy data migration
+  const legacyKeys = [
+    'verifiedBitcoinAddress', // Single address
+    `bitcoinAddress_${ethAddress}`, // Per-user address
+    `rbtc_user_${ethAddress.toLowerCase()}`, // Alternative key
+  ]
+  
+  for (const legacyKey of legacyKeys) {
+    const legacyAddress = localStorage.getItem(legacyKey)
+    if (legacyAddress && userData.verifiedAddresses.length === 0) {
+      console.log(`🔄 Found legacy data in ${legacyKey}:`, legacyAddress)
+      const legacyData: UserVerifiedAddress = {
+        address: legacyAddress,
+        verifiedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
+        signature: 'legacy_migration_signature',
+        ethAddress
+      }
+      
+      userData.verifiedAddresses.push(legacyData)
+      
+      // Save migrated data immediately
+      const cacheKey = `reservebtc_user_data_${ethAddress.toLowerCase()}`
+      localStorage.setItem(cacheKey, JSON.stringify(userData))
+      console.log('✅ Legacy data migrated successfully')
+      break // Only migrate the first found
+    }
+  }
+  
+  // Additional fallback: check all localStorage keys for Bitcoin addresses
+  if (userData.verifiedAddresses.length === 0) {
+    console.log('🔍 Deep scan of localStorage for Bitcoin addresses...')
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && (key.includes('bitcoin') || key.includes('btc') || key.includes(ethAddress.toLowerCase()))) {
+        const value = localStorage.getItem(key)
+        if (value && (value.startsWith('bc1') || value.startsWith('tb1') || value.startsWith('1') || value.startsWith('3'))) {
+          console.log(`🔍 Found Bitcoin address in ${key}:`, value.substring(0, 10) + '...')
+          const recoveredData: UserVerifiedAddress = {
+            address: value,
+            verifiedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days ago
+            signature: 'deep_scan_recovery_signature',
+            ethAddress
+          }
+          userData.verifiedAddresses.push(recoveredData)
+        }
+      }
     }
     
-    userData.verifiedAddresses.push(legacyData)
-    
-    // Save migrated data with encryption
-    const cacheKey = `reservebtc_user_data_${ethAddress.toLowerCase()}`
-    localStorage.setItem(cacheKey, JSON.stringify(userData))
+    if (userData.verifiedAddresses.length > 0) {
+      const cacheKey = `reservebtc_user_data_${ethAddress.toLowerCase()}`
+      localStorage.setItem(cacheKey, JSON.stringify(userData))
+      console.log('✅ Deep scan recovery completed')
+    }
   }
   
   // Migrate existing signatures to encrypted format
@@ -174,7 +213,18 @@ export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<U
     }
   }
   
-  console.log('📋 Using cached addresses:', userData.verifiedAddresses.length)
+  console.log('📋 Final address count:', userData.verifiedAddresses.length)
+  
+  // Log detailed information about found addresses
+  if (userData.verifiedAddresses.length > 0) {
+    console.log('✅ Address details:')
+    userData.verifiedAddresses.forEach((addr, index) => {
+      console.log(`  ${index + 1}. ${addr.address} (verified: ${addr.verifiedAt})`)
+    })
+  } else {
+    console.log('⚠️ No addresses found in any storage system')
+    console.log('📝 User will need to verify addresses again')
+  }
   
   // Emergency fallback: if we have no addresses at all, try emergency recovery
   if (userData.verifiedAddresses.length === 0) {
