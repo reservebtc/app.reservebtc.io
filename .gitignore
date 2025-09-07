@@ -234,6 +234,8 @@ debug-user-*.js
 user-data-diagnostic-*.js
 data-recovery-*.js
 check-real-transactions.js
+debug-user-mint-issue.js
+test-oracle-endpoints.js
 
 # wrBTC functionality test scripts - PRIVATE INTERNAL USE ONLY
 test-wrap-functionality.js
