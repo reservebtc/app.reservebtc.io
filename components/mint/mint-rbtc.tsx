@@ -585,7 +585,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                     <div className="text-blue-600 dark:text-blue-400 text-xl flex-shrink-0">🔐</div>
                     <div className="space-y-3 flex-1">
                       <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">
-                        Quantum-Safe Protocol: Address Balance Empty
+                        Quantum-Safe Protocol
                       </p>
                       <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
                         <strong>Important:</strong> This address has made an outgoing transaction, exposing its public key on the blockchain. 
