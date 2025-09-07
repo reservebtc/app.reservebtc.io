@@ -41,8 +41,8 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const publicClient = usePublicClient()
   
   // Token Contract Addresses
-  const RBTC_TOKEN_ADDRESS = '0xF1C8B589005F729bfd2a722e5B171e4e0F9aCBcB' // rBTC-SYNTH (soulbound)
-  const WRBTC_TOKEN_ADDRESS = '0xa10FC332f12d102Dddf431F8136E4E89279EFF87' // wrBTC (transferable)
+  const RBTC_TOKEN_ADDRESS = CONTRACTS.RBTC_SYNTH // rBTC-SYNTH (soulbound)
+  const WRBTC_TOKEN_ADDRESS = CONTRACTS.VAULT_WRBTC // wrBTC (transferable)
 
   const {
     register,
