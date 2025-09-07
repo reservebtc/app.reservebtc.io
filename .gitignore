@@ -248,3 +248,4 @@ debug-transaction-history.js
 test-multi-address-aggregation.js
 test-complete-client-card-system.js
 debug-user-data-loading.js
+check-user-card.js
