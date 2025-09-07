@@ -23,8 +23,10 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isMinting, setIsMinting] = useState(false)
-  const [mintStatus, setMintStatus] = useState<'idle' | 'pending' | 'success' | 'error' | 'already-syncing'>('idle')
+  const [mintStatus, setMintStatus] = useState<'idle' | 'pending' | 'success' | 'error' | 'already-syncing' | 'retry'>('idle')
   const [txHash, setTxHash] = useState<string>('')
+  const [errorMessage, setErrorMessage] = useState<string>('')
+  const [retryAttempt, setRetryAttempt] = useState<number>(0)
   const [verifiedBitcoinAddress, setVerifiedBitcoinAddress] = useState<string>('')
   const [allVerifiedAddresses, setAllVerifiedAddresses] = useState<{address: string, verifiedAt: string}[]>([])
   const [bitcoinBalance, setBitcoinBalance] = useState<number>(0)
@@ -448,114 +450,195 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         console.warn('⚠️ Failed to trigger Oracle sync:', error)
       }
       
-      // STEP 3: Call actual Oracle Aggregator sync function to mint rBTC tokens
-      console.log('⚙️ Step 3: Calling Oracle Aggregator sync for REAL mint operation...')
+      // STEP 3: Use proper Oracle Fee Vault flow - registerAndPrepay function
+      console.log('⚙️ Step 3: Using Oracle Fee Vault registerAndPrepay for proper mint operation...')
       
       let actualTxHash = ''
+      let transactionSuccessful = false
+      
       try {
         // Get the current Bitcoin balance in satoshis for this address
         const balanceInSats = Math.round(bitcoinBalance * 100_000_000)
         
-        // Create proof data - in testnet we use simplified proof
-        const proofData = '0x' + Buffer.from(`testnet_proof_${address}_${data.bitcoinAddress}_${balanceInSats}`).toString('hex')
+        // Create proof checksum - simplified for testnet
+        const checksumData = `${address}_${data.bitcoinAddress}_${balanceInSats}`
+        const checksum = '0x' + Buffer.from(checksumData).toString('hex').substring(0, 64).padEnd(64, '0')
         
-        console.log('📡 Calling REAL OracleAggregator.sync with:', {
+        console.log('📡 Calling registerAndPrepay with:', {
           user: address,
-          newBalanceSats: balanceInSats,
-          proof: proofData
+          method: 1, // BIP-322 method
+          checksum: checksum,
+          value: '0.001' // Small prepay amount for fees
         })
         
-        // CALL REAL SMART CONTRACT - Oracle Aggregator sync function
-        console.log('🚀 CALLING REAL SMART CONTRACT MINT...')
+        // CALL PROPER ORACLE FUNCTION - registerAndPrepay
+        console.log('🚀 CALLING registerAndPrepay FUNCTION...')
         
         try {
-          // Call the real Oracle Aggregator sync function
-          await writeContract({
+          // Use the correct Oracle function that accepts user registration and prepayment
+          const txPromise = writeContract({
             address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
             abi: [
               {
-                name: 'sync',
+                name: 'registerAndPrepay',
                 type: 'function',
-                stateMutability: 'nonpayable',
+                stateMutability: 'payable',
                 inputs: [
                   { name: 'user', type: 'address' },
-                  { name: 'newBalanceSats', type: 'uint64' },
-                  { name: 'proof', type: 'bytes' }
+                  { name: 'method', type: 'uint8' },
+                  { name: 'checksum', type: 'bytes32' }
                 ],
                 outputs: []
               }
             ],
-            functionName: 'sync',
+            functionName: 'registerAndPrepay',
             args: [
               address as `0x${string}`,
-              BigInt(balanceInSats),
-              proofData as `0x${string}`
-            ]
+              1, // method: BIP-322
+              checksum as `0x${string}`
+            ],
+            value: parseEther('0.001') // Send 0.001 ETH as prepayment
           })
           
-          console.log('✅ Real smart contract call initiated!')
+          console.log('⏳ Waiting for transaction result...')
           
-          // Wait for transaction to be included in a block
+          // Wait for writeContract to complete
+          await txPromise
+          
           if (writeData) {
-            console.log('⏳ Waiting for transaction confirmation...')
             actualTxHash = writeData
             setTxHash(actualTxHash)
+            console.log('📝 Transaction hash obtained:', actualTxHash)
             
-            // Wait for confirmation
-            await new Promise(resolve => setTimeout(resolve, 3000))
+            // Wait for transaction receipt with proper error handling
+            console.log('⏳ Waiting for transaction confirmation...')
+            let attempts = 0
+            const maxAttempts = 10
             
-            if (transactionReceipt) {
-              console.log('✅ Transaction confirmed!', transactionReceipt)
+            while (attempts < maxAttempts && !transactionReceipt) {
+              await new Promise(resolve => setTimeout(resolve, 2000))
+              attempts++
+              console.log(`⏳ Confirmation attempt ${attempts}/${maxAttempts}...`)
             }
+            
+            // Check transaction receipt status
+            if (transactionReceipt) {
+              if (transactionReceipt.status === 'success') {
+                console.log('✅ Transaction confirmed successfully!', transactionReceipt)
+                transactionSuccessful = true
+              } else {
+                console.log('❌ Transaction failed on chain:', transactionReceipt)
+                throw new Error(`Transaction failed with status: ${transactionReceipt.status}`)
+              }
+            } else {
+              console.log('⚠️ No transaction receipt obtained, checking manually...')
+              
+              // Manual check via public client
+              if (publicClient) {
+                try {
+                  const receipt = await publicClient.waitForTransactionReceipt({ hash: actualTxHash as `0x${string}` })
+                  if (receipt.status === 'success') {
+                    console.log('✅ Manual check: Transaction successful!', receipt)
+                    transactionSuccessful = true
+                  } else {
+                    console.log('❌ Manual check: Transaction failed!', receipt)
+                    throw new Error(`Transaction failed with status: ${receipt.status}`)
+                  }
+                } catch (receiptError) {
+                  console.error('❌ Failed to get transaction receipt:', receiptError)
+                  throw new Error('Transaction status could not be verified')
+                }
+              } else {
+                throw new Error('Cannot verify transaction status - no public client available')
+              }
+            }
+          } else {
+            throw new Error('No transaction hash returned from writeContract')
           }
           
         } catch (contractError: any) {
           console.error('❌ Smart contract call failed:', contractError)
           
-          if (contractError.message?.includes('Restricted')) {
-            console.log('⚠️ Only Oracle committee can call sync()')
-            console.log('🔄 Falling back to Oracle server notification...')
+          // Check if it's a restriction error (only committee can call)
+          if (contractError.message?.includes('Restricted') || contractError.message?.includes('only committee')) {
+            console.log('⚠️ Function is committee-restricted, using Oracle server notification...')
             
-            // Fallback: notify Oracle server to perform sync
-            await fetch('https://oracle.reservebtc.io/api/notify-mint', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                userAddress: address,
-                bitcoinAddress: data.bitcoinAddress,
-                balanceSats: balanceInSats,
-                action: 'mint_request'
+            // Fallback: notify Oracle server to perform the operation
+            try {
+              const response = await fetch('https://oracle.reservebtc.io/api/notify-mint', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userAddress: address,
+                  bitcoinAddress: data.bitcoinAddress,
+                  balanceSats: balanceInSats,
+                  action: 'register_and_mint',
+                  checksum: checksumData
+                })
               })
-            }).then(response => {
+              
               if (response.ok) {
-                console.log('✅ Oracle server notified successfully')
+                const result = await response.json()
+                console.log('✅ Oracle server registered user successfully:', result)
+                
+                if (result.txHash) {
+                  actualTxHash = result.txHash
+                  setTxHash(actualTxHash)
+                  transactionSuccessful = true
+                }
               } else {
-                console.log('❌ Oracle server notification failed')
+                console.log('❌ Oracle server registration failed')
+                throw new Error('Oracle server registration failed')
               }
-            }).catch(err => {
-              console.log('❌ Oracle server unreachable:', err.message)
-            })
-            
-            // Generate mock tx hash for UI feedback
-            actualTxHash = `0x${Math.random().toString(16).substring(2, 18)}${Date.now().toString(16)}`
-            setTxHash(actualTxHash)
+            } catch (serverError) {
+              console.log('❌ Oracle server unreachable:', serverError)
+              throw new Error('Cannot complete registration - Oracle server unavailable')
+            }
           } else {
+            // Re-throw other contract errors
             throw contractError
           }
         }
         
-      } catch (error) {
+      } catch (error: any) {
         console.error('❌ Mint operation failed:', error)
-        // Continue with fallback for user experience
-        actualTxHash = `0x${Math.random().toString(16).substring(2, 18)}${Date.now().toString(16)}`
-        setTxHash(actualTxHash)
+        
+        // Provide specific error message based on error type
+        let userFriendlyMessage = 'Unknown error occurred'
+        
+        if (error.message?.includes('insufficient funds')) {
+          userFriendlyMessage = 'Insufficient ETH for gas fees. Please add more ETH to your wallet.'
+        } else if (error.message?.includes('user rejected')) {
+          userFriendlyMessage = 'Transaction was cancelled by user.'
+        } else if (error.message?.includes('Oracle server')) {
+          userFriendlyMessage = 'Oracle server is temporarily unavailable. Please try again in a few minutes.'
+        } else if (error.message?.includes('network')) {
+          userFriendlyMessage = 'Network connection issue. Please check your internet connection.'
+        } else if (error.message?.includes('timeout')) {
+          userFriendlyMessage = 'Transaction timed out. The operation may still complete - check your wallet.'
+        } else if (error.message) {
+          userFriendlyMessage = error.message
+        }
+        
+        setErrorMessage(userFriendlyMessage)
+        setMintStatus('error')
+        setIsMinting(false)
+        return // Exit early on failure
+      }
+      
+      // Only proceed if transaction was successful
+      if (!transactionSuccessful) {
+        console.error('❌ Transaction was not successful, not proceeding with post-mint actions')
+        setMintStatus('error')
+        setIsMinting(false)
+        return
       }
       
       // STEP 4: Wait for blockchain confirmation
-      console.log('⏳ Waiting for blockchain confirmation...')
+      console.log('⏳ Step 4: Waiting for additional blockchain confirmation...')
       await new Promise(resolve => setTimeout(resolve, 2000))
       
-      // STEP 5: Force Oracle sync after mint to ensure user appears in database
+      // STEP 5: Force Oracle sync after successful mint
       console.log('🔄 Step 5: Post-mint Oracle sync...')
       try {
         // Wait a bit for Oracle to process
@@ -566,6 +649,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         console.warn('⚠️ Post-mint Oracle sync failed:', error)
       }
       
+      // Only set success if transaction was actually successful
       setMintStatus('success')
       onMintComplete?.(data)
       
@@ -594,8 +678,16 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       // 2. Call sync() function on OracleAggregator
       // 3. Mint/burn rBTC tokens accordingly
       // 4. Deduct fees from FeeVault
-    } catch (error) {
+    } catch (error: any) {
       console.error('Mint initiation failed:', error)
+      
+      // Set user-friendly error message
+      let errorMsg = 'Failed to initiate mint operation'
+      if (error.message) {
+        errorMsg = error.message
+      }
+      
+      setErrorMessage(errorMsg)
       setMintStatus('error')
     } finally {
       setIsMinting(false)
@@ -1228,15 +1320,17 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             )}
           </div>
           <div className="mt-4 flex gap-3 justify-center">
-            <a
-              href={`https://megaexplorer.xyz/tx/${txHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-sm font-medium transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
-            >
-              <ExternalLink className="h-4 w-4" />
-              View on Explorer
-            </a>
+            {txHash && (
+              <a
+                href={`https://www.megaexplorer.xyz/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-sm font-medium transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+              >
+                <ExternalLink className="h-4 w-4" />
+                View on Explorer
+              </a>
+            )}
           </div>
           
           {/* Next Steps Instructions */}
@@ -1521,25 +1615,90 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       )}
 
       {mintStatus === 'error' && (
-        <div className="bg-card border rounded-xl p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
-          <div className="p-4 bg-red-100 dark:bg-red-900/20 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
-            <AlertCircle className="h-10 w-10 text-red-600" />
+        <div className="bg-card border rounded-xl p-8 space-y-6 animate-in fade-in zoom-in-95 duration-300">
+          <div className="text-center space-y-6">
+            <div className="p-4 bg-red-100 dark:bg-red-900/20 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
+              <AlertCircle className="h-10 w-10 text-red-600" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-semibold">Mint Failed</h2>
+              <p className="text-muted-foreground">
+                {errorMessage || 'There was an error processing your mint transaction.'}
+              </p>
+            </div>
           </div>
-          <div className="space-y-2">
-            <h2 className="text-xl font-semibold">Mint Failed</h2>
-            <p className="text-muted-foreground">
-              There was an error processing your mint transaction. Please try again.
+          
+          {/* Error Details and Solutions */}
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-left space-y-4">
+            <h3 className="font-semibold text-red-900 dark:text-red-100">Possible Solutions:</h3>
+            <ul className="text-sm text-red-800 dark:text-red-200 space-y-2 list-disc list-inside">
+              <li>Check your wallet has enough ETH for gas fees (~0.002 ETH)</li>
+              <li>Ensure your FeeVault has sufficient balance (minimum 0.01 ETH)</li>
+              <li>Verify your Bitcoin address is correct and contains Bitcoin</li>
+              <li>Try refreshing the page and connecting wallet again</li>
+              <li>Check MegaETH network status at megaexplorer.xyz</li>
+            </ul>
+            
+            {/* Retry mechanism */}
+            <div className="bg-white/60 dark:bg-gray-900/60 rounded-lg p-3">
+              <p className="text-sm font-medium text-red-900 dark:text-red-100 mb-2">
+                Need Help? Try These Steps:
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  onClick={() => {
+                    // Reset and go back to FeeVault
+                    setMintStatus('idle')
+                    setTxHash('')
+                    setErrorMessage('')
+                    setRetryAttempt(0)
+                    const feeVaultElement = document.querySelector('#fee-vault-section')
+                    if (feeVaultElement) {
+                      feeVaultElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    }
+                  }}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  Check FeeVault Balance
+                </button>
+                <button
+                  onClick={() => {
+                    setMintStatus('idle')
+                    setTxHash('')
+                    setErrorMessage('')
+                    setRetryAttempt(prev => prev + 1)
+                  }}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  Try Again {retryAttempt > 0 ? `(Attempt ${retryAttempt + 1})` : ''}
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Contact Support */}
+          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 text-center">
+            <p className="text-sm text-muted-foreground mb-2">
+              Still having issues? Get help:
             </p>
+            <div className="flex justify-center gap-3">
+              <a
+                href="mailto:reservebtcproof@gmail.com"
+                className="text-sm text-primary hover:text-primary/80 underline"
+              >
+                Email Support
+              </a>
+              <span className="text-muted-foreground">•</span>
+              <a
+                href="https://chatgpt.com/g/g-68a3e198b3348191bf4be2ce6e06ba0b-reservebtc-agent-support-docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary hover:text-primary/80 underline"
+              >
+                AI Assistant
+              </a>
+            </div>
           </div>
-          <button
-            onClick={() => {
-              setMintStatus('idle')
-              setTxHash('')
-            }}
-            className="px-6 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-lg transition-colors"
-          >
-            Try Again
-          </button>
         </div>
       )}
 
