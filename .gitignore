@@ -239,3 +239,9 @@ check-real-transactions.js
 test-wrap-functionality.js
 test-wrap-*.js
 wrap-functionality-*.js
+
+# New address tracking and debugging scripts - PRIVATE INTERNAL USE ONLY  
+test-new-address-tracking.js
+debug-dashboard-issues.js
+test-dashboard-*.js
+debug-transaction-history.js
