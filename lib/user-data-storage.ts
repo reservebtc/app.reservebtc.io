@@ -125,7 +125,7 @@ export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<U
   
   // Fallback to cached/localStorage data with enhanced recovery
   console.log('💾 Checking localStorage cache and legacy data...')
-  let userData = getUserData(ethAddress)
+  const userData = getUserData(ethAddress)
   
   // Enhanced legacy data migration
   const legacyKeys = [
@@ -195,7 +195,7 @@ export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<U
               console.log('🔒 Migrated signature to encrypted format for address:', addr.address.substring(0, 10) + '...')
             }
             return { ...addr, signature: migratedSignature }
-          } catch (error) {
+          } catch {
             console.warn('⚠️ Failed to migrate signature for address:', addr.address.substring(0, 10) + '...')
             return addr
           }
