@@ -147,7 +147,7 @@ export function DashboardContent() {
   })
 
   // State for aggregated data from all user Bitcoin addresses
-  const [aggregatedBalance, setAggregatedBalance] = useState<bigint>(0n)
+  const [aggregatedBalance, setAggregatedBalance] = useState<bigint>(BigInt(0))
   const [isLoadingAggregatedData, setIsLoadingAggregatedData] = useState(false)
 
   // Read wrBTC balance
@@ -296,7 +296,7 @@ export function DashboardContent() {
       console.log(`💰 Total Bitcoin balance aggregated: ${totalBitcoinBalance} BTC`)
       
       // Also get Oracle aggregated balance for rBTC-SYNTH tokens
-      let oracleBalanceSats = 0n
+      let oracleBalanceSats = BigInt(0)
       try {
         const oracleBalance = await publicClient?.readContract({
           address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
