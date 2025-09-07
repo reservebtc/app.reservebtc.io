@@ -245,3 +245,4 @@ test-new-address-tracking.js
 debug-dashboard-issues.js
 test-dashboard-*.js
 debug-transaction-history.js
+test-multi-address-aggregation.js

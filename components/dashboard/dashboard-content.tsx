@@ -83,59 +83,11 @@ export function DashboardContent() {
     }
   }, [isConnected, router])
 
-  // Load verified addresses from centralized storage and fetch real Bitcoin balance
+  // Load aggregated data from all user Bitcoin addresses
   useEffect(() => {
-    const loadBitcoinBalance = async () => {
-      if (!address || !publicClient) return
-      
-      try {
-        // Get verified addresses from centralized storage
-        const verifiedAddrs = await getVerifiedBitcoinAddresses(address)
-        console.log('📋 Retrieved verified addresses from centralized storage:', verifiedAddrs)
-        
-        if (verifiedAddrs.length === 0) {
-          console.log('⚠️ No verified Bitcoin addresses found')
-          setVerifiedAddresses([])
-          return
-        }
-        
-        // Get Bitcoin balance from Oracle Aggregator for the first address
-        const firstAddress = verifiedAddrs[0]
-        const lastSats = await publicClient.readContract({
-          address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
-          abi: [
-            {
-              name: 'lastSats',
-              type: 'function',
-              stateMutability: 'view',
-              inputs: [{ name: 'user', type: 'address' }],
-              outputs: [{ name: '', type: 'uint64' }]
-            }
-          ],
-          functionName: 'lastSats',
-          args: [address]
-        })
-        
-        const bitcoinBalance = Number(lastSats) / 100000000 // Convert sats to BTC
-        console.log('₿ Bitcoin balance from Oracle:', bitcoinBalance)
-        
-        // Update addresses with current balance
-        const updatedAddresses = verifiedAddrs.map(addr => ({
-          address: addr.address,
-          verifiedAt: addr.verifiedAt,
-          balance: bitcoinBalance
-        }))
-        
-        setVerifiedAddresses(updatedAddresses)
-      } catch (error) {
-        console.error('❌ Error loading Bitcoin addresses and balance:', error)
-        // Set empty array if no addresses found
-        setVerifiedAddresses([])
-      }
-    }
-
     if (address) {
-      loadBitcoinBalance()
+      // Load aggregated data instead of single address data
+      loadAggregatedUserData()
       
       // Clear old transaction cache since we deployed new atomic contracts
       const cacheKey = `rbtc_transactions_${address}`
@@ -150,9 +102,6 @@ export function DashboardContent() {
           localStorage.removeItem(cacheKey)
         }
       }
-      
-      // Load transaction history from API
-      loadTransactions()
       
       setIsLoadingData(false)
     }
@@ -181,7 +130,7 @@ export function DashboardContent() {
     }
   }, [currentBlockNumber, address, autoRefreshEnabled, isLoadingTransactions])
 
-  // Read rBTC-SYNTH balance
+  // Read rBTC-SYNTH balance - aggregated from Oracle (should reflect all user Bitcoin addresses)
   const { data: rbtcBalance } = useReadContract({
     address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
     abi: [
@@ -196,6 +145,10 @@ export function DashboardContent() {
     functionName: 'balanceOf',
     args: address ? [address] : undefined
   })
+
+  // State for aggregated data from all user Bitcoin addresses
+  const [aggregatedBalance, setAggregatedBalance] = useState<bigint>(0n)
+  const [isLoadingAggregatedData, setIsLoadingAggregatedData] = useState(false)
 
   // Read wrBTC balance
 
@@ -289,6 +242,122 @@ export function DashboardContent() {
     }
   }
 
+
+  // Load aggregated balance and transactions from all user Bitcoin addresses
+  const loadAggregatedUserData = async () => {
+    if (!address) return
+
+    setIsLoadingAggregatedData(true)
+    setSyncStatus('📊 Loading aggregated data from all Bitcoin addresses...')
+
+    try {
+      // Get all verified Bitcoin addresses for this user
+      const verifiedAddresses = await getVerifiedBitcoinAddresses(address)
+      console.log(`📍 Found ${verifiedAddresses.length} verified Bitcoin addresses for user`)
+
+      if (verifiedAddresses.length === 0) {
+        console.log('⚠️ No verified Bitcoin addresses found')
+        setIsLoadingAggregatedData(false)
+        return
+      }
+
+      // Get Bitcoin balances from all verified addresses and aggregate with Oracle
+      let totalBitcoinBalance = 0
+      const updatedAddresses = []
+      
+      for (const verifiedAddr of verifiedAddresses) {
+        try {
+          // Get real Bitcoin balance from Blockstream API for each address
+          const response = await fetch(`https://blockstream.info/testnet/api/address/${verifiedAddr.address}`)
+          if (response.ok) {
+            const data = await response.json()
+            const balance = (data.chain_stats?.funded_txo_sum - data.chain_stats?.spent_txo_sum) / 100000000
+            totalBitcoinBalance += balance
+            
+            updatedAddresses.push({
+              address: verifiedAddr.address,
+              verifiedAt: verifiedAddr.verifiedAt,
+              balance: balance
+            })
+            
+            console.log(`📍 ${verifiedAddr.address}: ${balance} BTC`)
+          }
+        } catch (error) {
+          console.log(`❌ Error fetching balance for ${verifiedAddr.address}:`, error)
+          updatedAddresses.push({
+            address: verifiedAddr.address,
+            verifiedAt: verifiedAddr.verifiedAt,
+            balance: 0
+          })
+        }
+      }
+      
+      setVerifiedAddresses(updatedAddresses)
+      console.log(`💰 Total Bitcoin balance aggregated: ${totalBitcoinBalance} BTC`)
+      
+      // Also get Oracle aggregated balance for rBTC-SYNTH tokens
+      let oracleBalanceSats = 0n
+      try {
+        const oracleBalance = await publicClient?.readContract({
+          address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
+          abi: [{
+            name: 'lastSats',
+            type: 'function', 
+            stateMutability: 'view',
+            inputs: [{ name: 'user', type: 'address' }],
+            outputs: [{ name: '', type: 'uint256' }]
+          }],
+          functionName: 'lastSats',
+          args: [address]
+        })
+
+        if (oracleBalance) {
+          oracleBalanceSats = oracleBalance
+          console.log(`💰 Oracle aggregated balance: ${oracleBalance} sats (${Number(oracleBalance) / 100000000} BTC)`)
+        }
+      } catch (error) {
+        console.error('❌ Failed to get aggregated balance from Oracle:', error)
+      }
+
+      setAggregatedBalance(oracleBalanceSats)
+
+      // Load aggregated transaction history from all Bitcoin addresses
+      await loadTransactionsFromAllAddresses(verifiedAddresses)
+
+    } catch (error) {
+      console.error('❌ Failed to load aggregated user data:', error)
+      setSyncStatus('❌ Failed to load aggregated data')
+    } finally {
+      setIsLoadingAggregatedData(false)
+    }
+  }
+
+  const loadTransactionsFromAllAddresses = async (verifiedAddresses: any[]) => {
+    console.log('📚 Loading transaction history from all user Bitcoin addresses...')
+    
+    // Try Oracle API first for aggregated transaction history
+    try {
+      const oracleTransactions = await getUserTransactionHistory(address!, false)
+      
+      if (oracleTransactions.length > 0) {
+        console.log(`✅ Retrieved ${oracleTransactions.length} aggregated transactions from Oracle`)
+        setTransactions(oracleTransactions)
+        setSyncStatus(`✅ Loaded ${oracleTransactions.length} transactions from all Bitcoin addresses`)
+        return
+      }
+    } catch (error) {
+      console.log('⚠️ Oracle aggregated transactions failed, trying fallback:', error)
+    }
+
+    // Fallback: Use existing loadTransactions method which handles blockchain scanning
+    console.log('🔄 Fallback: using comprehensive transaction loading...')
+    setSyncStatus(`🔍 Scanning all verified addresses for transactions...`)
+    
+    // Call the existing comprehensive transaction loader
+    await loadTransactions()
+    
+    setSyncStatus(`✅ Transaction scan completed for ${verifiedAddresses.length} Bitcoin addresses`)
+  }
 
   const loadTransactions = async () => {
     if (!address) return
@@ -723,21 +792,23 @@ export function DashboardContent() {
           <p className="text-xs text-muted-foreground">Transferable</p>
         </div>
 
-        {/* Bitcoin Balance */}
+        {/* Aggregated Bitcoin Balance */}
         <div className="bg-card border rounded-xl p-6 space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">Bitcoin Balance</p>
+            <p className="text-sm text-muted-foreground">Total Bitcoin Balance</p>
             <div className="p-2 bg-yellow-500/10 rounded-lg">
               <Bitcoin className="h-4 w-4 text-yellow-500" />
             </div>
           </div>
           <p className="text-2xl font-bold">
-            {verifiedAddresses.length > 0 && verifiedAddresses[0].balance 
-              ? `${verifiedAddresses[0].balance.toFixed(8)} BTC`
+            {verifiedAddresses.length > 0 
+              ? `${verifiedAddresses.reduce((sum, addr) => sum + (addr.balance || 0), 0).toFixed(8)} BTC`
               : '0.00000000 BTC'
             }
           </p>
-          <p className="text-xs text-muted-foreground">On Bitcoin Network</p>
+          <p className="text-xs text-muted-foreground">
+            From {verifiedAddresses.length} address{verifiedAddresses.length !== 1 ? 'es' : ''}
+          </p>
         </div>
 
         {/* Total Transactions */}
@@ -929,6 +1000,12 @@ export function DashboardContent() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold">Transaction History</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {verifiedAddresses.length > 1 
+                ? `Showing transactions from all ${verifiedAddresses.length} verified Bitcoin addresses`
+                : 'Showing transactions from your verified Bitcoin address'
+              }
+            </p>
             {syncStatus && (
               <p className="text-xs text-muted-foreground mt-1">{syncStatus}</p>
             )}
@@ -942,7 +1019,7 @@ export function DashboardContent() {
                 <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />
                   <p className="text-xs text-blue-700 dark:text-blue-300">
-                    Scanning blockchain for transactions...
+                    Scanning blockchain for transactions from all verified addresses...
                   </p>
                 </div>
                 
@@ -956,12 +1033,13 @@ export function DashboardContent() {
                       // Determine process status based on user's current state
                       const hasVerifiedAddress = verifiedAddresses.length > 0
                       const hasBitcoinBalance = verifiedAddresses.some(addr => (addr.balance || 0) > 0)
+                      const totalBitcoinBalance = verifiedAddresses.reduce((sum, addr) => sum + (addr.balance || 0), 0)
                       const hasRBTCTokens = rbtcBalance && Number(rbtcBalance) > 0
                       const hasTransactions = transactions.length > 0
                       
                       const steps = [
                         {
-                          label: "Send Bitcoin to your verified address",
+                          label: `Send Bitcoin to any of your ${verifiedAddresses.length > 1 ? verifiedAddresses.length + ' ' : ''}verified address${verifiedAddresses.length > 1 ? 'es' : ''}`,
                           completed: hasVerifiedAddress && hasBitcoinBalance,
                           inProgress: hasVerifiedAddress && !hasBitcoinBalance
                         },
@@ -981,7 +1059,7 @@ export function DashboardContent() {
                           inProgress: hasBitcoinBalance && !hasRBTCTokens
                         },
                         {
-                          label: "rBTC-SYNTH tokens minted to your wallet",
+                          label: `rBTC-SYNTH tokens minted (${totalBitcoinBalance.toFixed(8)} BTC total)`,
                           completed: hasRBTCTokens,
                           inProgress: hasTransactions && !hasRBTCTokens
                         }
