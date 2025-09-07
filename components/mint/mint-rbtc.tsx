@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowRight, ArrowLeft, AlertCircle, Loader2, CheckCircle, Info, Bitcoin, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Copy, Wallet, Shield, Check } from 'lucide-react'
+import { ArrowRight, ArrowLeft, AlertCircle, Loader2, CheckCircle, Info, Bitcoin, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Copy, Wallet, Shield, Check, ArrowUpRight } from 'lucide-react'
 import { mintFormSchema, MintForm } from '@/lib/validation-schemas'
 import { validateBitcoinAddress, getBitcoinAddressTypeLabel } from '@/lib/bitcoin-validation'
 import { useAccount, usePublicClient } from 'wagmi'
@@ -1089,18 +1089,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               <ExternalLink className="h-4 w-4" />
               View on Explorer
             </a>
-            <button
-              onClick={() => {
-                setMintStatus('idle')
-                setTxHash('')
-                // Reset form for next mint
-                setAcceptedTerms(false)
-                setShowFeeVaultWarning(false)
-              }}
-              className="px-4 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors"
-            >
-              Mint More
-            </button>
           </div>
           
           {/* Next Steps Instructions */}
@@ -1243,6 +1231,24 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                   </div>
                 </div>
               </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+              <a
+                href="https://app.reservebtc.io/dashboard"
+                className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-6 py-3 text-sm font-medium transition-all hover:scale-105 active:scale-95"
+              >
+                <Wallet className="h-4 w-4" />
+                View Dashboard
+              </a>
+              <a
+                href="https://app.reservebtc.io/wrap"
+                className="inline-flex items-center justify-center gap-2 bg-green-600 text-white hover:bg-green-700 rounded-lg px-6 py-3 text-sm font-medium transition-all hover:scale-105 active:scale-95"
+              >
+                <ArrowUpRight className="h-4 w-4" />
+                Wrap to wrBTC
+              </a>
             </div>
           </div>
         </div>
