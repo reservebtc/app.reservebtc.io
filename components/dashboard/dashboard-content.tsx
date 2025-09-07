@@ -295,31 +295,69 @@ export function DashboardContent() {
       setVerifiedAddresses(updatedAddresses)
       console.log(`💰 Total Bitcoin balance aggregated: ${totalBitcoinBalance} BTC`)
       
-      // Also get Oracle aggregated balance for rBTC-SYNTH tokens
-      let oracleBalanceSats = BigInt(0)
+      // Get rBTC-SYNTH token balance with multiple fallbacks
+      let rbtcTokenBalance = BigInt(0)
+      
+      // Method 1: Direct rBTC-SYNTH contract balance (most reliable)
       try {
-        const oracleBalance = await publicClient?.readContract({
-          address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
+        const directBalance = await publicClient?.readContract({
+          address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
           abi: [{
-            name: 'lastSats',
-            type: 'function', 
-            stateMutability: 'view',
-            inputs: [{ name: 'user', type: 'address' }],
+            name: 'balanceOf',
+            type: 'function',
+            stateMutability: 'view', 
+            inputs: [{ name: 'account', type: 'address' }],
             outputs: [{ name: '', type: 'uint256' }]
           }],
-          functionName: 'lastSats',
+          functionName: 'balanceOf',
           args: [address]
         })
-
-        if (oracleBalance) {
-          oracleBalanceSats = oracleBalance
-          console.log(`💰 Oracle aggregated balance: ${oracleBalance} sats (${Number(oracleBalance) / 100000000} BTC)`)
+        
+        if (directBalance && directBalance > BigInt(0)) {
+          rbtcTokenBalance = directBalance
+          console.log(`✅ Direct rBTC-SYNTH balance: ${directBalance} tokens (${Number(directBalance) / 100000000} rBTC)`)
+        } else {
+          console.log('⚠️ Direct rBTC-SYNTH balance is 0 - checking Oracle fallback')
         }
       } catch (error) {
-        console.error('❌ Failed to get aggregated balance from Oracle:', error)
+        console.error('❌ Failed to get direct rBTC-SYNTH balance:', error)
+      }
+      
+      // Method 2: Oracle Aggregator as fallback (may be out of sync)
+      if (rbtcTokenBalance === BigInt(0)) {
+        try {
+          const oracleBalance = await publicClient?.readContract({
+            address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
+            abi: [{
+              name: 'lastSats',
+              type: 'function', 
+              stateMutability: 'view',
+              inputs: [{ name: 'user', type: 'address' }],
+              outputs: [{ name: '', type: 'uint256' }]
+            }],
+            functionName: 'lastSats',
+            args: [address]
+          })
+
+          if (oracleBalance && oracleBalance > BigInt(0)) {
+            rbtcTokenBalance = oracleBalance
+            console.log(`💰 Oracle aggregated balance: ${oracleBalance} sats (${Number(oracleBalance) / 100000000} BTC)`)
+          } else {
+            console.log('⚠️ Oracle balance also shows 0 - may need manual sync')
+          }
+        } catch (error) {
+          console.error('❌ Failed to get aggregated balance from Oracle:', error)
+        }
       }
 
-      setAggregatedBalance(oracleBalanceSats)
+      setAggregatedBalance(rbtcTokenBalance)
+      
+      // If we found rBTC tokens, log success
+      if (rbtcTokenBalance > BigInt(0)) {
+        console.log(`🎉 Found rBTC-SYNTH tokens: ${Number(rbtcTokenBalance) / 100000000} rBTC`)
+      } else {
+        console.log('⚠️ No rBTC-SYNTH tokens found - user may need to mint or sync may be required')
+      }
 
       // Load aggregated transaction history from all Bitcoin addresses
       await loadTransactionsFromAllAddresses(verifiedAddresses)
@@ -335,7 +373,11 @@ export function DashboardContent() {
   const loadTransactionsFromAllAddresses = async (verifiedAddresses: any[]) => {
     console.log('📚 Loading transaction history from all user Bitcoin addresses...')
     
-    // Try Oracle API first for aggregated transaction history
+    // Enhanced transaction loading with multiple methods
+    console.log('📊 Loading transactions with enhanced fallback system...')
+    
+    // Method 1: Try Oracle API first
+    let foundTransactions = false
     try {
       const oracleTransactions = await getUserTransactionHistory(address!, false)
       
@@ -343,20 +385,36 @@ export function DashboardContent() {
         console.log(`✅ Retrieved ${oracleTransactions.length} aggregated transactions from Oracle`)
         setTransactions(oracleTransactions)
         setSyncStatus(`✅ Loaded ${oracleTransactions.length} transactions from all Bitcoin addresses`)
+        foundTransactions = true
         return
+      } else {
+        console.log('ℹ️ Oracle returned empty transaction list - checking blockchain directly')
       }
     } catch (error) {
-      console.log('⚠️ Oracle aggregated transactions failed, trying fallback:', error)
+      console.log('⚠️ Oracle aggregated transactions failed:', error)
     }
-
-    // Fallback: Use existing loadTransactions method which handles blockchain scanning
-    console.log('🔄 Fallback: using comprehensive transaction loading...')
-    setSyncStatus(`🔍 Scanning all verified addresses for transactions...`)
     
-    // Call the existing comprehensive transaction loader
-    await loadTransactions()
-    
-    setSyncStatus(`✅ Transaction scan completed for ${verifiedAddresses.length} Bitcoin addresses`)
+    // Method 2: Force blockchain scanning if Oracle failed
+    if (!foundTransactions) {
+      console.log('🔄 Oracle failed - forcing comprehensive blockchain scan...')
+      setSyncStatus(`🔍 Oracle sync failed - scanning blockchain directly for transactions...`)
+      
+      // Clear any cached Oracle data and force fresh scan
+      const cacheKeys = [
+        `rbtc_oracle_transactions_${address!.toLowerCase()}`,
+        `rbtc_transactions_${address!}_v2_atomic`
+      ]
+      
+      cacheKeys.forEach(key => {
+        localStorage.removeItem(key)
+        console.log(`🗑️ Cleared cache: ${key}`)
+      })
+      
+      // Call comprehensive transaction loader with force refresh
+      await loadTransactions()
+      
+      setSyncStatus(`✅ Blockchain scan completed for ${verifiedAddresses.length} Bitcoin addresses`)
+    }
   }
 
   const loadTransactions = async () => {
@@ -1006,6 +1064,11 @@ export function DashboardContent() {
                 : 'Showing transactions from your verified Bitcoin address'
               }
             </p>
+            {rbtcBalance && Number(rbtcBalance) > 0 && transactions.length === 0 && (
+              <p className="text-xs text-amber-600 mt-1">
+                ⚠️ Found rBTC tokens but no transaction history - scanning blockchain...
+              </p>
+            )}
             {syncStatus && (
               <p className="text-xs text-muted-foreground mt-1">{syncStatus}</p>
             )}

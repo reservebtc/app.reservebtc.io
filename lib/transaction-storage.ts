@@ -63,8 +63,9 @@ export async function getUserTransactionHistory(
       force_refresh: forceRefresh.toString()
     })
     
+    // Oracle API uses /users endpoint that returns all user data
     const response = await fetch(
-      `${ORACLE_API_BASE}/users/${userAddress}/transactions?${queryParams}`,
+      `${ORACLE_API_BASE}/users`,
       {
         method: 'GET',
         headers: {
@@ -75,19 +76,46 @@ export async function getUserTransactionHistory(
     )
 
     if (response.ok) {
-      const data = await response.json()
-      console.log('✅ Oracle API transaction data received:', data)
+      const allUsersData = await response.json()
+      console.log('✅ Oracle API users data received')
       
-      // Cache the response locally for immediate UI updates
-      const cacheKey = `rbtc_oracle_transactions_${userAddress.toLowerCase()}`
-      localStorage.setItem(cacheKey, JSON.stringify({
-        transactions: data.transactions || [],
-        lastSyncedAt: Date.now(),
-        source: 'oracle_api',
-        version: '2.0'
-      }))
-      
-      return data.transactions || []
+      // Find this user's data
+      const userData = allUsersData[userAddress]
+      if (userData) {
+        console.log('✅ Found user data in Oracle:', userData)
+        
+        // Extract transactions from Oracle format
+        const transactions = []
+        if (userData.lastTxHash && userData.lastSyncedBalance) {
+          // Create synthetic transaction from Oracle data
+          transactions.push({
+            hash: userData.lastTxHash,
+            type: 'mint' as const,
+            amount: (userData.lastSyncedBalance / 100000000).toFixed(8),
+            timestamp: new Date(userData.lastSyncTime || userData.addedTime).toISOString(),
+            status: 'success' as const,
+            blockNumber: 0, // Oracle doesn't track block numbers
+            userAddress: userAddress,
+            bitcoinAddress: userData.btcAddress
+          })
+        }
+        
+        console.log(`✅ Processed ${transactions.length} transactions from Oracle`)
+        
+        // Cache the response locally for immediate UI updates
+        const cacheKey = `rbtc_oracle_transactions_${userAddress.toLowerCase()}`
+        localStorage.setItem(cacheKey, JSON.stringify({
+          transactions: transactions,
+          lastSyncedAt: Date.now(),
+          source: 'oracle_api',
+          version: '2.0'
+        }))
+        
+        return transactions
+      } else {
+        console.log('ℹ️ User not found in Oracle database:', userAddress)
+        return []
+      }
     } else if (response.status === 404) {
       console.log('ℹ️ User not found in Oracle database - new user')
       return []
@@ -206,7 +234,8 @@ export async function getVerifiedAddressesFromOracle(
   try {
     console.log('🔍 Fetching verified addresses from Oracle:', userAddress)
     
-    const response = await fetch(`${ORACLE_API_BASE}/users/${userAddress}/verified-addresses`, {
+    // Oracle API uses /users endpoint that returns all user data
+    const response = await fetch(`${ORACLE_API_BASE}/users`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -215,37 +244,29 @@ export async function getVerifiedAddressesFromOracle(
     })
 
     if (response.ok) {
-      const data = await response.json()
-      console.log('✅ Oracle verified addresses retrieved:', data.addresses?.length || 0)
+      const allUsersData = await response.json()
+      console.log('✅ Oracle users data received')
       
-      // Decrypt signatures automatically for backward compatibility
-      if (data.addresses && data.addresses.length > 0) {
-        const decryptedAddresses = await Promise.all(
-          data.addresses.map(async (addr: any) => {
-            try {
-              // Decrypt signature if it's encrypted
-              const decryptedSignature = await getDecryptedSignature(addr.signature, userAddress)
-              return {
-                address: addr.address,
-                verifiedAt: addr.verifiedAt,
-                signature: decryptedSignature
-              }
-            } catch (error) {
-              console.warn('⚠️ Failed to decrypt signature for address:', addr.address.substring(0, 10) + '...')
-              return {
-                address: addr.address,
-                verifiedAt: addr.verifiedAt,
-                signature: addr.signature // Return as-is if decryption fails
-              }
-            }
-          })
-        )
+      // Find this user's data
+      const userData = allUsersData[userAddress]
+      if (userData && userData.btcAddress) {
+        console.log('✅ Found verified address in Oracle:', userData.btcAddress)
         
-        console.log('🔓 Signatures decrypted for', decryptedAddresses.length, 'addresses')
-        return decryptedAddresses
+        // Create address array from Oracle format
+        const addresses = [{
+          address: userData.btcAddress,
+          verifiedAt: new Date(userData.addedTime).toISOString(),
+          signature: 'oracle_verified' // Oracle doesn't store signatures
+        }]
+        
+        console.log('✅ Oracle verified addresses retrieved:', addresses.length)
+        
+        // Process addresses (no signature decryption needed for Oracle data)
+        return addresses
+      } else {
+        console.log('ℹ️ User not found in Oracle database:', userAddress)
+        return []
       }
-      
-      return data.addresses || []
     } else if (response.status === 404) {
       console.log('ℹ️ No verified addresses found for user')
       return []
