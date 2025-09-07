@@ -322,6 +322,24 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }, [verifiedBitcoinAddress, publicClient, address, fetchBitcoinBalance, setValue, isLoadingBalance, hasAttemptedFetch])
 
+  // Monitor address transaction status for quantum warning
+  useEffect(() => {
+    if (verifiedBitcoinAddress && !isLoadingBalance && hasAttemptedFetch) {
+      console.log('🔍 Quantum warning check:', {
+        address: verifiedBitcoinAddress,
+        hasSpentCoins: addressHasSpentCoins,
+        balance: bitcoinBalance,
+        showWarning: addressHasSpentCoins
+      })
+      
+      if (addressHasSpentCoins) {
+        console.log('⚠️ Address has spent coins - quantum warning should be visible')
+      } else {
+        console.log('✅ Address has no outgoing transactions - no quantum warning')
+      }
+    }
+  }, [verifiedBitcoinAddress, addressHasSpentCoins, isLoadingBalance, hasAttemptedFetch, bitcoinBalance])
+
   // Convert BTC to satoshis (now using bitcoinBalance instead of amount)
   const amountInSatoshis = bitcoinBalance ? Math.round(bitcoinBalance * 100_000_000) : 0
   
