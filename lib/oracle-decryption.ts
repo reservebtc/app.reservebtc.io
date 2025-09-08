@@ -24,6 +24,8 @@ interface UserData {
   lastSyncTime: number;
   autoDetected: boolean;
   transactionHashes: any[];
+  lastTxHash?: string; // Optional transaction hash for backward compatibility
+  addedTime?: number; // Optional legacy timestamp
 }
 
 /**
