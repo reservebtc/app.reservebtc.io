@@ -261,3 +261,31 @@ test-complete-client-card-system.js
 debug-user-data-loading.js
 check-user-card.js
 test-oracle-api-fix.js
+
+# Bitcoin address management system test scripts - PRIVATE INTERNAL USE ONLY
+test-client-card-sync.js
+debug-failed-transaction.js
+test-bitcoin-address-*.js
+debug-oracle-address-*.js
+test-multiple-bitcoin-addresses.js
+check-oracle-data.js
+verify-bitcoin-address-*.js
+
+# Temporary files and data dumps from debugging/testing - PRIVATE INTERNAL USE ONLY
+/tmp/oracle-data.json
+/tmp/final-oracle-data.json
+/tmp/final-check.json
+oracle-data-*.json
+debug-data-*.json
+temp-oracle-*.json
+
+# Oracle deployment and configuration files - PRIVATE INTERNAL USE ONLY
+deploy-oracle-*.sh
+oracle-backup-*.js
+vercel-env-keys.txt
+oracle-encrypted-backup-*.js
+
+# Bitcoin address display testing scripts - PRIVATE INTERNAL USE ONLY
+/tmp/current-oracle.json
+test-bitcoin-display.js
+debug-address-display.js

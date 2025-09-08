@@ -47,38 +47,45 @@ export async function saveVerifiedBitcoinAddress(
     
   } catch (error) {
     console.error('❌ Oracle save failed, using localStorage fallback:', error)
-    
-    // Fallback to localStorage for immediate functionality
-    const verificationData: UserVerifiedAddress = {
-      address: bitcoinAddress,
-      verifiedAt: new Date().toISOString(),
-      signature,
-      ethAddress
-    }
-
-    // Save to legacy localStorage for backward compatibility
-    localStorage.setItem('verifiedBitcoinAddress', bitcoinAddress)
-    
-    // Save to structured user data
-    const userData = getUserData(ethAddress)
-    
-    // Check if address already exists
-    const existingIndex = userData.verifiedAddresses.findIndex(
-      addr => addr.address === bitcoinAddress
-    )
-    
-    if (existingIndex >= 0) {
-      userData.verifiedAddresses[existingIndex] = verificationData
-    } else {
-      userData.verifiedAddresses.push(verificationData)
-    }
-    
-    userData.lastSyncedAt = Date.now()
-    
-    // Save to localStorage cache
-    const cacheKey = `reservebtc_user_data_${ethAddress.toLowerCase()}`
-    localStorage.setItem(cacheKey, JSON.stringify(userData))
   }
+  
+  // ALWAYS save to localStorage for immediate functionality (even if Oracle succeeded)
+  // This ensures we have a backup and that all addresses are preserved
+  console.log('💾 Saving address to localStorage cache as backup...')
+  
+  const verificationData: UserVerifiedAddress = {
+    address: bitcoinAddress,
+    verifiedAt: new Date().toISOString(),
+    signature,
+    ethAddress
+  }
+
+  // Save to legacy localStorage for backward compatibility
+  localStorage.setItem('verifiedBitcoinAddress', bitcoinAddress)
+  
+  // Save to structured user data
+  const userData = getUserData(ethAddress)
+  
+  // Check if address already exists
+  const existingIndex = userData.verifiedAddresses.findIndex(
+    addr => addr.address.toLowerCase() === bitcoinAddress.toLowerCase()
+  )
+  
+  if (existingIndex >= 0) {
+    userData.verifiedAddresses[existingIndex] = verificationData
+    console.log('🔄 Updated existing address in localStorage')
+  } else {
+    userData.verifiedAddresses.push(verificationData)
+    console.log('➕ Added new address to localStorage')
+  }
+  
+  userData.lastSyncedAt = Date.now()
+  
+  // Save to localStorage cache
+  const cacheKey = `reservebtc_user_data_${ethAddress.toLowerCase()}`
+  localStorage.setItem(cacheKey, JSON.stringify(userData))
+  
+  console.log(`✅ Address saved to localStorage. Total addresses: ${userData.verifiedAddresses.length}`)
 }
 
 /**
@@ -87,42 +94,27 @@ export async function saveVerifiedBitcoinAddress(
 export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<UserVerifiedAddress[]> {
   console.log('📋 Getting verified addresses professionally for:', ethAddress)
   
+  // Get Oracle addresses first
+  let oracleAddresses: UserVerifiedAddress[] = []
   try {
-    // Primary data source: Oracle database
-    const oracleAddresses = await getVerifiedAddressesFromOracle(ethAddress)
+    const oracleData = await getVerifiedAddressesFromOracle(ethAddress)
     
-    if (oracleAddresses.length > 0) {
-      console.log('✅ Retrieved addresses from Oracle database:', oracleAddresses.length)
+    if (oracleData.length > 0) {
+      console.log('✅ Retrieved addresses from Oracle database:', oracleData.length)
       
       // Convert Oracle format to our interface format
-      const userAddresses: UserVerifiedAddress[] = oracleAddresses.map(addr => ({
+      oracleAddresses = oracleData.map(addr => ({
         address: addr.address,
         verifiedAt: addr.verifiedAt,
         signature: addr.signature,
         ethAddress: ethAddress
       }))
-      
-      // Cache for offline access
-      const userData: UserData = {
-        verifiedAddresses: userAddresses,
-        lastSyncedAt: Date.now()
-      }
-      
-      const cacheKey = `reservebtc_user_data_${ethAddress.toLowerCase()}`
-      localStorage.setItem(cacheKey, JSON.stringify(userData))
-      
-      // Update legacy localStorage for backward compatibility
-      if (userAddresses.length > 0) {
-        localStorage.setItem('verifiedBitcoinAddress', userAddresses[0].address)
-      }
-      
-      return userAddresses
+    } else {
+      console.log('ℹ️ No addresses found in Oracle database')
     }
-    
-    console.log('ℹ️ No addresses found in Oracle database')
   } catch (error) {
     console.warn('⚠️ Oracle database unavailable (404 or connection error):', error)
-    console.log('🔄 Switching to localStorage fallback and recovery systems')
+    console.log('🔄 Will check localStorage for additional addresses')
   }
   
   // Fallback to cached/localStorage data with enhanced recovery
@@ -238,8 +230,18 @@ export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<U
     }
   }
   
+  // Merge Oracle addresses with localStorage addresses
+  const allAddresses = [...oracleAddresses, ...userData.verifiedAddresses]
+  
+  // Remove duplicates based on address
+  const uniqueAddresses = allAddresses.filter((addr, index, self) => 
+    index === self.findIndex(a => a.address.toLowerCase() === addr.address.toLowerCase())
+  )
+  
+  console.log('🔄 Merging addresses - Oracle:', oracleAddresses.length, 'localStorage:', userData.verifiedAddresses.length, 'unique:', uniqueAddresses.length)
+  
   // Clean invalid addresses before returning
-  const validAddresses = userData.verifiedAddresses.filter(addr => {
+  const validAddresses = uniqueAddresses.filter(addr => {
     // Remove pending_verification and other invalid addresses
     if (addr.address === 'pending_verification' || 
         addr.address === 'auto-detected' || 
@@ -264,19 +266,20 @@ export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<U
     }
   })
   
-  // If we cleaned some addresses, update localStorage
-  if (validAddresses.length !== userData.verifiedAddresses.length) {
-    const cleanUserData: UserData = {
-      ...userData,
-      verifiedAddresses: validAddresses
+  // Cache merged valid addresses for offline access
+  if (validAddresses.length > 0) {
+    const mergedUserData: UserData = {
+      verifiedAddresses: validAddresses,
+      lastSyncedAt: Date.now()
     }
     
-    try {
-      localStorage.setItem(`verified_addresses_${ethAddress.toLowerCase()}`, JSON.stringify(cleanUserData))
-      console.log(`🧹 Cleaned localStorage: removed ${userData.verifiedAddresses.length - validAddresses.length} invalid addresses`)
-    } catch (error) {
-      console.warn('Failed to update localStorage after cleaning:', error)
-    }
+    const cacheKey = `reservebtc_user_data_${ethAddress.toLowerCase()}`
+    localStorage.setItem(cacheKey, JSON.stringify(mergedUserData))
+    
+    // Update legacy localStorage for backward compatibility
+    localStorage.setItem('verifiedBitcoinAddress', validAddresses[0].address)
+    
+    console.log(`✅ Merged and cached ${validAddresses.length} valid addresses`)
   }
   
   return validAddresses

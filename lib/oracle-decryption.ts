@@ -118,6 +118,60 @@ export function enhanceUserDataWithMultipleAddresses(userData: UserData): UserDa
     userData.btcAddresses.unshift(userData.btcAddress);
   }
 
+  // Extract additional Bitcoin addresses from transactions
+  if (userData.transactionHashes && Array.isArray(userData.transactionHashes)) {
+    console.log('🔍 Extracting Bitcoin addresses from transactions...');
+    console.log(`  Found ${userData.transactionHashes.length} transactions to process`);
+    
+    userData.transactionHashes.forEach((tx, index) => {
+      // Look for Bitcoin addresses in different transaction fields
+      const possibleAddresses = [
+        tx.bitcoinAddress,
+        tx.btcAddress,
+        tx.to_bitcoin_address,
+        tx.from_bitcoin_address
+      ].filter(Boolean);
+      
+      console.log(`  Transaction ${index + 1}: type=${tx.type}, possible addresses: ${possibleAddresses.length}`);
+      
+      possibleAddresses.forEach(address => {
+        console.log(`    Checking address: ${address}`);
+        
+        if (address && 
+            typeof address === 'string' && 
+            address.length > 10 && 
+            (address.startsWith('bc1') || address.startsWith('tb1') || address.startsWith('1') || address.startsWith('3'))) {
+          
+          if (userData.btcAddresses && !userData.btcAddresses.includes(address)) {
+            console.log('📍 Found additional Bitcoin address in transactions:', address);
+            userData.btcAddresses!.push(address);
+          } else {
+            console.log(`    Address already exists or btcAddresses not initialized`);
+          }
+        } else {
+          console.log(`    Address validation failed: length=${address?.length}, starts=${address?.substring(0, 3)}`);
+        }
+      });
+    });
+  } else {
+    console.log('⚠️ No transaction hashes found or not array:', typeof userData.transactionHashes);
+  }
+
+  // Remove duplicates and clean invalid addresses
+  if (userData.btcAddresses) {
+    const uniqueAddresses = new Set(userData.btcAddresses.filter(addr => 
+      addr && addr.length > 10 && !addr.includes('pending_verification')
+    ));
+    userData.btcAddresses = Array.from(uniqueAddresses);
+  }
+
+  console.log('✅ Enhanced user data with addresses:', userData.btcAddresses?.length || 0);
+  if (userData.btcAddresses && userData.btcAddresses.length > 0) {
+    console.log('📋 Final addresses list:');
+    userData.btcAddresses.forEach((addr, i) => {
+      console.log(`  ${i + 1}. ${addr}`);
+    });
+  }
   return userData;
 }
 

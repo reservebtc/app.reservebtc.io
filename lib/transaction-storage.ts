@@ -305,15 +305,35 @@ export async function saveAddressToOracle(
   try {
     console.log('💾 Saving verified address to Oracle:', { userAddress, bitcoinAddress })
     
-    // Oracle server doesn't have POST endpoints, so we skip Oracle save for now
-    // In production, Oracle should monitor blockchain events automatically
-    console.log('⚠️ Oracle server has no POST endpoints - relying on automatic detection')
-    console.log('✅ Address will be detected when Oracle scans blockchain transactions')
-    
-    return
+    // Use store-transaction-hash endpoint to save the verified address
+    const response = await fetch(`${ORACLE_API_BASE}/store-transaction-hash`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'ReserveBTC-Frontend/1.0'
+      },
+      body: JSON.stringify({
+        userAddress: userAddress,
+        txHash: `address_verification_${Date.now()}_${bitcoinAddress.slice(-8)}`,
+        type: 'address_verification',
+        amount: '0',
+        blockNumber: 0,
+        bitcoinAddress: bitcoinAddress,
+        signature: signature,
+        source: 'frontend_verification',
+        timestamp: new Date().toISOString()
+      })
+    })
+
+    if (response.ok) {
+      const result = await response.json()
+      console.log('✅ Address saved to Oracle database successfully:', result)
+    } else {
+      throw new Error(`Oracle save failed: ${response.status} ${response.statusText}`)
+    }
   } catch (error) {
     console.error('❌ Oracle address save error:', error)
-    // Don't throw - we rely on local storage fallback
+    throw error // Throw error so fallback mechanism works
   }
 }
 
