@@ -319,7 +319,11 @@ export function DashboardContent() {
       setSyncStatus('🔍 Checking Oracle registration status...')
       let oracleUserData = null
       try {
-        const oracleResponse = await fetch('https://oracle.reservebtc.io/users')
+        const oracleResponse = await fetch('https://oracle.reservebtc.io/internal-users', {
+          headers: {
+            'X-API-Key': 'internal-api-key-reservebtc-site-2025'
+          }
+        })
         if (oracleResponse.ok) {
           const oracleUsersData = await oracleResponse.json()
           // Oracle returns object with addresses as keys, not array
@@ -849,7 +853,11 @@ export function DashboardContent() {
       try {
         setSyncStatus(`📡 Syncing with Oracle server...`)
         // Check Oracle users list to get actual user data
-        const oracleResponse = await fetch('https://oracle.reservebtc.io/users')
+        const oracleResponse = await fetch('https://oracle.reservebtc.io/internal-users', {
+          headers: {
+            'X-API-Key': 'internal-api-key-reservebtc-site-2025'
+          }
+        })
         if (oracleResponse.ok) {
           const oracleUsersData = await oracleResponse.json()
           // Oracle returns object with addresses as keys, not array

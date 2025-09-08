@@ -93,7 +93,11 @@ export async function requestOracleRegistration(data: OracleRegistrationRequest)
  */
 export async function checkOracleRegistration(userAddress: string): Promise<OracleUser | null> {
   try {
-    const response = await fetch('https://oracle.reservebtc.io/users');
+    const response = await fetch('https://oracle.reservebtc.io/internal-users', {
+      headers: {
+        'X-API-Key': 'internal-api-key-reservebtc-site-2025'
+      }
+    });
     if (!response.ok) {
       throw new Error(`Oracle API failed: ${response.status}`);
     }

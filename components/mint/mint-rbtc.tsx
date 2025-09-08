@@ -525,7 +525,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           console.log('  6. You appear in Oracle users list');
           
           console.log('\n✅ Setup completed successfully!');
-          console.log('🔍 You can track progress at: https://oracle.reservebtc.io/users');
+          console.log('🔍 You can track progress at: https://oracle.reservebtc.io/partners');
           console.log('📊 Dashboard will show tokens once Oracle processes your registration');
         }
         
@@ -1313,7 +1313,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <a
-                    href="https://oracle.reservebtc.io/users"
+                    href="https://oracle.reservebtc.io/partners"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-all hover:scale-105"
