@@ -13,7 +13,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CONTRACTS } from '@/app/lib/contracts'
 import { getVerifiedBitcoinAddresses, saveVerifiedBitcoinAddress } from '@/lib/user-data-storage'
-import { requestOracleSync } from '@/lib/transaction-storage'
+import { requestOracleRegistration, checkOracleRegistration, waitForOracleRegistration } from '@/lib/oracle-integration'
 
 interface MintRBTCProps {
   onMintComplete?: (data: MintForm) => void
@@ -441,17 +441,32 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         console.warn('⚠️ Failed to save address to centralized storage:', error)
       }
       
-      // STEP 2: Trigger Oracle sync immediately  
-      console.log('📡 Step 2: Triggering Oracle sync...')
-      try {
-        await requestOracleSync(address!)
-        console.log('✅ Oracle sync requested')
-      } catch (error) {
-        console.warn('⚠️ Failed to trigger Oracle sync:', error)
+      // STEP 2: Check FeeVault balance again (it pays for Oracle operations)
+      console.log('🏦 Step 2: Verifying FeeVault balance for Oracle operations...')
+      const currentFeeVaultBalance = await publicClient.readContract({
+        address: CONTRACTS.FEE_VAULT as `0x${string}`,
+        abi: [
+          {
+            name: 'balanceOf',
+            type: 'function',
+            stateMutability: 'view',
+            inputs: [{ name: 'account', type: 'address' }],
+            outputs: [{ name: '', type: 'uint256' }]
+          }
+        ],
+        functionName: 'balanceOf',
+        args: [address as `0x${string}`]
+      }) as unknown as bigint
+      
+      const feeVaultEth = parseFloat(formatEther(currentFeeVaultBalance))
+      console.log(`🏦 FeeVault balance: ${feeVaultEth} ETH (${feeVaultEth >= 0.01 ? 'sufficient' : 'insufficient'})`)
+      
+      if (feeVaultEth < 0.01) {
+        throw new Error('Insufficient FeeVault balance. Oracle operations require at least 0.01 ETH in FeeVault.')
       }
       
-      // STEP 3: Oracle Auto-Discovery Process
-      console.log('⚙️ Step 3: Preparing for Oracle auto-discovery...')
+      // STEP 3: Oracle Registration Process
+      console.log('📡 Step 3: Initiating Oracle registration...')
       
       let actualTxHash = ''
       let transactionSuccessful = false
@@ -460,59 +475,41 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         // Get the current Bitcoin balance in satoshis
         const balanceInSats = Math.round(bitcoinBalance * 100_000_000)
         
-        console.log('🔍 Checking Oracle registration status...')
+        console.log('🔍 Checking if user is already registered with Oracle...')
         
         // Check if user already exists in Oracle
-        const checkResponse = await fetch('https://oracle.reservebtc.io/users');
-        let userAlreadyRegistered = false;
+        const existingUser = await checkOracleRegistration(address!)
         
-        if (checkResponse.ok) {
-          const oracleUsers = await checkResponse.json();
-          const existingUser = oracleUsers[address!.toLowerCase()] || oracleUsers[address!];
+        if (existingUser) {
+          console.log('✅ User ALREADY registered with Oracle:', existingUser);
+          console.log(`🔍 Oracle monitoring: ${existingUser.btcAddress}`);
+          console.log(`₿ Oracle balance: ${existingUser.lastSyncedBalance} sats`);
           
-          if (existingUser) {
-            console.log('✅ User ALREADY registered with Oracle:', existingUser);
-            console.log(`🔍 Oracle monitoring: ${existingUser.btcAddress}`);
-            console.log(`₿ Oracle balance: ${existingUser.lastSyncedBalance} sats`);
-            
-            userAlreadyRegistered = true;
-            actualTxHash = `existing_user_${Date.now().toString(16)}`
-            setTxHash(actualTxHash)
-            transactionSuccessful = true
-            setMintStatus('pending')
-            
-          } else {
-            console.log('📋 User not yet in Oracle - will be auto-discovered');
-            console.log(`🔍 Current Oracle users: ${Object.keys(oracleUsers).length}`);
-          }
-        }
-        
-        // If user not registered, set up for auto-discovery
-        if (!userAlreadyRegistered) {
-          console.log('🎯 Setting up Oracle auto-discovery process...');
-          
-          // Store user data locally for tracking
-          const userData = {
-            ethereumAddress: address,
-            bitcoinAddress: data.bitcoinAddress,
-            balanceSats: balanceInSats,
-            verifiedAt: new Date().toISOString(),
-            feeVaultDeposited: true,
-            waitingForOracle: true
-          };
-          
-          localStorage.setItem(`oracle_pending_${address}`, JSON.stringify(userData));
-          
-          console.log('💾 User data stored for Oracle tracking');
-          console.log('🔄 Oracle will auto-discover user through:');
-          console.log('   1. FeeVault deposit monitoring');
-          console.log('   2. Automatic blockchain scanning');
-          console.log('   3. Auto-sync initiation within 5-10 minutes');
-          
-          actualTxHash = `autodiscovery_${Date.now().toString(16)}`
+          actualTxHash = `existing_user_${Date.now().toString(16)}`
           setTxHash(actualTxHash)
           transactionSuccessful = true
           setMintStatus('pending')
+          
+        } else {
+          console.log('📋 User not yet registered - requesting Oracle registration');
+          
+          // Request Oracle registration (this triggers committee to act)
+          const registrationResult = await requestOracleRegistration({
+            userAddress: address!,
+            bitcoinAddress: data.bitcoinAddress,
+            balanceSats: balanceInSats,
+            feeVaultBalance: feeVaultEth
+          })
+          
+          if (registrationResult.success) {
+            console.log('✅ Oracle registration requested successfully');
+            actualTxHash = registrationResult.txHash || `oracle_registration_${Date.now().toString(16)}`
+            setTxHash(actualTxHash)
+            transactionSuccessful = true
+            setMintStatus('pending')
+          } else {
+            throw new Error(registrationResult.message || 'Oracle registration failed')
+          }
         }
         
         // STEP 3b: Provide user information about the process
@@ -1279,69 +1276,79 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                 </a>
               </div>
             )}
+            {/* Oracle Status Display - Single Consolidated Section */}
             {txHash && (txHash.startsWith('oracle_') || txHash.startsWith('manual_') || txHash.startsWith('existing_') || txHash.startsWith('autodiscovery_')) && (
-              <div className="text-sm text-muted-foreground">
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center">
-                  <p className="text-blue-800 dark:text-blue-200 font-medium mb-1">
-                    {txHash.startsWith('existing_') ? '✅ Oracle Registered' : '🔄 Oracle Auto-Discovery'}
-                  </p>
-                  <p className="text-blue-700 dark:text-blue-300 text-xs">
-                    {txHash.startsWith('existing_') 
-                      ? 'Your Bitcoin address is already monitored 24/7' 
-                      : 'Oracle will discover and monitor your address automatically'}
-                  </p>
-                  <div className="mt-2">
-                    <a
-                      href="https://oracle.reservebtc.io/users"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 underline text-xs"
-                    >
-                      Check Oracle Status →
-                    </a>
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-6 text-center">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="p-3 bg-blue-100 dark:bg-blue-800/50 rounded-full">
+                    {txHash.startsWith('existing_') ? (
+                      <CheckCircle className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                    ) : (
+                      <RefreshCw className="h-6 w-6 text-blue-600 dark:text-blue-400 animate-pulse" />
+                    )}
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-          <div className="mt-4 flex gap-3 justify-center">
-            {txHash && !txHash.startsWith('oracle_') && !txHash.startsWith('manual_') && (
-              <a
-                href={`https://www.megaexplorer.xyz/tx/${txHash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-sm font-medium transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
-              >
-                <ExternalLink className="h-4 w-4" />
-                View on Explorer
-              </a>
-            )}
-            {txHash && (txHash.startsWith('oracle_') || txHash.startsWith('manual_') || txHash.startsWith('existing_') || txHash.startsWith('autodiscovery_')) && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center">
-                <h3 className="text-blue-800 dark:text-blue-200 font-medium mb-2">
-                  {txHash.startsWith('existing_') ? '✅ Already Registered' : '🔄 Oracle Auto-Discovery'}
+                
+                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                  {txHash.startsWith('existing_') ? '✅ Oracle Registration Complete' : '🔄 Oracle Auto-Discovery Active'}
                 </h3>
-                <p className="text-blue-700 dark:text-blue-300 text-sm mb-3">
+                
+                <p className="text-blue-700 dark:text-blue-300 text-sm mb-4">
                   {txHash.startsWith('existing_') 
-                    ? 'You are already registered with Oracle and being monitored 24/7' 
-                    : 'Oracle will automatically discover and register you within 5-10 minutes'}
+                    ? 'Your Bitcoin address is already registered and being monitored 24/7 by the Oracle system.' 
+                    : 'Oracle will automatically discover and register your address within 5-10 minutes. No further action required.'}
                 </p>
-                <div className="space-y-2">
+
+                <div className="bg-white/70 dark:bg-gray-900/70 rounded-lg p-4 mb-4 text-left">
+                  <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">What happens next:</h4>
+                  <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                    <li>• 📡 Oracle monitors your Bitcoin address automatically</li>
+                    <li>• ⬇️ When Bitcoin arrives → rBTC mints instantly</li>
+                    <li>• ⬆️ When Bitcoin leaves → rBTC burns instantly</li>
+                    <li>• 🔄 Sync happens within minutes of balance changes</li>
+                    <li>• 💰 Fees deducted from your FeeVault per operation</li>
+                  </ul>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <a
                     href="https://oracle.reservebtc.io/users"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-all hover:scale-105"
                   >
                     <ExternalLink className="h-4 w-4" />
-                    Check Oracle Status
+                    Monitor Oracle Status
                   </a>
-                  <p className="text-xs text-blue-600 dark:text-blue-400">
-                    {txHash.startsWith('existing_') 
-                      ? 'You should already appear in the Oracle users list' 
-                      : 'You will appear in Oracle users list once auto-discovery completes'}
-                  </p>
+                  <a
+                    href="https://app.reservebtc.io/dashboard"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-sm font-medium transition-all hover:scale-105"
+                  >
+                    <Wallet className="h-4 w-4" />
+                    View Dashboard
+                  </a>
                 </div>
+                
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-3">
+                  {txHash.startsWith('existing_') 
+                    ? 'You should already appear in the Oracle users list above' 
+                    : 'You will appear in Oracle users list once auto-discovery completes (~5-10 min)'}
+                </p>
+              </div>
+            )}
+
+            {/* Blockchain Transaction Link - Only for Real Transactions */}
+            {txHash && !txHash.startsWith('oracle_') && !txHash.startsWith('manual_') && !txHash.startsWith('existing_') && !txHash.startsWith('autodiscovery_') && (
+              <div className="text-center">
+                <a
+                  href={`https://www.megaexplorer.xyz/tx/${txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-sm font-medium transition-all hover:scale-105 active:scale-95"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  View on Explorer
+                </a>
               </div>
             )}
           </div>
