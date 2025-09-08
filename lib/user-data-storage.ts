@@ -94,6 +94,21 @@ export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<U
   console.log('📋 Getting verified addresses professionally for:', ethAddress)
   console.log('🔍 DEBUG: Starting Oracle address retrieval...')
   
+  // SECURITY FIX: Clear old global localStorage keys that caused data leaks
+  const globalKeysToRemove = [
+    'verifiedBitcoinAddress',
+    'bitcoinAddress',
+    'btcAddress'
+  ]
+  
+  globalKeysToRemove.forEach(key => {
+    const value = localStorage.getItem(key)
+    if (value) {
+      console.log(`🧹 Removing leaked global localStorage key: ${key}`)
+      localStorage.removeItem(key)
+    }
+  })
+  
   // Get Oracle addresses first
   let oracleAddresses: UserVerifiedAddress[] = []
   try {
