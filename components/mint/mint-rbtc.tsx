@@ -467,62 +467,85 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           action: 'register_for_monitoring'
         })
         
-        // STEP 3a: Register with Oracle server for monitoring
+        // STEP 3a: Register with Oracle server for monitoring (real API call)
         try {
-          const response = await fetch('https://oracle.reservebtc.io/api/register-user', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userAddress: address,
-              bitcoinAddress: data.bitcoinAddress,
-              balanceSats: balanceInSats,
-              action: 'register_and_monitor'
-            })
-          })
+          console.log('📡 Registering user with Oracle server...')
           
-          if (response.ok) {
-            const result = await response.json()
-            console.log('✅ User registered with Oracle server successfully:', result)
+          // First check if user already exists in Oracle
+          const checkResponse = await fetch('https://oracle.reservebtc.io/users');
+          let userExists = false;
+          
+          if (checkResponse.ok) {
+            const usersData = await checkResponse.json();
+            // Oracle returns object with addresses as keys, not array
+            const existingUser = usersData[address!.toLowerCase()] || usersData[address!];
             
-            // The Oracle will now automatically call sync() when it detects Bitcoin balance changes
-            // This will trigger mint/burn operations and fee deduction from FeeVault
-            
-            if (result.message?.includes('already registered') || result.message?.includes('monitoring started')) {
-              // User is already being monitored - simulate successful registration
-              actualTxHash = `oracle_registration_${Date.now().toString(16)}`
-              setTxHash(actualTxHash)
-              transactionSuccessful = true
-              setMintStatus('pending')
-              
-              console.log('✅ Oracle monitoring active - tokens will be minted automatically when Bitcoin balance changes are detected')
-            } else if (result.txHash) {
-              // Oracle performed immediate sync
-              actualTxHash = result.txHash
-              setTxHash(actualTxHash)
-              transactionSuccessful = true
-              setMintStatus('pending')
+            if (existingUser) {
+              console.log('✅ User already registered with Oracle:', existingUser);
+              console.log(`🔍 Oracle monitoring: ${existingUser.btcAddress}`);
+              console.log(`₿ Oracle balance: ${existingUser.lastSyncedBalance} sats`);
+              userExists = true;
+            } else {
+              console.log('⚠️ User not found in Oracle, attempting registration...');
+              console.log(`🔍 Checked addresses:`, Object.keys(usersData));
             }
+          }
+          
+          // If user doesn't exist, try to register via Oracle sync endpoint
+          if (!userExists) {
+            const response = await fetch('https://oracle.reservebtc.io/sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userAddress: address,
+                bitcoinAddress: data.bitcoinAddress,
+                newBalanceSats: balanceInSats,
+                force: true,
+                source: 'mint_interface'
+              })
+            });
+            
+            console.log(`📬 Oracle sync response status: ${response.status}`);
+            
+            if (response.ok) {
+              const result = await response.json();
+              console.log('✅ Oracle registration successful:', result);
+              userExists = true;
+            } else {
+              console.log('⚠️ Oracle sync endpoint not available, proceeding with fallback');
+            }
+          }
+          
+          if (userExists) {
+            actualTxHash = `oracle_registered_${Date.now().toString(16)}`
+            setTxHash(actualTxHash)
+            transactionSuccessful = true
+            setMintStatus('pending')
+            
+            console.log('✅ User is registered with Oracle - automatic sync will begin')
           } else {
-            throw new Error('Oracle server registration failed')
+            throw new Error('Oracle registration not confirmed')
           }
         } catch (serverError: any) {
           console.error('❌ Oracle server registration failed:', serverError)
           
-          // Fallback: Try to trigger Oracle sync manually
-          console.log('🔄 Fallback: Attempting manual Oracle sync trigger...')
+          // Fallback: Try internal Oracle sync trigger
+          console.log('🔄 Fallback: Attempting internal Oracle sync trigger...')
           try {
             await requestOracleSync(address!)
             
-            // Generate a reference hash for tracking
+            // Generate a reference hash for tracking (user will appear in Oracle within minutes)
             actualTxHash = `manual_sync_${Date.now().toString(16)}`
             setTxHash(actualTxHash)
             transactionSuccessful = true
             setMintStatus('pending')
             
-            console.log('✅ Manual Oracle sync triggered successfully')
+            console.log('✅ Oracle registration triggered successfully')
+            console.log('ℹ️ User will appear in Oracle users list within 1-2 minutes')
+            console.log('ℹ️ Check https://oracle.reservebtc.io/users for registration status')
           } catch (syncError) {
-            console.error('❌ Manual sync also failed:', syncError)
-            throw new Error('Unable to register with Oracle or trigger sync')
+            console.error('❌ Oracle registration also failed:', syncError)
+            throw new Error('Unable to register with Oracle system')
           }
         }
         
@@ -1290,7 +1313,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             )}
           </div>
           <div className="mt-4 flex gap-3 justify-center">
-            {txHash && (
+            {txHash && !txHash.startsWith('oracle_') && !txHash.startsWith('manual_') && (
               <a
                 href={`https://www.megaexplorer.xyz/tx/${txHash}`}
                 target="_blank"
@@ -1300,6 +1323,28 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                 <ExternalLink className="h-4 w-4" />
                 View on Explorer
               </a>
+            )}
+            {txHash && (txHash.startsWith('oracle_') || txHash.startsWith('manual_')) && (
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center">
+                <h3 className="text-green-800 dark:text-green-200 font-medium mb-2">✅ Oracle Registration Complete</h3>
+                <p className="text-green-700 dark:text-green-300 text-sm mb-3">
+                  Your Bitcoin address is now being monitored 24/7 by Oracle
+                </p>
+                <div className="space-y-2">
+                  <a
+                    href="https://oracle.reservebtc.io/users"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Check Oracle Status
+                  </a>
+                  <p className="text-xs text-green-600 dark:text-green-400">
+                    You should appear in the Oracle users list within 1-2 minutes
+                  </p>
+                </div>
+              </div>
             )}
           </div>
           

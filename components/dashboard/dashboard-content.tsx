@@ -295,6 +295,33 @@ export function DashboardContent() {
       setVerifiedAddresses(updatedAddresses)
       console.log(`💰 Total Bitcoin balance aggregated: ${totalBitcoinBalance} BTC`)
       
+      // Check Oracle registration status for this user
+      setSyncStatus('🔍 Checking Oracle registration status...')
+      try {
+        const oracleResponse = await fetch('https://oracle.reservebtc.io/users')
+        if (oracleResponse.ok) {
+          const oracleUsersData = await oracleResponse.json()
+          // Oracle returns object with addresses as keys, not array
+          const userInOracle = oracleUsersData[address.toLowerCase()] || oracleUsersData[address]
+          
+          if (userInOracle) {
+            console.log('✅ User found in Oracle:', userInOracle)
+            console.log(`🔍 Oracle monitoring: ${userInOracle.bitcoinAddress}`)
+            console.log(`₿ Oracle balance: ${userInOracle.balanceSats} sats`)
+            setSyncStatus('✅ User registered with Oracle - automatic sync active')
+          } else {
+            console.log('⚠️ User NOT found in Oracle users list')
+            setSyncStatus('⚠️ Not registered with Oracle - mint to enable automatic sync')
+          }
+        } else {
+          console.log('❌ Oracle users API not accessible')
+          setSyncStatus('⚠️ Oracle status unknown')
+        }
+      } catch (oracleError) {
+        console.log('❌ Error checking Oracle status:', oracleError)
+        setSyncStatus('⚠️ Oracle check failed')
+      }
+      
       // Get rBTC-SYNTH token balance with multiple fallbacks
       let rbtcTokenBalance = BigInt(0)
       
@@ -754,13 +781,27 @@ export function DashboardContent() {
       // Also try to sync with Oracle server for additional data
       try {
         setSyncStatus(`📡 Syncing with Oracle server...`)
-        const oracleResponse = await fetch(`https://oracle.reservebtc.io/api/user/${address}/transactions`, {
+        // Check Oracle users list to get actual user data
+        const oracleResponse = await fetch('https://oracle.reservebtc.io/users')
+        if (oracleResponse.ok) {
+          const oracleUsersData = await oracleResponse.json()
+          // Oracle returns object with addresses as keys, not array
+          const userInOracle = oracleUsersData[address.toLowerCase()] || oracleUsersData[address]
+          
+          if (userInOracle) {
+            console.log('📡 Oracle user data:', userInOracle)
+            // Add Oracle-specific transaction data if available
+          }
+        }
+        
+        // Also try individual user API (might not exist)
+        const individualResponse = await fetch(`https://oracle.reservebtc.io/api/user/${address}/transactions`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         })
         
-        if (oracleResponse.ok) {
-          const oracleData = await oracleResponse.json()
+        if (individualResponse.ok) {
+          const oracleData = await individualResponse.json()
           console.log('Oracle server transaction data:', oracleData)
           
           // If Oracle has additional data, merge it
