@@ -328,8 +328,16 @@ export function DashboardContent() {
         }
       }
       
-      setVerifiedAddresses(updatedAddresses)
-      console.log(`💰 Total Bitcoin balance aggregated: ${totalBitcoinBalance} BTC`)
+      // CRITICAL FIX: Only update state if we successfully got balance data
+      // Don't overwrite existing addresses if balance API failed
+      if (updatedAddresses.length > 0) {
+        setVerifiedAddresses(updatedAddresses)
+        console.log(`💰 Total Bitcoin balance aggregated: ${totalBitcoinBalance} BTC`)
+        console.log('✅ Updated addresses with balance information')
+      } else {
+        console.log('⚠️ No balance data retrieved, keeping existing addresses without overwriting')
+        console.log(`💰 Total Bitcoin balance aggregated: ${totalBitcoinBalance} BTC`)
+      }
       
       // Check Oracle registration status for this user
       setSyncStatus('🔍 Checking Oracle registration status...')
