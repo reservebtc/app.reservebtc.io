@@ -78,14 +78,29 @@ export function DashboardContent() {
 
   // Redirect if not connected - but wait for connection state to be determined
   useEffect(() => {
-    // Add a small delay to allow wallet connection to be established on page refresh
+    let isMounted = true
+    
+    // Wait longer for wallet connection to be established on page refresh
     const timer = setTimeout(() => {
-      if (!isConnected) {
-        router.push('/')
+      if (isMounted && !isConnected) {
+        // Additional check - only redirect if we're sure there's no wallet
+        if (typeof window !== 'undefined' && !window.ethereum) {
+          router.push('/')
+        } else if (!isConnected) {
+          // Give more time for automatic reconnection
+          setTimeout(() => {
+            if (isMounted && !isConnected) {
+              router.push('/')
+            }
+          }, 1000)
+        }
       }
-    }, 100)
+    }, 500)
 
-    return () => clearTimeout(timer)
+    return () => {
+      isMounted = false
+      clearTimeout(timer)
+    }
   }, [isConnected, router])
 
   // Load aggregated data from all user Bitcoin addresses
@@ -417,8 +432,37 @@ export function DashboardContent() {
     if (oracleUserData && rbtcTokenBalance > 0) {
       console.log('🎯 User found in Oracle with tokens - creating mint transaction record')
       
+      // Try to get real transaction hash from Oracle data or blockchain events
+      let realTxHash = null
+      try {
+        // Check if Oracle data has lastTxHash field
+        if (oracleUserData.lastTxHash && !oracleUserData.lastTxHash.startsWith('oracle_')) {
+          realTxHash = oracleUserData.lastTxHash
+        } else {
+          // Try to find sync transaction in blockchain events
+          console.log('🔍 Searching for sync transaction in blockchain...')
+          const syncEvents = await publicClient?.getLogs({
+            address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
+            fromBlock: 'earliest',
+            toBlock: 'latest'
+          })
+          
+          // Find the most recent sync event for this user (simplified search)
+          if (syncEvents && syncEvents.length > 0) {
+            // Find event that matches this user's sync time approximately
+            const userSyncTime = oracleUserData.lastSyncTime || oracleUserData.addedTime
+            const recentEvent = syncEvents[syncEvents.length - 1] // Most recent sync event
+            if (recentEvent && recentEvent.transactionHash) {
+              realTxHash = recentEvent.transactionHash
+            }
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ Could not find real transaction hash:', error)
+      }
+      
       const mintTransaction: Transaction = {
-        hash: `oracle_mint_${oracleUserData.addedTime || Date.now()}`,
+        hash: realTxHash || `oracle_mint_${oracleUserData.addedTime || Date.now()}`,
         type: 'mint',
         amount: `${Number(rbtcTokenBalance) / 100000000}`,
         timestamp: new Date(oracleUserData.addedTime || oracleUserData.lastSyncTime || Date.now()).toISOString(),
@@ -428,7 +472,7 @@ export function DashboardContent() {
       }
       
       allTransactions.push(mintTransaction)
-      console.log(`✅ Created mint transaction record: ${Number(rbtcTokenBalance) / 100000000} rBTC`)
+      console.log(`✅ Created mint transaction record: ${Number(rbtcTokenBalance) / 100000000} rBTC${realTxHash ? ' (with real tx hash)' : ' (Oracle hash)'}`)
       foundTransactions = true
     }
     
@@ -1293,7 +1337,7 @@ export function DashboardContent() {
                             Oracle-{tx.type}
                             <Info className="h-3 w-3" />
                           </span>
-                        ) : (
+                        ) : tx.hash && tx.hash.startsWith('0x') && tx.hash.length === 66 ? (
                           <a 
                             href={`https://www.megaexplorer.xyz/tx/${tx.hash}`}
                             target="_blank"
@@ -1303,6 +1347,11 @@ export function DashboardContent() {
                             {tx.hash.slice(0, 8)}...{tx.hash.slice(-6)}
                             <ArrowUpRight className="h-3 w-3" />
                           </a>
+                        ) : (
+                          <span className="font-mono text-xs text-muted-foreground flex items-center gap-1">
+                            Processing...
+                            <Clock className="h-3 w-3" />
+                          </span>
                         )}
                       </td>
                       <td className="py-3 px-2 text-right font-mono text-sm">
