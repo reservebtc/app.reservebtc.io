@@ -405,7 +405,7 @@ export function DashboardContent() {
     // Enhanced transaction loading with multiple methods
     console.log('📊 Loading transactions with enhanced fallback system...')
     
-    let allTransactions: Transaction[] = []
+    const allTransactions: Transaction[] = []
     let foundTransactions = false
     
     // Method 1: Create mint transaction from Oracle data if user has tokens but no transaction history
