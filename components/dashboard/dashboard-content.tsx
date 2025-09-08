@@ -439,21 +439,82 @@ export function DashboardContent() {
         if (oracleUserData.lastTxHash && !oracleUserData.lastTxHash.startsWith('oracle_')) {
           realTxHash = oracleUserData.lastTxHash
         } else {
-          // Try to find sync transaction in blockchain events
-          console.log('🔍 Searching for sync transaction in blockchain...')
-          const syncEvents = await publicClient?.getLogs({
-            address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
-            fromBlock: 'earliest',
-            toBlock: 'latest'
-          })
-          
-          // Find the most recent sync event for this user (simplified search)
-          if (syncEvents && syncEvents.length > 0) {
-            // Find event that matches this user's sync time approximately
-            const userSyncTime = oracleUserData.lastSyncTime || oracleUserData.addedTime
-            const recentEvent = syncEvents[syncEvents.length - 1] // Most recent sync event
-            if (recentEvent && recentEvent.transactionHash) {
-              realTxHash = recentEvent.transactionHash
+          // Try to find sync transaction in blockchain events for this specific user
+          console.log('🔍 Searching for sync transaction in blockchain for user:', address)
+          try {
+            // Search for Synced events with this user as the first indexed parameter
+            const syncEvents = await publicClient?.getLogs({
+              address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
+              event: {
+                type: 'event',
+                name: 'Synced',
+                inputs: [
+                  { name: 'user', type: 'address', indexed: true },
+                  { name: 'newBalanceSats', type: 'uint64', indexed: false },
+                  { name: 'deltaSats', type: 'int64', indexed: false },
+                  { name: 'timestamp', type: 'uint256', indexed: false }
+                ]
+              },
+              args: {
+                user: address as `0x${string}`
+              },
+              fromBlock: 'earliest',
+              toBlock: 'latest'
+            })
+            
+            console.log(`📋 Found ${syncEvents?.length || 0} sync events for user`)
+            
+            // Find the sync event that created tokens (positive delta)
+            if (syncEvents && syncEvents.length > 0) {
+              // Look for the most recent mint sync event (positive delta)
+              const mintSyncEvent = syncEvents
+                .filter(event => {
+                  const { deltaSats } = event.args
+                  return deltaSats && BigInt(String(deltaSats)) > BigInt(0)
+                })
+                .sort((a, b) => Number(b.blockNumber) - Number(a.blockNumber))[0] // Most recent first
+              
+              if (mintSyncEvent && mintSyncEvent.transactionHash) {
+                realTxHash = mintSyncEvent.transactionHash
+                console.log('✅ Found real mint transaction hash:', realTxHash)
+              }
+            }
+          } catch (eventError) {
+            console.log('⚠️ Error searching for Synced events:', eventError)
+            
+            // Fallback: search for any mint-related transaction for this user
+            try {
+              const transferEvents = await publicClient?.getLogs({
+                address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
+                event: {
+                  type: 'event',
+                  name: 'Transfer',
+                  inputs: [
+                    { name: 'from', type: 'address', indexed: true },
+                    { name: 'to', type: 'address', indexed: true },
+                    { name: 'value', type: 'uint256', indexed: false }
+                  ]
+                },
+                args: {
+                  from: '0x0000000000000000000000000000000000000000', // Mint transactions have zero address as 'from'
+                  to: address as `0x${string}`
+                },
+                fromBlock: 'earliest',
+                toBlock: 'latest'
+              })
+              
+              console.log(`📋 Found ${transferEvents?.length || 0} mint Transfer events for user`)
+              
+              if (transferEvents && transferEvents.length > 0) {
+                // Get the most recent mint transaction
+                const recentMint = transferEvents.sort((a, b) => Number(b.blockNumber) - Number(a.blockNumber))[0]
+                if (recentMint && recentMint.transactionHash) {
+                  realTxHash = recentMint.transactionHash
+                  console.log('✅ Found real mint transaction hash from Transfer events:', realTxHash)
+                }
+              }
+            } catch (transferError) {
+              console.log('⚠️ Error searching for Transfer events:', transferError)
             }
           }
         }
