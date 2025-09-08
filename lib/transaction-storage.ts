@@ -89,42 +89,29 @@ export async function getUserTransactionHistory(
     // Set current user as last connected
     localStorage.setItem(lastUserKey, userAddress.toLowerCase())
     
-    // AGGRESSIVE FIX: Clean ALL transaction data not belonging to current user
+    // COPY EXACT LOGIC FROM getVerifiedBitcoinAddresses - UNIVERSAL FIX
     const currentUserPrefix = userAddress.toLowerCase()
-    const allKeysToCheck = []
+    const keysToCheck = []
     
-    // Collect all localStorage keys first
+    // Collect all localStorage keys
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
       if (key) {
-        allKeysToCheck.push(key)
+        keysToCheck.push(key)
       }
     }
     
-    // Remove ALL transaction-related keys that don't belong to current user
-    allKeysToCheck.forEach(key => {
-      if (!key.includes(currentUserPrefix)) {
-        // Check for ANY transaction-related keywords
-        if (key.includes('rbtc') || 
-            key.includes('transaction') || 
-            key.includes('oracle') ||
-            key.includes('reservebtc') ||
-            key.includes('bitcoin') ||
-            key.includes('btc')) {
-          console.log(`🚨 AGGRESSIVE: Removing other user's data key: ${key}`)
-          localStorage.removeItem(key)
-        }
-        
-        // Also check if value contains transaction data
-        const value = localStorage.getItem(key)
-        if (value && (value.includes('hash') || 
-                     value.includes('transaction') || 
-                     value.includes('mint') || 
-                     value.includes('burn') ||
-                     value.includes('0x'))) {
-          console.log(`🚨 AGGRESSIVE: Removing key with transaction data: ${key}`)
-          localStorage.removeItem(key)
-        }
+    // Remove keys that don't belong to current user but contain user data - EXACT SAME LOGIC
+    keysToCheck.forEach(key => {
+      if (!key.includes(currentUserPrefix) && 
+          (key.includes('rbtc') || 
+           key.includes('reservebtc') || 
+           key.includes('bitcoin') ||
+           key.includes('transaction') ||
+           key.includes('oracle') ||
+           key.includes('user_data'))) {
+        console.log(`🚨 TRANSACTION: Removing other user's localStorage key: ${key}`)
+        localStorage.removeItem(key)
       }
     })
     

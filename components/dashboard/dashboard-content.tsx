@@ -108,6 +108,47 @@ export function DashboardContent() {
     }
   }, [address])
 
+  // AGGRESSIVE FIX: Clear Transaction History when MetaMask user changes
+  useEffect(() => {
+    if (address) {
+      const transactionUserKey = 'rbtc_transaction_user'
+      const lastTransactionUser = localStorage.getItem(transactionUserKey)
+      
+      if (lastTransactionUser && lastTransactionUser !== address.toLowerCase()) {
+        console.log('🚨 CLEARING Transaction History for new MetaMask user')
+        
+        // Clear transaction state immediately
+        setTransactions([])
+        setIsLoadingTransactions(false)
+        
+        // Aggressive localStorage cleanup for transactions
+        const keysToRemove = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && (
+            key.includes('rbtc_oracle_transactions') ||
+            key.includes('rbtc_transactions') ||
+            key.includes('transaction') ||
+            key.includes('oracle_transactions') ||
+            (key.includes('rbtc') && key.includes(lastTransactionUser))
+          )) {
+            keysToRemove.push(key)
+          }
+        }
+        
+        keysToRemove.forEach(key => {
+          console.log('🧹 Removing transaction key:', key)
+          localStorage.removeItem(key)
+        })
+        
+        console.log(`✅ Cleared ${keysToRemove.length} transaction keys for user switch`)
+      }
+      
+      // Update current transaction user
+      localStorage.setItem(transactionUserKey, address.toLowerCase())
+    }
+  }, [address])
+
   // Watch for new blocks to auto-refresh transactions
   const { data: currentBlockNumber } = useBlockNumber({
     watch: autoRefreshEnabled,
