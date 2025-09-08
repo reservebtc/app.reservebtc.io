@@ -76,8 +76,8 @@ export async function getUserTransactionHistory(
       const allUsersData = await response.json()
       console.log('✅ Oracle API users data received')
       
-      // Find this user's data
-      const userData = allUsersData[userAddress]
+      // Find this user's data (case-insensitive lookup)
+      const userData = allUsersData[userAddress.toLowerCase()] || allUsersData[userAddress]
       if (userData) {
         console.log('✅ Found user data in Oracle:', userData)
         
@@ -253,8 +253,8 @@ export async function getVerifiedAddressesFromOracle(
       const allUsersData = await response.json()
       console.log('✅ Oracle users data received')
       
-      // Find this user's data
-      const userData = allUsersData[userAddress]
+      // Find this user's data (case-insensitive lookup)
+      const userData = allUsersData[userAddress.toLowerCase()] || allUsersData[userAddress]
       if (userData && userData.btcAddress) {
         console.log('✅ Found verified address in Oracle:', userData.btcAddress)
         
