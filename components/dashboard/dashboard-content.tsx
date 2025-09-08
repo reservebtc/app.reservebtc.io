@@ -1076,10 +1076,13 @@ export function DashboardContent() {
           </Link>
         </div>
         
-        {verifiedAddresses.length > 0 ? (
-          <div className="space-y-3">
-            {/* Sort by verification date - newest first */}
-            {verifiedAddresses
+        {(() => {
+          console.log('🔍 UI RENDER: verifiedAddresses state length:', verifiedAddresses.length)
+          console.log('🔍 UI RENDER: verifiedAddresses state:', verifiedAddresses)
+          return verifiedAddresses.length > 0 ? (
+            <div className="space-y-3">
+              {/* Sort by verification date - newest first */}
+              {verifiedAddresses
               .sort((a, b) => new Date(b.verifiedAt).getTime() - new Date(a.verifiedAt).getTime())
               .map((addr, index) => {
                 const isLatest = index === 0
@@ -1161,19 +1164,20 @@ export function DashboardContent() {
                 )
               })}
           </div>
-        ) : (
-          <div className="text-center py-8 space-y-2">
-            <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground">No verified addresses yet</p>
-            <Link 
-              href="/verify"
-              className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-            >
-              Verify your first address
-              <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
-        )}
+          ) : (
+            <div className="text-center py-8 space-y-2">
+              <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto" />
+              <p className="text-sm text-muted-foreground">No verified addresses yet</p>
+              <Link 
+                href="/verify"
+                className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+              >
+                Verify your first address
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          )
+        })()}
       </div>
 
       {/* Transaction History */}
