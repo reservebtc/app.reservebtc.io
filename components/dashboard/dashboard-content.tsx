@@ -428,58 +428,52 @@ export function DashboardContent() {
     const allTransactions: Transaction[] = []
     let foundTransactions = false
     
-    // Method 1: Load ALL individual Synced events from Oracle Aggregator contract
-    console.log('🔍 Loading ALL individual Synced events for user:', address)
-    try {
-      const syncEvents = await publicClient?.getLogs({
-        address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
-        event: {
-          type: 'event',
-          name: 'Synced',
-          inputs: [
-            { name: 'user', type: 'address', indexed: true },
-            { name: 'newBalanceSats', type: 'uint64', indexed: false },
-            { name: 'deltaSats', type: 'int64', indexed: false },
-            { name: 'timestamp', type: 'uint256', indexed: false }
-          ]
-        },
-        args: {
-          user: address as `0x${string}`
-        },
-        fromBlock: 'earliest',
-        toBlock: 'latest'
-      })
+    // Method 1: Create mint transaction from Oracle data if user has tokens but no transaction history
+    if (oracleUserData && rbtcTokenBalance > 0) {
+      console.log('🎯 User found in Oracle with tokens - creating mint transaction record')
       
-      console.log(`📋 Found ${syncEvents?.length || 0} individual Synced events for user`)
-      
-      // Convert each Synced event to a transaction
-      if (syncEvents && syncEvents.length > 0) {
-        for (const event of syncEvents) {
-          const { deltaSats, timestamp, newBalanceSats } = event.args
-          if (!deltaSats || !timestamp || !event.transactionHash) continue
-          
-          const deltaValue = BigInt(String(deltaSats))
-          const isPositiveDelta = deltaValue > BigInt(0)
-          const transactionType = isPositiveDelta ? 'mint' : 'burn'
-          const amount = formatUnits(deltaValue > 0 ? deltaValue : -deltaValue, 8)
-          
-          const transaction: Transaction = {
-            hash: event.transactionHash, // Real unique transaction hash for each event
-            type: transactionType,
-            amount,
-            timestamp: new Date(Number(timestamp) * 1000).toISOString(),
-            status: 'success',
-            steps: createTransactionSteps(transactionType),
-            currentStep: createTransactionSteps(transactionType).length - 1
+      // Try to find real transaction hash from Transfer events (mints have from=0x0)
+      let realTxHash = null
+      try {
+        console.log('🔍 Searching for real mint transaction hash from Transfer events...')
+        const transferEvents = await publicClient?.getLogs({
+          address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
+          event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
+          args: {
+            from: '0x0000000000000000000000000000000000000000', // Mint transactions have zero address as 'from'
+            to: address as `0x${string}`
+          },
+          fromBlock: 'earliest',
+          toBlock: 'latest'
+        })
+        
+        console.log(`📋 Found ${transferEvents?.length || 0} mint Transfer events for user`)
+        
+        if (transferEvents && transferEvents.length > 0) {
+          // Get the most recent mint transaction
+          const recentMint = transferEvents.sort((a, b) => Number(b.blockNumber) - Number(a.blockNumber))[0]
+          if (recentMint && recentMint.transactionHash) {
+            realTxHash = recentMint.transactionHash
+            console.log('✅ Found real mint transaction hash:', realTxHash)
           }
-          
-          allTransactions.push(transaction)
-          console.log(`✅ Added ${transactionType} transaction: ${amount} rBTC (hash: ${event.transactionHash})`)
         }
-        foundTransactions = true
+      } catch (error) {
+        console.log('⚠️ Could not find real transaction hash:', error)
       }
-    } catch (syncError) {
-      console.log('⚠️ Error loading Synced events:', syncError)
+      
+      const mintTransaction: Transaction = {
+        hash: realTxHash || `oracle_mint_${oracleUserData.addedTime || Date.now()}`,
+        type: 'mint',
+        amount: `${Number(rbtcTokenBalance) / 100000000}`,
+        timestamp: new Date(oracleUserData.addedTime || oracleUserData.lastSyncTime || Date.now()).toISOString(),
+        status: 'success',
+        steps: createTransactionSteps('mint'),
+        currentStep: createTransactionSteps('mint').length - 1
+      }
+      
+      allTransactions.push(mintTransaction)
+      console.log(`✅ Created mint transaction record: ${Number(rbtcTokenBalance) / 100000000} rBTC${realTxHash ? ' (with real tx hash)' : ' (Oracle hash)'}`)
+      foundTransactions = true
     }
     
     // Method 2: Try Oracle API for additional transactions
