@@ -297,6 +297,7 @@ export function DashboardContent() {
       
       // Check Oracle registration status for this user
       setSyncStatus('🔍 Checking Oracle registration status...')
+      let oracleUserData = null
       try {
         const oracleResponse = await fetch('https://oracle.reservebtc.io/users')
         if (oracleResponse.ok) {
@@ -305,9 +306,10 @@ export function DashboardContent() {
           const userInOracle = oracleUsersData[address.toLowerCase()] || oracleUsersData[address]
           
           if (userInOracle) {
+            oracleUserData = userInOracle
             console.log('✅ User found in Oracle:', userInOracle)
-            console.log(`🔍 Oracle monitoring: ${userInOracle.bitcoinAddress}`)
-            console.log(`₿ Oracle balance: ${userInOracle.balanceSats} sats`)
+            console.log(`🔍 Oracle monitoring: ${userInOracle.btcAddress || userInOracle.bitcoinAddress}`)
+            console.log(`₿ Oracle balance: ${userInOracle.lastSyncedBalance} sats`)
             setSyncStatus('✅ User registered with Oracle - automatic sync active')
           } else {
             console.log('⚠️ User NOT found in Oracle users list')
@@ -387,7 +389,7 @@ export function DashboardContent() {
       }
 
       // Load aggregated transaction history from all Bitcoin addresses
-      await loadTransactionsFromAllAddresses(verifiedAddresses)
+      await loadTransactionsFromAllAddresses(verifiedAddresses, oracleUserData, rbtcTokenBalance)
 
     } catch (error) {
       console.error('❌ Failed to load aggregated user data:', error)
@@ -397,50 +399,70 @@ export function DashboardContent() {
     }
   }
 
-  const loadTransactionsFromAllAddresses = async (verifiedAddresses: any[]) => {
+  const loadTransactionsFromAllAddresses = async (verifiedAddresses: any[], oracleUserData: any = null, rbtcTokenBalance: bigint = BigInt(0)) => {
     console.log('📚 Loading transaction history from all user Bitcoin addresses...')
     
     // Enhanced transaction loading with multiple methods
     console.log('📊 Loading transactions with enhanced fallback system...')
     
-    // Method 1: Try Oracle API first
+    let allTransactions: Transaction[] = []
     let foundTransactions = false
+    
+    // Method 1: Create mint transaction from Oracle data if user has tokens but no transaction history
+    if (oracleUserData && rbtcTokenBalance > 0) {
+      console.log('🎯 User found in Oracle with tokens - creating mint transaction record')
+      
+      const mintTransaction: Transaction = {
+        hash: `oracle_mint_${oracleUserData.addedTime || Date.now()}`,
+        type: 'mint',
+        amount: `${Number(rbtcTokenBalance) / 100000000}`,
+        timestamp: new Date(oracleUserData.addedTime || oracleUserData.lastSyncTime || Date.now()).toISOString(),
+        status: 'success',
+        steps: createTransactionSteps('mint'),
+        currentStep: createTransactionSteps('mint').length - 1
+      }
+      
+      allTransactions.push(mintTransaction)
+      console.log(`✅ Created mint transaction record: ${Number(rbtcTokenBalance) / 100000000} rBTC`)
+      foundTransactions = true
+    }
+    
+    // Method 2: Try Oracle API for additional transactions
     try {
       const oracleTransactions = await getUserTransactionHistory(address!, false)
       
       if (oracleTransactions.length > 0) {
-        console.log(`✅ Retrieved ${oracleTransactions.length} aggregated transactions from Oracle`)
-        setTransactions(oracleTransactions)
-        setSyncStatus(`✅ Loaded ${oracleTransactions.length} transactions from all Bitcoin addresses`)
+        console.log(`✅ Retrieved ${oracleTransactions.length} additional transactions from Oracle`)
+        // Merge with Oracle-generated mint transaction, avoiding duplicates
+        oracleTransactions.forEach(tx => {
+          if (!allTransactions.some(existing => existing.hash === tx.hash)) {
+            allTransactions.push(tx)
+          }
+        })
         foundTransactions = true
-        return
       } else {
-        console.log('ℹ️ Oracle returned empty transaction list - checking blockchain directly')
+        console.log('ℹ️ Oracle returned empty transaction list')
       }
     } catch (error) {
       console.log('⚠️ Oracle aggregated transactions failed:', error)
     }
     
-    // Method 2: Force blockchain scanning if Oracle failed
-    if (!foundTransactions) {
-      console.log('🔄 Oracle failed - forcing comprehensive blockchain scan...')
-      setSyncStatus(`🔍 Oracle sync failed - scanning blockchain directly for transactions...`)
-      
-      // Clear any cached Oracle data and force fresh scan
-      const cacheKeys = [
-        `rbtc_oracle_transactions_${address!.toLowerCase()}`,
-        `rbtc_transactions_${address!}_v2_atomic`
-      ]
-      
-      cacheKeys.forEach(key => {
-        localStorage.removeItem(key)
-        console.log(`🗑️ Cleared cache: ${key}`)
-      })
-      
-      // Call comprehensive transaction loader with force refresh
-      await loadTransactions()
-      
-      setSyncStatus(`✅ Blockchain scan completed for ${verifiedAddresses.length} Bitcoin addresses`)
+    // Method 3: Force blockchain scanning if no transactions found and no tokens
+    if (!foundTransactions && rbtcTokenBalance === BigInt(0)) {
+      console.log('🔄 No Oracle data and no tokens - user may need to mint')
+      setSyncStatus(`⚠️ No transactions found - mint some rBTC to see activity`)
+      setTransactions([])
+      return
+    }
+    
+    // Set the combined transactions
+    if (allTransactions.length > 0) {
+      setTransactions(allTransactions)
+      setSyncStatus(`✅ Loaded ${allTransactions.length} transactions (${foundTransactions ? 'Oracle + ' : ''}blockchain)`)
+      console.log(`🎉 Total transactions loaded: ${allTransactions.length}`)
+    } else {
+      setSyncStatus(`⚠️ No transactions found - mint some rBTC to see activity`)
+      console.log('ℹ️ No transactions found for this user')
     }
   }
 
@@ -1110,7 +1132,7 @@ export function DashboardContent() {
                 ⚠️ Found rBTC tokens but no transaction history - scanning blockchain...
               </p>
             )}
-            {syncStatus && (
+            {syncStatus && !syncStatus.includes('✅') && !syncStatus.includes('Loaded') && (
               <p className="text-xs text-muted-foreground mt-1">{syncStatus}</p>
             )}
             {currentBlockNumber && autoRefreshEnabled && (
