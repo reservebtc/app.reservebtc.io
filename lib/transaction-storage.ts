@@ -63,6 +63,32 @@ export async function getUserTransactionHistory(
   try {
     console.log('📊 Fetching encrypted transaction history from Oracle API:', userAddress)
     
+    // PROFESSIONAL FIX: Auto-refresh page if user switched to clean all cached data
+    const lastUserKey = 'rbtc_last_connected_user'
+    const lastUser = localStorage.getItem(lastUserKey)
+    
+    if (lastUser && lastUser.toLowerCase() !== userAddress.toLowerCase()) {
+      console.log('🔄 User switched detected, refreshing page for clean data...')
+      localStorage.setItem(lastUserKey, userAddress.toLowerCase())
+      
+      // Clear all localStorage data before refresh
+      const keysToRemove = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key !== lastUserKey) {
+          keysToRemove.push(key)
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key))
+      
+      // Force page refresh for clean state
+      window.location.reload()
+      return []
+    }
+    
+    // Set current user as last connected
+    localStorage.setItem(lastUserKey, userAddress.toLowerCase())
+    
     // AGGRESSIVE FIX: Clean ALL transaction data not belonging to current user
     const currentUserPrefix = userAddress.toLowerCase()
     const allKeysToCheck = []
