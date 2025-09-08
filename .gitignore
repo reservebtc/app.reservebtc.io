@@ -21,6 +21,8 @@ test-*.js
 .env.development.local
 .env.test.local
 .env.production.local
+# Allow .env.example to be committed
+!.env.example
 config.local.*
 secrets.json
 private.json

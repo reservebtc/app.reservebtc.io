@@ -61,12 +61,12 @@ export async function getUserTransactionHistory(
     
     // Oracle API uses /internal-users endpoint with API key
     const response = await fetch(
-      `https://oracle.reservebtc.io/internal-users`,
+      `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`,
       {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'internal-api-key-reservebtc-site-2025',
+          'X-API-Key': process.env.NEXT_PUBLIC_ORACLE_API_KEY || '',
           'User-Agent': 'ReserveBTC-Frontend/1.0'
         }
       }
@@ -240,11 +240,11 @@ export async function getVerifiedAddressesFromOracle(
     console.log('🔍 Fetching verified addresses from Oracle:', userAddress)
     
     // Oracle API uses /internal-users endpoint with API key
-    const response = await fetch(`https://oracle.reservebtc.io/internal-users`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'X-API-Key': 'internal-api-key-reservebtc-site-2025',
+        'X-API-Key': process.env.NEXT_PUBLIC_ORACLE_API_KEY || '',
         'User-Agent': 'ReserveBTC-Frontend/1.0'
       }
     })

@@ -319,9 +319,9 @@ export function DashboardContent() {
       setSyncStatus('🔍 Checking Oracle registration status...')
       let oracleUserData = null
       try {
-        const oracleResponse = await fetch('https://oracle.reservebtc.io/internal-users', {
+        const oracleResponse = await fetch(`${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`, {
           headers: {
-            'X-API-Key': 'internal-api-key-reservebtc-site-2025'
+            'X-API-Key': process.env.NEXT_PUBLIC_ORACLE_API_KEY || ''
           }
         })
         if (oracleResponse.ok) {
@@ -853,9 +853,9 @@ export function DashboardContent() {
       try {
         setSyncStatus(`📡 Syncing with Oracle server...`)
         // Check Oracle users list to get actual user data
-        const oracleResponse = await fetch('https://oracle.reservebtc.io/internal-users', {
+        const oracleResponse = await fetch(`${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`, {
           headers: {
-            'X-API-Key': 'internal-api-key-reservebtc-site-2025'
+            'X-API-Key': process.env.NEXT_PUBLIC_ORACLE_API_KEY || ''
           }
         })
         if (oracleResponse.ok) {
