@@ -432,33 +432,29 @@ export function DashboardContent() {
     if (oracleUserData && rbtcTokenBalance > 0) {
       console.log('🎯 User found in Oracle with tokens - creating mint transaction record')
       
-      // Try to find real transaction hash from Transfer events (mints have from=0x0)
+      // Try to find real transaction hash from Oracle server stored hashes
       let realTxHash = null
       try {
-        console.log('🔍 Searching for real mint transaction hash from Transfer events...')
-        const transferEvents = await publicClient?.getLogs({
-          address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
-          event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
-          args: {
-            from: '0x0000000000000000000000000000000000000000', // Mint transactions have zero address as 'from'
-            to: address as `0x${string}`
-          },
-          fromBlock: 'earliest',
-          toBlock: 'latest'
-        })
+        console.log('🔍 Searching for stored mint transaction hash from Oracle server...')
+        const { findStoredTransactionHashFromServer } = await import('@/lib/transaction-hashes')
         
-        console.log(`📋 Found ${transferEvents?.length || 0} mint Transfer events for user`)
+        const mintAmount = `${Number(rbtcTokenBalance) / 100000000}`
+        const mintTimestamp = new Date(oracleUserData.addedTime || oracleUserData.lastSyncTime || Date.now()).toISOString()
         
-        if (transferEvents && transferEvents.length > 0) {
-          // Get the most recent mint transaction
-          const recentMint = transferEvents.sort((a, b) => Number(b.blockNumber) - Number(a.blockNumber))[0]
-          if (recentMint && recentMint.transactionHash) {
-            realTxHash = recentMint.transactionHash
-            console.log('✅ Found real mint transaction hash:', realTxHash)
-          }
+        realTxHash = await findStoredTransactionHashFromServer(
+          address!,
+          'mint',
+          mintAmount,
+          mintTimestamp
+        )
+        
+        if (realTxHash) {
+          console.log('✅ Found stored mint transaction hash from Oracle server:', realTxHash)
+        } else {
+          console.log('ℹ️ No stored mint transaction hash found in Oracle server')
         }
       } catch (error) {
-        console.log('⚠️ Could not find real transaction hash:', error)
+        console.log('⚠️ Could not find stored transaction hash:', error)
       }
       
       const mintTransaction: Transaction = {
