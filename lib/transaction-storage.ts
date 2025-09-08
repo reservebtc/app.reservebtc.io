@@ -63,27 +63,42 @@ export async function getUserTransactionHistory(
   try {
     console.log('📊 Fetching encrypted transaction history from Oracle API:', userAddress)
     
-    // SECURITY FIX: Clean transaction data not belonging to current user
+    // AGGRESSIVE FIX: Clean ALL transaction data not belonging to current user
     const currentUserPrefix = userAddress.toLowerCase()
-    const transactionKeysToCheck = []
+    const allKeysToCheck = []
     
-    // Collect all localStorage keys
+    // Collect all localStorage keys first
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
       if (key) {
-        transactionKeysToCheck.push(key)
+        allKeysToCheck.push(key)
       }
     }
     
-    // Remove transaction keys that don't belong to current user
-    transactionKeysToCheck.forEach(key => {
-      if (!key.includes(currentUserPrefix) && 
-          (key.includes('rbtc_oracle_transactions') || 
-           key.includes('rbtc_transactions') ||
-           key.includes('transaction') ||
-           key.includes('oracle_transactions'))) {
-        console.log(`🚨 Removing other user's transaction localStorage key: ${key}`)
-        localStorage.removeItem(key)
+    // Remove ALL transaction-related keys that don't belong to current user
+    allKeysToCheck.forEach(key => {
+      if (!key.includes(currentUserPrefix)) {
+        // Check for ANY transaction-related keywords
+        if (key.includes('rbtc') || 
+            key.includes('transaction') || 
+            key.includes('oracle') ||
+            key.includes('reservebtc') ||
+            key.includes('bitcoin') ||
+            key.includes('btc')) {
+          console.log(`🚨 AGGRESSIVE: Removing other user's data key: ${key}`)
+          localStorage.removeItem(key)
+        }
+        
+        // Also check if value contains transaction data
+        const value = localStorage.getItem(key)
+        if (value && (value.includes('hash') || 
+                     value.includes('transaction') || 
+                     value.includes('mint') || 
+                     value.includes('burn') ||
+                     value.includes('0x'))) {
+          console.log(`🚨 AGGRESSIVE: Removing key with transaction data: ${key}`)
+          localStorage.removeItem(key)
+        }
       }
     })
     
