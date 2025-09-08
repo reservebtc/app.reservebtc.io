@@ -82,7 +82,7 @@ export async function getUserTransactionHistory(
             hash: userData.lastTxHash,
             type: 'mint' as const,
             amount: (userData.lastSyncedBalance / 100000000).toFixed(8),
-            timestamp: new Date(userData.lastSyncTime || userData.addedTime).toISOString(),
+            timestamp: new Date(userData.lastSyncTime || userData.addedTime || Date.now()).toISOString(),
             status: 'success' as const,
             blockNumber: 0, // Oracle doesn't track block numbers
             userAddress: userAddress,
@@ -106,11 +106,9 @@ export async function getUserTransactionHistory(
         console.log('ℹ️ User not found in Oracle database:', userAddress)
         return []
       }
-    } else if (response.status === 404) {
-      console.log('ℹ️ User not found in Oracle database - new user')
-      return []
     } else {
-      throw new Error(`Oracle API error: ${response.status} ${response.statusText}`)
+      console.log('ℹ️ No users data from Oracle database')
+      return []
     }
   } catch (error) {
     console.warn('⚠️ Oracle API unavailable, falling back to cached data:', error)
@@ -261,11 +259,9 @@ export async function getVerifiedAddressesFromOracle(
         console.log('ℹ️ User not found in Oracle database:', userAddress)
         return []
       }
-    } else if (response.status === 404) {
-      console.log('ℹ️ No verified addresses found for user')
-      return []
     } else {
-      throw new Error(`Oracle API error: ${response.status}`)
+      console.log('ℹ️ No users data from Oracle database')
+      return []
     }
   } catch (error) {
     console.warn('⚠️ Oracle address lookup failed:', error)
