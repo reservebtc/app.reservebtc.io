@@ -63,6 +63,30 @@ export async function getUserTransactionHistory(
   try {
     console.log('📊 Fetching encrypted transaction history from Oracle API:', userAddress)
     
+    // SECURITY FIX: Clean transaction data not belonging to current user
+    const currentUserPrefix = userAddress.toLowerCase()
+    const transactionKeysToCheck = []
+    
+    // Collect all localStorage keys
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key) {
+        transactionKeysToCheck.push(key)
+      }
+    }
+    
+    // Remove transaction keys that don't belong to current user
+    transactionKeysToCheck.forEach(key => {
+      if (!key.includes(currentUserPrefix) && 
+          (key.includes('rbtc_oracle_transactions') || 
+           key.includes('rbtc_transactions') ||
+           key.includes('transaction') ||
+           key.includes('oracle_transactions'))) {
+        console.log(`🚨 Removing other user's transaction localStorage key: ${key}`)
+        localStorage.removeItem(key)
+      }
+    })
+    
     // Use new encrypted Oracle API
     const allUsersData = await getDecryptedOracleUsers()
     
