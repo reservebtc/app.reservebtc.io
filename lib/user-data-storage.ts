@@ -109,6 +109,32 @@ export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<U
     }
   })
   
+  // UNIVERSAL FIX: Clean all localStorage data not belonging to current user
+  const currentUserPrefix = ethAddress.toLowerCase()
+  const keysToCheck = []
+  
+  // Collect all localStorage keys
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key) {
+      keysToCheck.push(key)
+    }
+  }
+  
+  // Remove keys that don't belong to current user but contain user data
+  keysToCheck.forEach(key => {
+    if (!key.includes(currentUserPrefix) && 
+        (key.includes('rbtc') || 
+         key.includes('reservebtc') || 
+         key.includes('bitcoin') ||
+         key.includes('transaction') ||
+         key.includes('oracle') ||
+         key.includes('user_data'))) {
+      console.log(`🚨 Removing other user's localStorage key: ${key}`)
+      localStorage.removeItem(key)
+    }
+  })
+  
   // UNIVERSAL FIX: Remove any localStorage keys containing ANY Bitcoin addresses that don't belong to current user
   const bitcoinAddressRegex = /(bc1|tb1|[13])[a-zA-HJ-NP-Z0-9]{25,62}/g
   for (let i = 0; i < localStorage.length; i++) {
