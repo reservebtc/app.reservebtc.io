@@ -109,14 +109,14 @@ export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<U
     }
   })
   
-  // ADDITIONAL FIX: Remove any localStorage keys containing the leaked Bitcoin address
-  const leakedAddress = '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2'
+  // UNIVERSAL FIX: Remove any localStorage keys containing ANY Bitcoin addresses that don't belong to current user
+  const bitcoinAddressRegex = /(bc1|tb1|[13])[a-zA-HJ-NP-Z0-9]{25,62}/g
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i)
-    if (key) {
+    if (key && !key.includes(ethAddress.toLowerCase())) {
       const value = localStorage.getItem(key)
-      if (value && value.includes(leakedAddress)) {
-        console.log(`🚨 Removing localStorage key containing leaked address: ${key}`)
+      if (value && bitcoinAddressRegex.test(value)) {
+        console.log(`🚨 Removing localStorage key containing Bitcoin address not belonging to user: ${key}`)
         localStorage.removeItem(key)
         i-- // Adjust index since localStorage.length decreased
       }
