@@ -1298,17 +1298,37 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             <p className="text-muted-foreground">
               Your rBTC tokens have been minted successfully.
             </p>
-            {txHash && (
+            {txHash && !txHash.startsWith('oracle_') && !txHash.startsWith('manual_') && (
               <div className="text-sm text-muted-foreground">
                 Transaction:{' '}
                 <a
-                  href={`https://megaexplorer.xyz/tx/${txHash}`}
+                  href={`https://www.megaexplorer.xyz/tx/${txHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-mono text-primary hover:text-primary/80 underline transition-colors"
                 >
                   {txHash.slice(0, 10)}...{txHash.slice(-8)}
                 </a>
+              </div>
+            )}
+            {txHash && (txHash.startsWith('oracle_') || txHash.startsWith('manual_')) && (
+              <div className="text-sm text-muted-foreground">
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center">
+                  <p className="text-blue-800 dark:text-blue-200 font-medium mb-1">📡 Oracle Registration</p>
+                  <p className="text-blue-700 dark:text-blue-300 text-xs">
+                    Your Bitcoin address is now monitored 24/7
+                  </p>
+                  <div className="mt-2">
+                    <a
+                      href="https://oracle.reservebtc.io/users"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 underline text-xs"
+                    >
+                      Check Oracle Status →
+                    </a>
+                  </div>
+                </div>
               </div>
             )}
           </div>
