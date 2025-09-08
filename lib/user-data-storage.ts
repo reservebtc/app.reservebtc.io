@@ -60,8 +60,7 @@ export async function saveVerifiedBitcoinAddress(
     ethAddress
   }
 
-  // Save to legacy localStorage for backward compatibility
-  localStorage.setItem('verifiedBitcoinAddress', bitcoinAddress)
+  // REMOVED: global localStorage key that caused data leak between users
   
   // Save to structured user data
   const userData = getUserData(ethAddress)
@@ -151,32 +150,7 @@ export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<U
     }
   }
   
-  // Additional fallback: check all localStorage keys for Bitcoin addresses
-  if (userData.verifiedAddresses.length === 0) {
-    console.log('🔍 Deep scan of localStorage for Bitcoin addresses...')
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (key && (key.includes('bitcoin') || key.includes('btc') || key.includes(ethAddress.toLowerCase()))) {
-        const value = localStorage.getItem(key)
-        if (value && (value.startsWith('bc1') || value.startsWith('tb1') || value.startsWith('1') || value.startsWith('3'))) {
-          console.log(`🔍 Found Bitcoin address in ${key}:`, value.substring(0, 10) + '...')
-          const recoveredData: UserVerifiedAddress = {
-            address: value,
-            verifiedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days ago
-            signature: 'deep_scan_recovery_signature',
-            ethAddress
-          }
-          userData.verifiedAddresses.push(recoveredData)
-        }
-      }
-    }
-    
-    if (userData.verifiedAddresses.length > 0) {
-      const cacheKey = `reservebtc_user_data_${ethAddress.toLowerCase()}`
-      localStorage.setItem(cacheKey, JSON.stringify(userData))
-      console.log('✅ Deep scan recovery completed')
-    }
-  }
+  // REMOVED: Deep scan that caused data leak between users by reading global localStorage keys
   
   // Migrate existing signatures to encrypted format
   if (userData.verifiedAddresses.length > 0) {
@@ -278,8 +252,7 @@ export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<U
     const cacheKey = `reservebtc_user_data_${ethAddress.toLowerCase()}`
     localStorage.setItem(cacheKey, JSON.stringify(mergedUserData))
     
-    // Update legacy localStorage for backward compatibility
-    localStorage.setItem('verifiedBitcoinAddress', validAddresses[0].address)
+    // REMOVED: global localStorage key that caused data leak between users
     
     console.log(`✅ Merged and cached ${validAddresses.length} valid addresses`)
   }
@@ -349,7 +322,7 @@ export async function emergencyUserDataRecovery(ethAddress: string): Promise<Use
     
     const cacheKey = `reservebtc_user_data_${ethAddress.toLowerCase()}`
     localStorage.setItem(cacheKey, JSON.stringify(userDataCache))
-    localStorage.setItem('verifiedBitcoinAddress', userData.bitcoinAddress)
+    // REMOVED: global localStorage key that caused data leak between users
     
     console.log('💾 Emergency recovery data saved to localStorage')
     
@@ -374,7 +347,7 @@ export async function emergencyUserDataRecovery(ethAddress: string): Promise<Use
 export function clearUserData(ethAddress: string): void {
   const cacheKey = `reservebtc_user_data_${ethAddress.toLowerCase()}`
   localStorage.removeItem(cacheKey)
-  localStorage.removeItem('verifiedBitcoinAddress') // Also remove legacy key
+  // REMOVED: global localStorage key that caused data leak between users
 }
 
 /**
