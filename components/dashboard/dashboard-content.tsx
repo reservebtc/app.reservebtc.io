@@ -107,6 +107,32 @@ export function DashboardContent() {
   // Load aggregated data from all user Bitcoin addresses
   useEffect(() => {
     if (address) {
+      // PROFESSIONAL FIX: Auto-refresh page if user switched in MetaMask
+      const lastUserKey = 'rbtc_last_dashboard_user'
+      const lastUser = localStorage.getItem(lastUserKey)
+      
+      if (lastUser && lastUser.toLowerCase() !== address.toLowerCase()) {
+        console.log('🔄 MetaMask user switched detected, refreshing dashboard...')
+        localStorage.setItem(lastUserKey, address.toLowerCase())
+        
+        // Clear all localStorage data before refresh
+        const keysToRemove = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && key !== lastUserKey) {
+            keysToRemove.push(key)
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key))
+        
+        // Force page refresh for clean state
+        window.location.reload()
+        return
+      }
+      
+      // Set current user as last connected
+      localStorage.setItem(lastUserKey, address.toLowerCase())
+      
       // Load aggregated data instead of single address data
       loadAggregatedUserData()
       
