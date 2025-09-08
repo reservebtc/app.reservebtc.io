@@ -109,6 +109,20 @@ export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<U
     }
   })
   
+  // ADDITIONAL FIX: Remove any localStorage keys containing the leaked Bitcoin address
+  const leakedAddress = '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2'
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key) {
+      const value = localStorage.getItem(key)
+      if (value && value.includes(leakedAddress)) {
+        console.log(`🚨 Removing localStorage key containing leaked address: ${key}`)
+        localStorage.removeItem(key)
+        i-- // Adjust index since localStorage.length decreased
+      }
+    }
+  }
+  
   // Get Oracle addresses first
   let oracleAddresses: UserVerifiedAddress[] = []
   try {
