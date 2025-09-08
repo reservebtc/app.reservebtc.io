@@ -303,8 +303,13 @@ export function DashboardContent() {
       
       for (const verifiedAddr of verifiedAddresses) {
         try {
-          // Get real Bitcoin balance from Blockstream API for each address
-          const response = await fetch(`https://blockstream.info/testnet/api/address/${verifiedAddr.address}`)
+          // Get real Bitcoin balance from Mempool.space API for each address
+          const apiUrl = verifiedAddr.address.startsWith('tb1') || verifiedAddr.address.startsWith('2') ? 
+            `https://mempool.space/testnet/api/address/${verifiedAddr.address}` :
+            `https://mempool.space/api/address/${verifiedAddr.address}`
+          
+          console.log(`🔍 Fetching balance from Mempool.space: ${apiUrl}`)
+          const response = await fetch(apiUrl)
           if (response.ok) {
             const data = await response.json()
             const balance = (data.chain_stats?.funded_txo_sum - data.chain_stats?.spent_txo_sum) / 100000000
@@ -316,10 +321,12 @@ export function DashboardContent() {
               balance: balance
             })
             
-            console.log(`📍 ${verifiedAddr.address}: ${balance} BTC`)
+            console.log(`📍 ${verifiedAddr.address}: ${balance} BTC (from Mempool.space)`)
+          } else {
+            console.log(`⚠️ Mempool.space API returned ${response.status} for ${verifiedAddr.address}`)
           }
         } catch (error) {
-          console.log(`❌ Error fetching balance for ${verifiedAddr.address}:`, error)
+          console.log(`❌ Error fetching balance from Mempool.space for ${verifiedAddr.address}:`, error)
           updatedAddresses.push({
             address: verifiedAddr.address,
             verifiedAt: verifiedAddr.verifiedAt,
