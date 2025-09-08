@@ -76,11 +76,16 @@ export function DashboardContent() {
     watch: autoRefreshEnabled,
   })
 
-  // Redirect if not connected
+  // Redirect if not connected - but wait for connection state to be determined
   useEffect(() => {
-    if (!isConnected) {
-      router.push('/')
-    }
+    // Add a small delay to allow wallet connection to be established on page refresh
+    const timer = setTimeout(() => {
+      if (!isConnected) {
+        router.push('/')
+      }
+    }, 100)
+
+    return () => clearTimeout(timer)
   }, [isConnected, router])
 
   // Load aggregated data from all user Bitcoin addresses
@@ -1283,15 +1288,22 @@ export function DashboardContent() {
                         </div>
                       </td>
                       <td className="py-3 px-2 hidden sm:table-cell">
-                        <a 
-                          href={`https://www.megaexplorer.xyz/tx/${tx.hash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-mono text-xs text-primary hover:underline flex items-center gap-1"
-                        >
-                          {tx.hash.slice(0, 8)}...{tx.hash.slice(-6)}
-                          <ArrowUpRight className="h-3 w-3" />
-                        </a>
+                        {tx.hash.startsWith('oracle_mint_') || tx.hash.startsWith('oracle_') ? (
+                          <span className="font-mono text-xs text-muted-foreground flex items-center gap-1">
+                            Oracle-{tx.type}
+                            <Info className="h-3 w-3" />
+                          </span>
+                        ) : (
+                          <a 
+                            href={`https://www.megaexplorer.xyz/tx/${tx.hash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-mono text-xs text-primary hover:underline flex items-center gap-1"
+                          >
+                            {tx.hash.slice(0, 8)}...{tx.hash.slice(-6)}
+                            <ArrowUpRight className="h-3 w-3" />
+                          </a>
+                        )}
                       </td>
                       <td className="py-3 px-2 text-right font-mono text-sm">
                         <span className={tx.type === 'mint' ? 'text-green-600' : tx.type === 'burn' ? 'text-red-600' : ''}>
