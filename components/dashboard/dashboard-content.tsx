@@ -268,6 +268,7 @@ export function DashboardContent() {
   const loadAggregatedUserData = async () => {
     if (!address) return
 
+    console.log('🚀 Starting loadAggregatedUserData for address:', address)
     setIsLoadingAggregatedData(true)
     setSyncStatus('📊 Loading aggregated data from all Bitcoin addresses...')
 
@@ -275,9 +276,12 @@ export function DashboardContent() {
       // Get all verified Bitcoin addresses for this user
       const verifiedAddresses = await getVerifiedBitcoinAddresses(address)
       console.log(`📍 Found ${verifiedAddresses.length} verified Bitcoin addresses for user`)
+      console.log('🔍 Verified addresses details:', verifiedAddresses)
 
       if (verifiedAddresses.length === 0) {
         console.log('⚠️ No verified Bitcoin addresses found')
+        // Still set empty array to verifiedAddresses state so UI updates
+        setVerifiedAddresses([])
         setIsLoadingAggregatedData(false)
         return
       }

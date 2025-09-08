@@ -254,12 +254,16 @@ export async function getVerifiedAddressesFromOracle(
     
     // Use new encrypted Oracle API
     const allUsersData = await getDecryptedOracleUsers()
+    console.log('🔍 DEBUG: All users data keys:', allUsersData ? Object.keys(allUsersData) : 'null')
     
     if (allUsersData) {
       console.log('✅ Encrypted Oracle users data received and decrypted')
       
       // Find this user's data (case-insensitive lookup)
       const userData = allUsersData[userAddress.toLowerCase()] || allUsersData[userAddress]
+      console.log('🔍 DEBUG: User data found:', userData ? 'YES' : 'NO')
+      console.log('🔍 DEBUG: User data:', userData)
+      
       if (userData && (userData.btcAddress || userData.btcAddresses)) {
         // Enhance user data with multiple addresses support
         const enhancedUserData = enhanceUserDataWithMultipleAddresses(userData)

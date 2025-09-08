@@ -71,6 +71,7 @@ export function decryptOracleData(encryptedResponse: EncryptedOracleResponse): R
 export async function getDecryptedOracleUsers(): Promise<Record<string, UserData> | null> {
   try {
     console.log('🔐 Fetching encrypted Oracle user data...');
+    console.log('🔍 DEBUG: Oracle URL:', `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`);
 
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`,
@@ -85,10 +86,12 @@ export async function getDecryptedOracleUsers(): Promise<Record<string, UserData
     );
 
     if (!response.ok) {
+      console.log('🔍 DEBUG: Oracle response failed:', response.status, response.statusText);
       throw new Error(`Oracle API failed: ${response.status} ${response.statusText}`);
     }
 
     const encryptedResponse: EncryptedOracleResponse = await response.json();
+    console.log('🔍 DEBUG: Oracle response received, encrypted:', encryptedResponse.encrypted);
     
     if (!encryptedResponse.encrypted) {
       // If response is not encrypted, return as is (backward compatibility)
@@ -96,7 +99,12 @@ export async function getDecryptedOracleUsers(): Promise<Record<string, UserData
       return encryptedResponse as any;
     }
 
-    return decryptOracleData(encryptedResponse);
+    const decryptedData = decryptOracleData(encryptedResponse);
+    console.log('🔍 DEBUG: Decrypted data keys:', decryptedData ? Object.keys(decryptedData).length : 'null');
+    if (decryptedData) {
+      console.log('🔍 DEBUG: First few user keys:', Object.keys(decryptedData).slice(0, 3));
+    }
+    return decryptedData;
 
   } catch (error) {
     console.error('❌ Failed to fetch/decrypt Oracle data:', error);
