@@ -72,6 +72,42 @@ export function DashboardContent() {
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
   const [expandedTransactions, setExpandedTransactions] = useState<Set<string>>(new Set())
 
+  // CRITICAL FIX: Monitor MetaMask account changes and force page refresh
+  useEffect(() => {
+    if (address) {
+      const lastUserKey = 'rbtc_current_metamask_user'
+      const lastUser = localStorage.getItem(lastUserKey)
+      
+      console.log('🔍 Checking MetaMask user change:', { lastUser, currentUser: address.toLowerCase() })
+      
+      if (lastUser && lastUser !== address.toLowerCase()) {
+        console.log('🚨 DETECTED MetaMask account switch! Forcing page refresh...')
+        
+        // Aggressive cleanup before refresh
+        try {
+          localStorage.clear()
+        } catch (e) {
+          console.warn('Failed to clear localStorage:', e)
+        }
+        
+        // Set new user
+        localStorage.setItem(lastUserKey, address.toLowerCase())
+        
+        // Force immediate page refresh
+        setTimeout(() => {
+          window.location.reload()
+        }, 100)
+        return
+      }
+      
+      // Set initial user
+      if (!lastUser) {
+        localStorage.setItem(lastUserKey, address.toLowerCase())
+        console.log('✅ Set initial MetaMask user:', address.toLowerCase())
+      }
+    }
+  }, [address])
+
   // Watch for new blocks to auto-refresh transactions
   const { data: currentBlockNumber } = useBlockNumber({
     watch: autoRefreshEnabled,
