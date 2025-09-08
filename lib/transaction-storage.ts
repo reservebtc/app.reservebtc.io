@@ -76,15 +76,37 @@ export async function getUserTransactionHistory(
         
         // Extract transactions from Oracle format
         const transactions = []
-        if (userData.lastTxHash && userData.lastSyncedBalance) {
-          // Create synthetic transaction from Oracle data
+        
+        // New format: use transactionHashes array directly
+        if (userData.transactionHashes && Array.isArray(userData.transactionHashes)) {
+          userData.transactionHashes.forEach(tx => {
+            transactions.push({
+              hash: tx.hash,
+              type: tx.type as 'mint' | 'burn' | 'wrap' | 'unwrap' | 'transfer',
+              amount: tx.amount,
+              timestamp: tx.timestamp,
+              status: 'success' as const,
+              blockNumber: tx.blockNumber || 0,
+              userAddress: userAddress,
+              bitcoinAddress: userData.btcAddress,
+              metadata: {
+                source: tx.source,
+                manualEntry: tx.manualEntry,
+                autoDetected: tx.autoDetected
+              }
+            })
+          })
+        }
+        
+        // Legacy format: fallback to old lastTxHash method
+        else if (userData.lastTxHash && userData.lastSyncedBalance) {
           transactions.push({
             hash: userData.lastTxHash,
             type: 'mint' as const,
             amount: (userData.lastSyncedBalance / 100000000).toFixed(8),
             timestamp: new Date(userData.lastSyncTime || userData.addedTime || Date.now()).toISOString(),
             status: 'success' as const,
-            blockNumber: 0, // Oracle doesn't track block numbers
+            blockNumber: 0,
             userAddress: userAddress,
             bitcoinAddress: userData.btcAddress
           })
