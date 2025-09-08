@@ -14,6 +14,10 @@ import {
   getDecryptedSignature,
   migrateSignatureToEncrypted 
 } from './encryption-utils'
+import { 
+  getDecryptedOracleUsers, 
+  enhanceUserDataWithMultipleAddresses 
+} from './oracle-decryption'
 
 interface TransactionEvent {
   txHash: string
@@ -57,24 +61,13 @@ export async function getUserTransactionHistory(
   forceRefresh: boolean = false
 ): Promise<ProcessedTransaction[]> {
   try {
-    console.log('📊 Fetching transaction history from Oracle API:', userAddress)
+    console.log('📊 Fetching encrypted transaction history from Oracle API:', userAddress)
     
-    // Oracle API uses /internal-users endpoint with API key
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': process.env.NEXT_PUBLIC_ORACLE_API_KEY || '',
-          'User-Agent': 'ReserveBTC-Frontend/1.0'
-        }
-      }
-    )
-
-    if (response.ok) {
-      const allUsersData = await response.json()
-      console.log('✅ Oracle API users data received')
+    // Use new encrypted Oracle API
+    const allUsersData = await getDecryptedOracleUsers()
+    
+    if (allUsersData) {
+      console.log('✅ Encrypted Oracle API users data received and decrypted')
       
       // Find this user's data (case-insensitive lookup)
       const userData = allUsersData[userAddress.toLowerCase()] || allUsersData[userAddress]
@@ -237,33 +230,28 @@ export async function getVerifiedAddressesFromOracle(
   userAddress: string
 ): Promise<{ address: string; verifiedAt: string; signature: string }[]> {
   try {
-    console.log('🔍 Fetching verified addresses from Oracle:', userAddress)
+    console.log('🔍 Fetching encrypted verified addresses from Oracle:', userAddress)
     
-    // Oracle API uses /internal-users endpoint with API key
-    const response = await fetch(`${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': process.env.NEXT_PUBLIC_ORACLE_API_KEY || '',
-        'User-Agent': 'ReserveBTC-Frontend/1.0'
-      }
-    })
-
-    if (response.ok) {
-      const allUsersData = await response.json()
-      console.log('✅ Oracle users data received')
+    // Use new encrypted Oracle API
+    const allUsersData = await getDecryptedOracleUsers()
+    
+    if (allUsersData) {
+      console.log('✅ Encrypted Oracle users data received and decrypted')
       
       // Find this user's data (case-insensitive lookup)
       const userData = allUsersData[userAddress.toLowerCase()] || allUsersData[userAddress]
-      if (userData && userData.btcAddress) {
-        console.log('✅ Found verified address in Oracle:', userData.btcAddress)
+      if (userData && (userData.btcAddress || userData.btcAddresses)) {
+        // Enhance user data with multiple addresses support
+        const enhancedUserData = enhanceUserDataWithMultipleAddresses(userData)
         
-        // Create address array from Oracle format
-        const addresses = [{
-          address: userData.btcAddress,
-          verifiedAt: new Date(userData.addedTime).toISOString(),
+        console.log('✅ Found verified addresses in Oracle:', enhancedUserData.btcAddresses?.length || 1)
+        
+        // Create address array from Oracle format (support multiple addresses)
+        const addresses = (enhancedUserData.btcAddresses || [enhancedUserData.btcAddress]).map((address, index) => ({
+          address: address,
+          verifiedAt: new Date(userData.registeredAt || userData.addedTime || Date.now()).toISOString(),
           signature: 'oracle_verified' // Oracle doesn't store signatures
-        }]
+        }))
         
         console.log('✅ Oracle verified addresses retrieved:', addresses.length)
         
