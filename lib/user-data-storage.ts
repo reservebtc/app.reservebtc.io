@@ -5,6 +5,8 @@
  * with professional Oracle database integration and localStorage fallbacks
  */
 
+import { validateBitcoinAddress } from './bitcoin-validation'
+
 import { 
   getVerifiedAddressesFromOracle, 
   saveAddressToOracle,
@@ -236,7 +238,48 @@ export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<U
     }
   }
   
-  return userData.verifiedAddresses
+  // Clean invalid addresses before returning
+  const validAddresses = userData.verifiedAddresses.filter(addr => {
+    // Remove pending_verification and other invalid addresses
+    if (addr.address === 'pending_verification' || 
+        addr.address === 'auto-detected' || 
+        addr.address === 'manual-add' ||
+        !addr.address ||
+        addr.address.length < 10) {
+      console.log('🧹 Removing invalid address:', addr.address)
+      return false
+    }
+    
+    // Validate Bitcoin address format
+    try {
+      const validation = validateBitcoinAddress(addr.address)
+      if (!validation.isValid) {
+        console.log('🧹 Removing invalid Bitcoin address:', addr.address, validation.error)
+        return false
+      }
+      return true
+    } catch (error) {
+      console.log('🧹 Removing address with validation error:', addr.address, error)
+      return false
+    }
+  })
+  
+  // If we cleaned some addresses, update localStorage
+  if (validAddresses.length !== userData.verifiedAddresses.length) {
+    const cleanUserData: UserData = {
+      ...userData,
+      verifiedAddresses: validAddresses
+    }
+    
+    try {
+      localStorage.setItem(`verified_addresses_${ethAddress.toLowerCase()}`, JSON.stringify(cleanUserData))
+      console.log(`🧹 Cleaned localStorage: removed ${userData.verifiedAddresses.length - validAddresses.length} invalid addresses`)
+    } catch (error) {
+      console.warn('Failed to update localStorage after cleaning:', error)
+    }
+  }
+  
+  return validAddresses
 }
 
 /**
