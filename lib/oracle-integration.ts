@@ -83,7 +83,7 @@ export async function requestOracleRegistration(data: OracleRegistrationRequest)
     console.error('❌ Oracle registration failed:', error);
     return {
       success: false,
-      message: `Oracle registration failed: ${error.message}`
+      message: `Oracle registration failed: ${error instanceof Error ? error.message : String(error)}`
     };
   }
 }

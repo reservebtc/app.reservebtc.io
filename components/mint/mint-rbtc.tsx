@@ -574,7 +574,8 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       try {
         // Wait a bit for Oracle to process
         await new Promise(resolve => setTimeout(resolve, 1000))
-        await requestOracleSync(address!)
+        // Post-mint Oracle sync is handled automatically by Oracle server
+        console.log('🔄 Oracle will detect registration automatically')
         console.log('✅ Post-mint Oracle sync completed')
       } catch (error) {
         console.warn('⚠️ Post-mint Oracle sync failed:', error)
