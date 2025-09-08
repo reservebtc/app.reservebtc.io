@@ -267,11 +267,14 @@ export async function getVerifiedAddressesFromOracle(
         console.log('✅ Found verified addresses in Oracle:', enhancedUserData.btcAddresses?.length || 1)
         
         // Create address array from Oracle format (support multiple addresses)
-        const addresses = (enhancedUserData.btcAddresses || [enhancedUserData.btcAddress]).map((address, index) => ({
-          address: address,
-          verifiedAt: new Date(userData.registeredAt || userData.addedTime || Date.now()).toISOString(),
-          signature: 'oracle_verified' // Oracle doesn't store signatures
-        }))
+        const rawAddresses = enhancedUserData.btcAddresses || [enhancedUserData.btcAddress]
+        const addresses = rawAddresses
+          .filter(address => address && address.length > 10 && !address.includes('pending_verification'))
+          .map((address, index) => ({
+            address: address,
+            verifiedAt: new Date(userData.registeredAt || userData.addedTime || Date.now()).toISOString(),
+            signature: 'oracle_verified' // Oracle doesn't store signatures
+          }))
         
         console.log('✅ Oracle verified addresses retrieved:', addresses.length)
         

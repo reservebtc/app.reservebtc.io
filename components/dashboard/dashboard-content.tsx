@@ -27,6 +27,7 @@ import Link from 'next/link'
 import { CONTRACTS } from '@/app/lib/contracts'
 import { getVerifiedBitcoinAddresses } from '@/lib/user-data-storage'
 import { getUserTransactionHistory, requestOracleSync } from '@/lib/transaction-storage'
+import { getDecryptedOracleUsers } from '@/lib/oracle-decryption'
 
 interface VerifiedAddress {
   address: string
@@ -319,13 +320,9 @@ export function DashboardContent() {
       setSyncStatus('🔍 Checking Oracle registration status...')
       let oracleUserData = null
       try {
-        const oracleResponse = await fetch(`${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`, {
-          headers: {
-            'X-API-Key': process.env.NEXT_PUBLIC_ORACLE_API_KEY || ''
-          }
-        })
-        if (oracleResponse.ok) {
-          const oracleUsersData = await oracleResponse.json()
+        // Use encrypted Oracle API
+        const oracleUsersData = await getDecryptedOracleUsers()
+        if (oracleUsersData) {
           // Oracle returns object with addresses as keys, not array
           const userInOracle = oracleUsersData[address.toLowerCase()] || oracleUsersData[address]
           
@@ -852,14 +849,9 @@ export function DashboardContent() {
       // Also try to sync with Oracle server for additional data
       try {
         setSyncStatus(`📡 Syncing with Oracle server...`)
-        // Check Oracle users list to get actual user data
-        const oracleResponse = await fetch(`${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`, {
-          headers: {
-            'X-API-Key': process.env.NEXT_PUBLIC_ORACLE_API_KEY || ''
-          }
-        })
-        if (oracleResponse.ok) {
-          const oracleUsersData = await oracleResponse.json()
+        // Check Oracle users list to get actual user data using encrypted API
+        const oracleUsersData = await getDecryptedOracleUsers()
+        if (oracleUsersData) {
           // Oracle returns object with addresses as keys, not array
           const userInOracle = oracleUsersData[address.toLowerCase()] || oracleUsersData[address]
           
