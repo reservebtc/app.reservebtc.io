@@ -286,6 +286,17 @@ export function DashboardContent() {
         return
       }
 
+      // CRITICAL FIX: Set verified addresses immediately for UI display
+      // Convert to VerifiedAddress format that UI expects
+      const uiAddresses = verifiedAddresses.map(addr => ({
+        address: addr.address,
+        balance: 0, // Will be updated below with real balance
+        verifiedAt: addr.verifiedAt,
+        signature: addr.signature
+      }))
+      setVerifiedAddresses(uiAddresses)
+      console.log('✅ FIXED: Set verified addresses in UI state:', uiAddresses.length)
+
       // Get Bitcoin balances from all verified addresses and aggregate with Oracle
       let totalBitcoinBalance = 0
       const updatedAddresses = []
