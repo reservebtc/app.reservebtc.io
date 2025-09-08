@@ -329,7 +329,7 @@ export function DashboardContent() {
           if (userInOracle) {
             oracleUserData = userInOracle
             console.log('✅ User found in Oracle:', userInOracle)
-            console.log(`🔍 Oracle monitoring: ${userInOracle.btcAddress || userInOracle.bitcoinAddress}`)
+            console.log(`🔍 Oracle monitoring: ${userInOracle.btcAddress}`)
             console.log(`₿ Oracle balance: ${userInOracle.lastSyncedBalance} sats`)
             setSyncStatus('✅ User registered with Oracle - automatic sync active')
           } else {
