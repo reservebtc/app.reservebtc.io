@@ -708,63 +708,69 @@ export function DashboardContent() {
       try {
         console.log('🔍 Searching for real transaction hash with professional cache...')
         
-        // Method 1: Try Oracle server stored hashes first
-        const { findStoredTransactionHashFromServer } = await import('@/lib/transaction-hashes')
-        const mintAmount = (Number(rbtcTokenBalance) / 100000000).toString()
-        const mintTimestamp = oracleUserData.registeredAt
+        console.log('🔍 HASH DEBUG: Starting hash lookup process...')
+        console.log('🔍 HASH DEBUG: Address:', address)
+        console.log('🔍 HASH DEBUG: Oracle user data:', oracleUserData)
+        console.log('🔍 HASH DEBUG: rBTC balance:', rbtcTokenBalance.toString())
         
-        realTxHash = await findStoredTransactionHashFromServer(
-          address!,
-          'mint',
-          mintAmount,
-          mintTimestamp
-        )
+        // Use blockchain correlation cache to find real transaction hash
+        const { getTransactionHashForOracleUser } = await import('@/lib/transaction-hash-cache')
         
-        // Method 2: If Oracle server doesn't have it, use blockchain correlation cache
-        if (!realTxHash) {
-          console.log('🔗 Oracle server hash not found, trying blockchain correlation...')
-          const { getTransactionHashForOracleUser } = await import('@/lib/transaction-hash-cache')
+        // Find Oracle user hash for correlation
+        const { getOracleUsersData, findOracleUserByCorrelation } = await import('@/lib/oracle-decryption')
+        const freshOracleUsersData = await getOracleUsersData()
+        console.log('🔍 HASH DEBUG: Fresh Oracle data loaded:', !!freshOracleUsersData)
+        
+        if (freshOracleUsersData) {
+          console.log('🔍 HASH DEBUG: Oracle users count:', Object.keys(freshOracleUsersData).length)
           
-          // Find Oracle user hash for correlation
-          const { getOracleUsersData, findOracleUserByCorrelation } = await import('@/lib/oracle-decryption')
-          const freshOracleUsersData = await getOracleUsersData()
-          if (freshOracleUsersData) {
-            const correlatedUser = findOracleUserByCorrelation(
-              freshOracleUsersData,
-              address as string,
-              rbtcTokenBalance,
-              Date.parse(oracleUserData.registeredAt)
-            )
+          const correlatedUser = findOracleUserByCorrelation(
+            freshOracleUsersData,
+            address as string,
+            rbtcTokenBalance,
+            Date.parse(oracleUserData.registeredAt)
+          )
+          console.log('🔍 HASH DEBUG: Correlated user found:', !!correlatedUser)
+          
+          if (correlatedUser) {
+            // Find the user hash key
+            const userHashKey = Object.entries(freshOracleUsersData).find(
+              ([_, userData]) => userData === correlatedUser
+            )?.[0]
+            console.log('🔍 HASH DEBUG: User hash key found:', !!userHashKey)
             
-            if (correlatedUser) {
-              // Find the user hash key
-              const userHashKey = Object.entries(freshOracleUsersData).find(
-                ([_, userData]) => userData === correlatedUser
-              )?.[0]
-              
-              if (userHashKey) {
-                realTxHash = await getTransactionHashForOracleUser(
-                  userHashKey,
-                  correlatedUser,
-                  address
-                )
-              }
+            if (userHashKey) {
+              console.log('🔍 HASH DEBUG: Calling getTransactionHashForOracleUser...')
+              realTxHash = await getTransactionHashForOracleUser(
+                userHashKey,
+                correlatedUser,
+                address
+              )
+              console.log('🔍 HASH DEBUG: Returned hash:', realTxHash)
             }
           }
         }
         
         if (realTxHash) {
-          console.log('✅ Found real transaction hash for Explorer link:', realTxHash)
+          console.log('✅ HASH SUCCESS: Found real transaction hash for Explorer link:', realTxHash)
+          console.log('✅ HASH SUCCESS: Explorer URL will be: https://www.megaexplorer.xyz/tx/' + realTxHash)
         } else {
-          console.log('ℹ️ No real transaction hash found, using Oracle identifier')
+          console.log('❌ HASH FAILURE: No real transaction hash found, using Oracle identifier fallback')
+          console.log('❌ HASH FAILURE: Explorer link will not work properly')
         }
       } catch (error) {
-        console.log('⚠️ Could not find real transaction hash:', error)
+        console.log('❌ HASH ERROR: Could not find real transaction hash:', error)
+        realTxHash = null
       }
       
-      // Create single clean mint transaction
+      // Create single clean mint transaction with DETAILED LOGGING
+      const finalHash = realTxHash || `oracle-mint-${Date.now()}`
+      console.log('🏗️ TRANSACTION CREATION: Creating transaction with hash:', finalHash)
+      console.log('🏗️ TRANSACTION CREATION: Real hash found:', !!realTxHash)
+      console.log('🏗️ TRANSACTION CREATION: Using fallback:', !realTxHash)
+      
       const transaction: Transaction = {
-        hash: realTxHash || `oracle_mint_${oracleUserData.lastSyncTime}`,
+        hash: finalHash,
         type: 'mint',
         amount: (Number(rbtcTokenBalance) / 100000000).toString(),
         timestamp: oracleUserData.registeredAt,
@@ -772,6 +778,8 @@ export function DashboardContent() {
         steps: createTransactionSteps('mint'),
         currentStep: createTransactionSteps('mint').length - 1
       }
+      
+      console.log('🏗️ TRANSACTION CREATED:', transaction)
       
       allTransactions.push(transaction)
       console.log(`✅ Created single clean mint transaction: ${transaction.amount} rBTC${realTxHash ? ' (with real hash)' : ' (Oracle hash)'}`)
@@ -1676,7 +1684,17 @@ export function DashboardContent() {
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((tx, index) => (
+                {transactions.map((tx, index) => {
+                  // DEBUG: Log transaction hash rendering
+                  console.log(`🔍 RENDER DEBUG: Transaction ${index}:`, {
+                    hash: tx.hash,
+                    type: tx.type,
+                    isRealHash: tx.hash?.startsWith('0x') && tx.hash?.length === 66,
+                    isOracleHash: tx.hash?.startsWith('oracle'),
+                    fullTx: tx
+                  })
+                  
+                  return (
                   <>
                     <tr key={index} className="border-b hover:bg-muted/50 transition-colors">
                       <td className="py-3 px-2">
@@ -1717,9 +1735,9 @@ export function DashboardContent() {
                             {tx.hash.slice(0, 10)}...{tx.hash.slice(-8)}
                             <ArrowUpRight className="h-3 w-3" />
                           </a>
-                        ) : tx.hash && (tx.hash.startsWith('oracle_mint_') || tx.hash.startsWith('oracle_')) ? (
-                          <span className="font-mono text-xs text-amber-600 flex items-center gap-1" title="Transaction processed by Oracle server">
-                            Oracle-{tx.type}
+                        ) : tx.hash && (tx.hash.startsWith('oracle_mint_') || tx.hash.startsWith('oracle-mint-') || tx.hash.startsWith('oracle_')) ? (
+                          <span className="font-mono text-xs text-amber-600 flex items-center gap-1" title="Transaction processed by Oracle server - real blockchain hash not found">
+                            Oracle-{tx.type} (No blockchain hash)
                             <Info className="h-3 w-3" />
                           </span>
                         ) : (
@@ -1804,7 +1822,8 @@ export function DashboardContent() {
                       </tr>
                     )}
                   </>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>
