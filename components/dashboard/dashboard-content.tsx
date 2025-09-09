@@ -66,6 +66,7 @@ export function DashboardContent() {
   const [rbtcBalance, setRbtcBalance] = useState<string>('0')
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingBalances, setIsLoadingBalances] = useState(false)
   const [showAllAddresses, setShowAllAddresses] = useState(false)
 
   // Read rBTC-SYNTH balance from contract
@@ -179,6 +180,11 @@ export function DashboardContent() {
 
         setVerifiedAddresses(addresses)
 
+        // Load real Bitcoin balances from Mempool API
+        if (addresses.length > 0) {
+          loadBitcoinBalances(addresses)
+        }
+
         // Process transactions
         const txs: Transaction[] = []
         if (userData.transactionHashes && Array.isArray(userData.transactionHashes)) {
@@ -226,6 +232,59 @@ export function DashboardContent() {
       console.log('💰 rBTC-SYNTH balance updated:', balance)
     }
   }, [rbtcBalanceData])
+
+  // Detect if address is mainnet or testnet
+  const isTestnetAddress = (address: string): boolean => {
+    return address.startsWith('tb1') || address.startsWith('m') || address.startsWith('n') || address.startsWith('2')
+  }
+
+  // Fetch Bitcoin balance from Mempool API
+  const fetchBitcoinBalance = async (address: string): Promise<number> => {
+    try {
+      const isTestnet = isTestnetAddress(address)
+      const baseUrl = isTestnet ? 'https://mempool.space/testnet/api' : 'https://mempool.space/api'
+      
+      console.log(`🔍 Fetching ${isTestnet ? 'testnet' : 'mainnet'} balance for:`, address)
+      
+      const response = await fetch(`${baseUrl}/address/${address}`)
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+      
+      const data = await response.json()
+      const balanceBTC = (data.chain_stats.funded_txo_sum - data.chain_stats.spent_txo_sum) / 100000000
+      
+      console.log(`💰 ${address}: ${balanceBTC} BTC (${isTestnet ? 'testnet' : 'mainnet'})`)
+      return balanceBTC
+      
+    } catch (error) {
+      console.warn(`⚠️ Failed to fetch balance for ${address}:`, error)
+      return 0
+    }
+  }
+
+  // Load Bitcoin balances for all addresses
+  const loadBitcoinBalances = async (addresses: VerifiedAddress[]) => {
+    try {
+      setIsLoadingBalances(true)
+      console.log('💰 Loading Bitcoin balances for all addresses...')
+      
+      const updatedAddresses = await Promise.all(
+        addresses.map(async (addr) => {
+          const balance = await fetchBitcoinBalance(addr.address)
+          return { ...addr, balance }
+        })
+      )
+      
+      setVerifiedAddresses(updatedAddresses)
+      
+      const totalBalance = updatedAddresses.reduce((total, addr) => total + (addr.balance || 0), 0)
+      console.log(`💰 Total Bitcoin balance: ${totalBalance.toFixed(8)} BTC`)
+      
+    } finally {
+      setIsLoadingBalances(false)
+    }
+  }
 
   // Get total Bitcoin balance from all addresses
   const getTotalBitcoinBalance = (): number => {
@@ -302,14 +361,26 @@ export function DashboardContent() {
             <div className="flex items-center gap-2">
               <Bitcoin className="h-5 w-5 text-orange-500" />
               <span className="font-medium">Bitcoin</span>
+              {isLoadingBalances && (
+                <RefreshCw className="h-3 w-3 text-muted-foreground animate-spin" />
+              )}
             </div>
             <span className="text-xs bg-orange-500/10 text-orange-600 px-2 py-1 rounded">Reserve</span>
           </div>
           <div className="text-2xl font-bold">
-            {getTotalBitcoinBalance().toFixed(8)} BTC
+            {isLoadingBalances ? (
+              <span className="text-muted-foreground">Loading...</span>
+            ) : (
+              `${getTotalBitcoinBalance().toFixed(8)} BTC`
+            )}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            From {verifiedAddresses.length} verified address{verifiedAddresses.length !== 1 ? 'es' : ''}
+            From {verifiedAddresses.length} verified address{verifiedAddresses.length !== 1 ? 'es' : ''} 
+            {verifiedAddresses.some(addr => isTestnetAddress(addr.address)) && 
+             verifiedAddresses.some(addr => !isTestnetAddress(addr.address)) && 
+             ' (mainnet + testnet)'}
+            {verifiedAddresses.every(addr => isTestnetAddress(addr.address)) && verifiedAddresses.length > 0 && ' (testnet)'}
+            {verifiedAddresses.every(addr => !isTestnetAddress(addr.address)) && verifiedAddresses.length > 0 && ' (mainnet)'}
           </p>
         </div>
 
@@ -405,8 +476,8 @@ export function DashboardContent() {
                       </div>
                       <div className="text-xs text-muted-foreground">
                         Verified: {formatTimestamp(addr.verifiedAt)}
-                        {addr.balance && (
-                          <span className="ml-2">• Balance: {addr.balance.toFixed(8)} BTC</span>
+                        {addr.balance !== undefined && (
+                          <span className="ml-2">• Balance: {addr.balance.toFixed(8)} BTC ({isTestnetAddress(addr.address) ? 'testnet' : 'mainnet'})</span>
                         )}
                       </div>
                     </div>
