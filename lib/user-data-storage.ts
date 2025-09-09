@@ -152,8 +152,11 @@ export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<U
   // Get Oracle addresses first
   let oracleAddresses: UserVerifiedAddress[] = []
   try {
+    console.log('🔍 DETAILED DEBUG: Calling getVerifiedAddressesFromOracle for:', ethAddress)
     const oracleData = await getVerifiedAddressesFromOracle(ethAddress)
-    console.log('🔍 DEBUG: Oracle data received:', oracleData)
+    console.log('🔍 DETAILED DEBUG: Oracle data received:', oracleData)
+    console.log('🔍 DETAILED DEBUG: Oracle data type:', typeof oracleData)
+    console.log('🔍 DETAILED DEBUG: Oracle data length:', oracleData?.length)
     
     if (oracleData.length > 0) {
       console.log('✅ Retrieved addresses from Oracle database:', oracleData.length)
