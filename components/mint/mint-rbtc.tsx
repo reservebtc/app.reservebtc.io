@@ -114,6 +114,27 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     console.log('🎉 PROFESSIONAL CLEANUP COMPLETED!')
   }, [setValue])
 
+  // 🔥 INSTANT UI CLEANUP: Clear Bitcoin Balance and Address IMMEDIATELY on address change
+  useEffect(() => {
+    if (address) {
+      console.log('🚨 ADDRESS CHANGE DETECTED - INSTANT UI CLEANUP!')
+      
+      // IMMEDIATE cleanup of visible UI data to prevent old user data display
+      setVerifiedBitcoinAddress('')
+      setAllVerifiedAddresses([])
+      setBitcoinBalance(0)
+      setIsLoadingBalance(false)
+      setHasAttemptedFetch(false)
+      setAddressHasSpentCoins(false)
+      
+      // IMMEDIATE form cleanup
+      setValue('bitcoinAddress', '', { shouldValidate: false })
+      setValue('amount', '0', { shouldValidate: false })
+      
+      console.log('✅ INSTANT UI CLEANUP: Bitcoin Balance, Address, and Form cleared immediately')
+    }
+  }, [address, setValue]) // CRITICAL: Depends on address and setValue for instant trigger
+
   // 🔥 REAL-TIME METAMASK MONITORING: Professional MetaMask account change detection
   useEffect(() => {
     if (typeof window !== 'undefined' && window.ethereum && address) {
