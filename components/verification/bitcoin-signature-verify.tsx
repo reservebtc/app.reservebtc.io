@@ -6,6 +6,7 @@ import { useAccount } from 'wagmi'
 import { Verifier } from 'bip322-js'
 import { useRouter } from 'next/navigation'
 import { saveVerifiedBitcoinAddress } from '@/lib/user-data-storage'
+import { getDecryptedOracleUsers } from '@/lib/oracle-decryption'
 
 interface BitcoinSignatureVerifyProps {
   onVerificationComplete?: (data: { address: string; signature: string; verified: boolean }) => void
@@ -36,6 +37,17 @@ export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignat
   const [showInstructions, setShowInstructions] = useState(false)
   const [activeWallet, setActiveWallet] = useState<string | null>(null)
   const [verifiedAddress, setVerifiedAddress] = useState<string | null>(null)
+  const [addressUniquenessCheck, setAddressUniquenessCheck] = useState<{
+    isChecking: boolean
+    isUnique: boolean | null
+    error: string | null
+    conflictUser: string | null
+  }>({
+    isChecking: false,
+    isUnique: null,
+    error: null,
+    conflictUser: null
+  })
 
   const message = ethAddress 
     ? `ReserveBTC Wallet Verification
@@ -50,11 +62,132 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
     setTimeout(() => setCopiedMessage(false), 2000)
   }
 
+  // Check Bitcoin address uniqueness
+  const checkAddressUniqueness = async (address: string) => {
+    if (!address || !ethAddress) return
+    
+    setAddressUniquenessCheck({
+      isChecking: true,
+      isUnique: null,
+      error: null,
+      conflictUser: null
+    })
+
+    try {
+      console.log('🔒 Checking Bitcoin address uniqueness:', address)
+      const allUsersData = await getDecryptedOracleUsers()
+      
+      if (!allUsersData) {
+        setAddressUniquenessCheck({
+          isChecking: false,
+          isUnique: null,
+          error: 'Could not verify address uniqueness',
+          conflictUser: null
+        })
+        return
+      }
+
+      // Check if this Bitcoin address is already used by another ETH user
+      for (const [existingEthAddress, userData] of Object.entries(allUsersData)) {
+        if (existingEthAddress.toLowerCase() !== ethAddress.toLowerCase()) {
+          // Check primary btcAddress
+          if (userData.btcAddress && userData.btcAddress.toLowerCase() === address.toLowerCase()) {
+            setAddressUniquenessCheck({
+              isChecking: false,
+              isUnique: false,
+              error: `Bitcoin address is already linked to another account (${existingEthAddress.substring(0, 8)}...)`,
+              conflictUser: existingEthAddress
+            })
+            return
+          }
+          
+          // Check btcAddresses array
+          if (userData.btcAddresses && Array.isArray(userData.btcAddresses)) {
+            const hasAddress = userData.btcAddresses.some(addr => 
+              addr && addr.toLowerCase() === address.toLowerCase()
+            )
+            if (hasAddress) {
+              setAddressUniquenessCheck({
+                isChecking: false,
+                isUnique: false,
+                error: `Bitcoin address is already linked to another account (${existingEthAddress.substring(0, 8)}...)`,
+                conflictUser: existingEthAddress
+              })
+              return
+            }
+          }
+
+          // Check transaction records for verified addresses
+          if (userData.transactionHashes && Array.isArray(userData.transactionHashes)) {
+            const hasVerifiedAddress = userData.transactionHashes.some(tx => 
+              tx.bitcoinAddress && tx.bitcoinAddress.toLowerCase() === address.toLowerCase() && 
+              tx.type === 'address_verification'
+            )
+            if (hasVerifiedAddress) {
+              setAddressUniquenessCheck({
+                isChecking: false,
+                isUnique: false,
+                error: `Bitcoin address is already verified by another account (${existingEthAddress.substring(0, 8)}...)`,
+                conflictUser: existingEthAddress
+              })
+              return
+            }
+          }
+        }
+      }
+
+      // Address is unique
+      setAddressUniquenessCheck({
+        isChecking: false,
+        isUnique: true,
+        error: null,
+        conflictUser: null
+      })
+
+    } catch (error) {
+      console.error('❌ Error checking address uniqueness:', error)
+      setAddressUniquenessCheck({
+        isChecking: false,
+        isUnique: null,
+        error: 'Failed to check address uniqueness',
+        conflictUser: null
+      })
+    }
+  }
+
+  // useEffect to check address uniqueness when bitcoinAddress changes
+  useEffect(() => {
+    if (bitcoinAddress && bitcoinAddress.length >= 26) { // Minimum Bitcoin address length
+      const debounceTimer = setTimeout(() => {
+        checkAddressUniqueness(bitcoinAddress)
+      }, 500) // 500ms debounce
+
+      return () => clearTimeout(debounceTimer)
+    } else {
+      // Reset check state when address is too short
+      setAddressUniquenessCheck({
+        isChecking: false,
+        isUnique: null,
+        error: null,
+        conflictUser: null
+      })
+    }
+  }, [bitcoinAddress, ethAddress])
+
   const verifySignature = async () => {
     if (!bitcoinAddress || !signature || !message) {
       setVerificationResult({
         success: false,
         message: 'Please provide Bitcoin address and signature'
+      })
+      return
+    }
+
+    // Check address uniqueness before verification
+    if (addressUniquenessCheck.isUnique === false) {
+      setVerificationResult({
+        success: false,
+        message: `Cannot verify: ${addressUniquenessCheck.error}`
       })
       return
     }
@@ -506,6 +639,45 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
               onChange={(e) => setBitcoinAddress(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg bg-background dark:bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 dark:border-gray-700"
             />
+            
+            {/* Address uniqueness check indicator */}
+            {bitcoinAddress && bitcoinAddress.length >= 26 && (
+              <div className="mt-2">
+                {addressUniquenessCheck.isChecking && (
+                  <div className="flex items-center gap-2 text-blue-600">
+                    <div className="h-4 w-4 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
+                    <span className="text-sm">Checking address uniqueness...</span>
+                  </div>
+                )}
+                
+                {addressUniquenessCheck.isUnique === true && (
+                  <div className="flex items-center gap-2 text-green-600">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-sm">✅ Address is available for verification</span>
+                  </div>
+                )}
+                
+                {addressUniquenessCheck.isUnique === false && (
+                  <div className="flex items-center gap-2 text-red-600">
+                    <AlertCircle className="h-4 w-4" />
+                    <div className="text-sm">
+                      <div className="font-medium">❌ Address already in use</div>
+                      <div className="text-xs mt-1">{addressUniquenessCheck.error}</div>
+                      <div className="text-xs mt-1 text-gray-600">
+                        Each Bitcoin address can only be verified by one account.
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {addressUniquenessCheck.error && addressUniquenessCheck.isUnique === null && (
+                  <div className="flex items-center gap-2 text-yellow-600">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm">⚠️ {addressUniquenessCheck.error}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Step 4: Enter Signature */}
@@ -528,7 +700,13 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
           {/* Verify Button */}
           <button
             onClick={verifySignature}
-            disabled={!bitcoinAddress || !signature || isVerifying}
+            disabled={
+              !bitcoinAddress || 
+              !signature || 
+              isVerifying || 
+              addressUniquenessCheck.isChecking || 
+              addressUniquenessCheck.isUnique === false
+            }
             className="w-full px-6 py-3 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium transition-all flex items-center justify-center gap-2"
           >
             {isVerifying ? (
