@@ -7,6 +7,8 @@ import { Verifier } from 'bip322-js'
 import { useRouter } from 'next/navigation'
 import { saveVerifiedBitcoinAddress } from '@/lib/user-data-storage'
 import { getDecryptedOracleUsers } from '@/lib/oracle-decryption'
+import { useUserVerification } from '@/hooks/useUserProfile'
+import { userProfileManager } from '@/lib/user-profile-manager'
 
 interface BitcoinSignatureVerifyProps {
   onVerificationComplete?: (data: { address: string; signature: string; verified: boolean }) => void
@@ -29,6 +31,57 @@ interface WalletInstruction {
 export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignatureVerifyProps) {
   const { address: ethAddress, isConnected: isMetaMaskConnected } = useAccount()
   const router = useRouter()
+  
+  // Use new user verification hook
+  const { refreshProfile } = useUserVerification()
+
+  /**
+   * Create professional user profile on Oracle server after successful verification
+   */
+  const createOracleProfile = async (bitcoinAddress: string, signature: string) => {
+    if (!ethAddress || !bitcoinAddress) return false
+    
+    try {
+      console.log('🆕 PROFILE: Creating Oracle profile after verification...')
+      console.log(`   ETH Address: ${ethAddress.substring(0, 10)}...`)
+      console.log(`   BTC Address: ${bitcoinAddress}`)
+      
+      // Call Oracle server to create professional profile
+      const response = await fetch(`${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/create-profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': process.env.NEXT_PUBLIC_ORACLE_API_KEY || '',
+        },
+        body: JSON.stringify({
+          userAddress: ethAddress,
+          bitcoinAddress: bitcoinAddress,
+          verificationType: 'manual_bip322',
+          signature: signature,
+          timestamp: Date.now()
+        })
+      })
+      
+      if (!response.ok) {
+        console.error('❌ PROFILE: Oracle profile creation failed:', response.status, response.statusText)
+        return false
+      }
+      
+      const result = await response.json()
+      console.log('✅ PROFILE: Oracle profile created successfully!')
+      console.log(`   Total Transactions: ${result.totalTransactions || 0}`)
+      console.log(`   Profile ID: ${result.userAddress}`)
+      
+      // Refresh profile in cache
+      await refreshProfile()
+      
+      return true
+      
+    } catch (error) {
+      console.error('❌ PROFILE: Failed to create Oracle profile:', error)
+      return false
+    }
+  }
   const [bitcoinAddress, setBitcoinAddress] = useState('')
   const [signature, setSignature] = useState('')
   const [isVerifying, setIsVerifying] = useState(false)
@@ -276,6 +329,16 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
         
         // Save verified address for navigation
         setVerifiedAddress(cleanAddress)
+        
+        // 🆕 Create professional profile on Oracle server
+        console.log('🔄 VERIFY: Creating Oracle profile after successful verification...')
+        const profileCreated = await createOracleProfile(cleanAddress, cleanSignature)
+        
+        if (profileCreated) {
+          console.log('✅ VERIFY: Oracle profile created and cache refreshed!')
+        } else {
+          console.warn('⚠️  VERIFY: Oracle profile creation failed, but verification completed')
+        }
         
         if (onVerificationComplete) {
           onVerificationComplete({
