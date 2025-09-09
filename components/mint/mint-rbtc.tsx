@@ -117,9 +117,9 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   // 🔥 INSTANT UI CLEANUP: Clear Bitcoin Balance and Address IMMEDIATELY on address change
   useEffect(() => {
     if (address) {
-      console.log('🚨 ADDRESS CHANGE DETECTED - INSTANT UI CLEANUP!')
+      console.log('🔄 Address change detected - executing instant cleanup...')
       
-      // IMMEDIATE cleanup of visible UI data to prevent old user data display
+      // Clear all visible UI data to prevent old user data display
       setVerifiedBitcoinAddress('')
       setAllVerifiedAddresses([])
       setBitcoinBalance(0)
@@ -127,11 +127,11 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       setHasAttemptedFetch(false)
       setAddressHasSpentCoins(false)
       
-      // IMMEDIATE form cleanup
+      // Clear form data
       setValue('bitcoinAddress', '', { shouldValidate: false })
       setValue('amount', '0', { shouldValidate: false })
       
-      console.log('✅ INSTANT UI CLEANUP: Bitcoin Balance, Address, and Form cleared immediately')
+      console.log('✅ UI cleanup completed successfully')
     }
   }, [address, setValue]) // CRITICAL: Depends on address and setValue for instant trigger
 
