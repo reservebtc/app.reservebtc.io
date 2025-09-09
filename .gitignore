@@ -302,3 +302,6 @@ check-user-card.js
 blockchain-address-recovery.js
 
 check-oracle-test-address.js
+
+# Oracle synchronization test script
+test-oracle-synchronization.js
