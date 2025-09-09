@@ -48,10 +48,19 @@ interface OracleUsersResponse {
 /**
  * Decrypt Oracle API response data
  */
-export function decryptOracleData(encryptedResponse: EncryptedOracleResponse): Record<string, UserData> | null {
+export async function decryptOracleData(encryptedResponse: EncryptedOracleResponse): Promise<Record<string, UserData> | null> {
   try {
+    console.log('🔐 UNIVERSAL DECRYPTION: Starting Oracle data decryption process...');
+    console.log('🔍 DEBUG: Response structure:', {
+      encrypted: encryptedResponse.encrypted,
+      hasData: !!encryptedResponse.data,
+      timestamp: encryptedResponse.timestamp,
+      note: encryptedResponse.note
+    });
+
     if (!encryptedResponse.encrypted || !encryptedResponse.data) {
-      console.error('❌ Invalid encrypted response format');
+      console.error('❌ UNIVERSAL ERROR: Invalid encrypted response format');
+      console.error('❌ DEBUG: Response details:', JSON.stringify(encryptedResponse, null, 2));
       return null;
     }
 
@@ -59,25 +68,76 @@ export function decryptOracleData(encryptedResponse: EncryptedOracleResponse): R
 
     // Handle fallback base64 decryption (simplified encryption for compatibility)
     if (encryptedData.iv === 'fallback' && encryptedData.authTag === 'fallback') {
+      console.log('🔓 UNIVERSAL DECRYPTION: Using base64 fallback method...');
       try {
         const decodedData = atob(encryptedData.encrypted);
         const userData = JSON.parse(decodedData);
         
-        console.log('✅ Oracle data decrypted successfully (fallback method)');
+        console.log('✅ UNIVERSAL SUCCESS: Base64 decryption successful!');
+        console.log('📊 UNIVERSAL SUCCESS: Decrypted', Object.keys(userData).length, 'users');
+        console.log('📋 UNIVERSAL SUCCESS: Sample user keys:', Object.keys(userData).slice(0, 3));
         return userData;
       } catch (error) {
-        console.error('❌ Fallback decryption failed:', error);
+        console.error('❌ UNIVERSAL ERROR: Base64 fallback decryption failed:', error);
+        console.error('❌ UNIVERSAL ERROR: Error details:', error instanceof Error ? error.message : String(error));
         return null;
       }
     }
 
-    // TODO: Implement full AES-GCM decryption when needed
-    // For now, using fallback method which is sufficient for our security model
-    console.warn('⚠️ Full AES decryption not implemented, using fallback');
-    return null;
+    // AES-256-CBC decryption with encryption key from environment
+    console.log('🔓 UNIVERSAL DECRYPTION: Attempting AES-256-CBC decryption...');
+    try {
+      // Import crypto dynamically for Next.js compatibility
+      const crypto = await import('crypto');
+      const encryptionKey = process.env.NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY;
+      
+      if (!encryptionKey) {
+        console.error('❌ UNIVERSAL ERROR: No encryption key found in environment!');
+        console.error('❌ UNIVERSAL ERROR: Set NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY in Vercel env vars');
+        throw new Error('No encryption key');
+      }
+      
+      console.log('🔑 UNIVERSAL DECRYPTION: Using AES encryption key from environment...');
+      console.log('🔍 DEBUG: Encrypted data format:', {
+        encryptedLength: encryptedData.encrypted?.length,
+        iv: encryptedData.iv,
+        authTag: encryptedData.authTag
+      });
+      
+      const decipher = crypto.createDecipher('aes-256-cbc', encryptionKey);
+      let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      const userData = JSON.parse(decrypted);
+      
+      console.log('✅ UNIVERSAL SUCCESS: AES-256-CBC decryption successful!');
+      console.log('📊 UNIVERSAL SUCCESS: Decrypted', Object.keys(userData).length, 'users');
+      console.log('📋 UNIVERSAL SUCCESS: Sample user keys:', Object.keys(userData).slice(0, 3));
+      return userData;
+    } catch (aesError) {
+      console.error('❌ UNIVERSAL ERROR: AES-256-CBC decryption failed!');
+      console.error('❌ UNIVERSAL ERROR: AES Error details:', aesError instanceof Error ? aesError.message : String(aesError));
+      console.log('🔄 UNIVERSAL FALLBACK: Trying base64 decryption as backup...');
+      
+      // Fallback to base64 if AES fails
+      try {
+        const decodedData = atob(encryptedData.encrypted);
+        const userData = JSON.parse(decodedData);
+        console.log('✅ UNIVERSAL SUCCESS: Base64 fallback worked!');
+        console.log('📊 UNIVERSAL SUCCESS: Decrypted', Object.keys(userData).length, 'users via base64');
+        console.log('📋 UNIVERSAL SUCCESS: Sample user keys:', Object.keys(userData).slice(0, 3));
+        return userData;
+      } catch (base64Error) {
+        console.error('❌ UNIVERSAL ERROR: Both AES and base64 decryption failed!');
+        console.error('❌ UNIVERSAL ERROR: Base64 Error details:', base64Error instanceof Error ? base64Error.message : String(base64Error));
+        console.error('❌ UNIVERSAL ERROR: Complete decryption failure - check Oracle server configuration');
+        return null;
+      }
+    }
 
   } catch (error) {
-    console.error('❌ Oracle data decryption error:', error);
+    console.error('❌ UNIVERSAL ERROR: Unexpected decryption error:', error);
+    console.error('❌ UNIVERSAL ERROR: Unexpected error details:', error instanceof Error ? error.message : String(error));
+    console.error('❌ UNIVERSAL ERROR: This should not happen - check code logic');
     return null;
   }
 }
@@ -106,20 +166,7 @@ export async function getOracleUsersData(): Promise<Record<string, UserData> | n
     console.log('🔍 DEBUG: Oracle response received, total users:', oracleResponse.totalUsers);
     
     if (oracleResponse.users) {
-      console.log('🔍 DEBUG: Users data keys:', Object.keys(oracleResponse.users).length);
-      
-      // Debug for problem user in public endpoint
-      const problemUser = '0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b';
-      const userData = oracleResponse.users[problemUser.toLowerCase()] || oracleResponse.users[problemUser];
-      if (userData) {
-        console.log('🚨 PROBLEM USER FOUND in public endpoint users:', userData);
-      } else {
-        console.log('🚨 PROBLEM USER NOT FOUND in public endpoint, available keys:');
-        Object.keys(oracleResponse.users).slice(0, 5).forEach(key => {
-          console.log('   Public User Key:', key);
-        });
-      }
-      
+      console.log('🔍 DEBUG: Users data received:', Object.keys(oracleResponse.users).length, 'users');
       return oracleResponse.users;
     } else {
       console.log('❌ No users data found in Oracle response');
@@ -137,9 +184,10 @@ export async function getOracleUsersData(): Promise<Record<string, UserData> | n
  */
 export async function getDecryptedOracleUsers(): Promise<Record<string, UserData> | null> {
   try {
-    console.log('🔐 Fetching encrypted Oracle user data...');
+    console.log('🔐 UNIVERSAL SOLUTION: Fetching encrypted Oracle user data for ALL users...');
     console.log('🔍 DEBUG: Oracle URL:', `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`);
-    console.log('🚨 PROBLEM USER: Looking for data for 0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b');
+    console.log('🔑 DEBUG: Has encryption key:', !!process.env.NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY);
+    console.log('🔑 DEBUG: Has API key:', !!process.env.NEXT_PUBLIC_ORACLE_API_KEY);
 
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`,
@@ -154,20 +202,14 @@ export async function getDecryptedOracleUsers(): Promise<Record<string, UserData
     );
 
     if (!response.ok) {
-      console.log('🔍 DEBUG: Encrypted endpoint failed:', response.status, response.statusText);
-      console.log('🔄 Falling back to public /users endpoint...');
+      console.error('❌ UNIVERSAL ERROR: Encrypted endpoint failed:', response.status, response.statusText);
+      console.log('🔄 FALLBACK: Trying public /users endpoint...');
       const publicData = await getOracleUsersData();
-      
-      // For problem user debug in public fallback
       if (publicData) {
-        const problemUser = '0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b';
-        console.log('🚨 FALLBACK: Public endpoint returned', Object.keys(publicData).length, 'users');
-        const found = Object.keys(publicData).find(key => key.toLowerCase().includes('ea8f') || publicData[key].lastSyncedBalance === 12000);
-        if (found) {
-          console.log('🚨 FALLBACK: Found problem user data:', found, publicData[found]);
-        }
+        console.log('✅ FALLBACK SUCCESS: Public endpoint returned', Object.keys(publicData).length, 'users');
+      } else {
+        console.error('❌ UNIVERSAL ERROR: Both encrypted and public endpoints failed!');
       }
-      
       return publicData;
     }
 
@@ -180,46 +222,24 @@ export async function getDecryptedOracleUsers(): Promise<Record<string, UserData
       return encryptedResponse as any;
     }
 
-    const decryptedData = decryptOracleData(encryptedResponse);
+    const decryptedData = await decryptOracleData(encryptedResponse);
     console.log('🔍 DEBUG: Decrypted data keys:', decryptedData ? Object.keys(decryptedData).length : 'null');
     if (decryptedData) {
-      console.log('🔍 DEBUG: First few user keys:', Object.keys(decryptedData).slice(0, 3));
-      
-      // Debug for problem user
-      const problemUser = '0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b';
-      const userData = decryptedData[problemUser.toLowerCase()] || decryptedData[problemUser];
-      if (userData) {
-        console.log('🚨 PROBLEM USER FOUND in decrypted data:', userData);
-      } else {
-        console.log('🚨 PROBLEM USER NOT FOUND, available keys:');
-        Object.keys(decryptedData).forEach(key => {
-          console.log('   Key:', key, '| Lowercase match:', key.toLowerCase() === problemUser.toLowerCase());
-        });
-      }
+      console.log('🔍 DEBUG: Sample user keys:', Object.keys(decryptedData).slice(0, 3));
     }
     return decryptedData;
 
   } catch (error) {
-    console.error('❌ Failed to fetch/decrypt Oracle data, falling back to public endpoint:', error);
-    console.log('🔄 Trying public /users endpoint...');
-    const publicData = await getOracleUsersData();
-    
-    if (publicData) {
-      console.log('✅ Public endpoint returned data');
-      // Debug for problem user in public data
-      const problemUser = '0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b';
-      const userData = publicData[problemUser.toLowerCase()] || publicData[problemUser];
-      if (userData) {
-        console.log('🚨 PROBLEM USER FOUND in public data:', userData);
-      } else {
-        console.log('🚨 PROBLEM USER NOT FOUND in public data, available keys:');
-        Object.keys(publicData).forEach(key => {
-          console.log('   Public Key:', key, '| Lowercase match:', key.toLowerCase() === problemUser.toLowerCase());
-        });
-      }
+    console.error('❌ UNIVERSAL ERROR: Failed to fetch/decrypt Oracle data:', error);
+    console.error('❌ UNIVERSAL ERROR: Error details:', error instanceof Error ? error.message : String(error));
+    console.log('🔄 FINAL FALLBACK: Attempting public endpoint as last resort...');
+    const fallbackData = await getOracleUsersData();
+    if (fallbackData) {
+      console.log('✅ FINAL FALLBACK SUCCESS: Public endpoint saved the day with', Object.keys(fallbackData).length, 'users');
+    } else {
+      console.error('❌ UNIVERSAL ERROR: Complete system failure - no Oracle data available!');
     }
-    
-    return publicData;
+    return fallbackData;
   }
 }
 
@@ -241,16 +261,6 @@ export function findOracleUserByCorrelation(
   console.log('🔍 Available Oracle users:', Object.keys(oracleUsersData).length);
 
   const users = Object.entries(oracleUsersData);
-  
-  // Strategy 0: For problem user with known balance, match directly
-  if (ethereumAddress.toLowerCase() === '0xea8ffee94da08f65765ec2a095e9931fd03e6c1b') {
-    console.log('🚨 PROBLEM USER: Looking for balance 12000 sats');
-    const matchedUser = users.find(([_, userData]) => userData.lastSyncedBalance === 12000);
-    if (matchedUser) {
-      console.log('✅ PROBLEM USER: Found by balance match:', matchedUser[1]);
-      return matchedUser[1];
-    }
-  }
   
   // Strategy 1: If we have blockchain balance, find matching Oracle balance
   if (blockchainBalance !== undefined) {

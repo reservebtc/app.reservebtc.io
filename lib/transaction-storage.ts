@@ -150,55 +150,23 @@ export async function getUserTransactionHistory(
     if (allUsersData) {
       console.log('✅ Encrypted Oracle API users data received and decrypted')
       
-      // Find this user's data (comprehensive case-insensitive lookup)
-      let userData = allUsersData[userAddress.toLowerCase()] || allUsersData[userAddress]
+      // Find user data by Ethereum address (should work after proper decryption)
+      const userData = allUsersData[userAddress.toLowerCase()] || allUsersData[userAddress]
       
-      // If not found, try comprehensive search through all keys
+      console.log('🔍 UNIVERSAL LOOKUP: Looking for user:', userAddress)
+      console.log('📋 UNIVERSAL LOOKUP: Available Oracle users:', Object.keys(allUsersData).length)
+      console.log('📊 UNIVERSAL LOOKUP: Sample Oracle keys:', Object.keys(allUsersData).slice(0, 5))
+      console.log('📊 UNIVERSAL LOOKUP: Found userData:', userData ? 'YES' : 'NO')
+      
       if (!userData) {
-        console.log('🔍 Direct lookup failed, trying comprehensive search...')
-        const targetAddress = userAddress.toLowerCase()
-        
-        for (const [key, value] of Object.entries(allUsersData)) {
-          if (key.toLowerCase() === targetAddress) {
-            userData = value
-            console.log('✅ Found user via comprehensive search:', key, '->', targetAddress)
-            break
-          }
-        }
-      }
-      
-      // Enhanced debug for problem user
-      if (userAddress.toLowerCase() === '0xea8ffee94da08f65765ec2a095e9931fd03e6c1b') {
-        console.log('🚨 PROBLEM USER DEBUG: Oracle uses hashed keys, need correlation')
-        console.log('📋 Available Oracle users:', Object.keys(allUsersData))
-        console.log('🔍 Looking for Ethereum address:', userAddress.toLowerCase())
-        console.log('📊 Direct lookup userData:', userData ? 'YES' : 'NO')
-        
-        if (!userData) {
-          console.log('🔄 Direct lookup failed, trying correlation by balance/data...')
-          // Try to find user by correlation since Oracle uses hashed keys
-          const { findOracleUserByCorrelation } = await import('@/lib/oracle-decryption')
-          const correlatedUser = findOracleUserByCorrelation(allUsersData, userAddress)
-          if (correlatedUser) {
-            userData = correlatedUser
-            console.log('✅ Found via correlation:', userData)
-          } else {
-            console.log('❌ Correlation failed for:', userAddress)
-          }
-        }
-      }
-      
-      // If direct lookup failed, try correlation for ALL users (Oracle uses hashed keys)
-      if (!userData && allUsersData) {
-        console.log('🔄 Direct lookup failed for', userAddress, 'trying correlation...')
-        const { findOracleUserByCorrelation } = await import('@/lib/oracle-decryption')
-        const correlatedUser = findOracleUserByCorrelation(allUsersData, userAddress)
-        if (correlatedUser) {
-          userData = correlatedUser
-          console.log('✅ Found user via correlation:', userAddress, '->', userData)
-        } else {
-          console.log('❌ Correlation also failed for:', userAddress)
-        }
+        console.error('❌ UNIVERSAL ERROR: User not found in Oracle data!')
+        console.error('❌ UNIVERSAL ERROR: Target address:', userAddress)
+        console.error('❌ UNIVERSAL ERROR: Target address (lowercase):', userAddress.toLowerCase())
+        console.error('❌ UNIVERSAL ERROR: This means decryption returned wrong data or user doesn\'t exist')
+        console.log('🔍 DEBUG: All Oracle keys:');
+        Object.keys(allUsersData).forEach(key => {
+          console.log('   🔑 Oracle key:', key, '| Length:', key.length);
+        });
       }
 
       if (userData) {
