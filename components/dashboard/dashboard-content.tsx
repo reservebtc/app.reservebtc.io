@@ -456,6 +456,12 @@ export function DashboardContent() {
     if (!address) return
 
     console.log('🚀 Starting loadAggregatedUserData for address:', address)
+    
+    // PROFESSIONAL FIX: Clear transaction state immediately for new user
+    console.log('🧹 PROFESSIONAL: Clearing transaction state for fresh load')
+    setTransactions([])
+    setIsLoadingTransactions(true)
+    
     setIsLoadingAggregatedData(true)
     setSyncStatus('📊 Loading aggregated data from all Bitcoin addresses...')
 
