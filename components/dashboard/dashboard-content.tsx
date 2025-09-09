@@ -699,29 +699,9 @@ export function DashboardContent() {
     const allTransactions: Transaction[] = []
     let foundTransactions = false
     
-    // Method 1: Generate transaction from Oracle user data (since /users endpoint doesn't provide transaction details)
+    // Method 1: Create clean mint transaction from Oracle user data with real transaction hash
     if (oracleUserData && oracleUserData.transactionCount > 0 && rbtcTokenBalance > BigInt(0)) {
-      console.log('🎯 Creating transaction record from Oracle user data')
-      
-      // Create a mint transaction based on Oracle user data
-      const transaction: Transaction = {
-        hash: `oracle_mint_${oracleUserData.lastSyncTime}`,
-        type: 'mint',
-        amount: (Number(rbtcTokenBalance) / 100000000).toString(),
-        timestamp: oracleUserData.registeredAt,
-        status: 'success',
-        steps: createTransactionSteps('mint'),
-        currentStep: createTransactionSteps('mint').length - 1
-      }
-      
-      allTransactions.push(transaction)
-      console.log(`✅ Created transaction record from Oracle data: ${transaction.amount} rBTC`)
-      foundTransactions = true
-    } 
-    
-    // Method 2: Legacy fallback for old Oracle data structure
-    else if (oracleUserData && rbtcTokenBalance > 0) {
-      console.log('🎯 User found in Oracle with tokens - creating mint transaction record (legacy fallback)')
+      console.log('🎯 Creating clean mint transaction from Oracle user data')
       
       // Try to find real transaction hash from Oracle server stored hashes
       let realTxHash = null
@@ -729,8 +709,8 @@ export function DashboardContent() {
         console.log('🔍 Searching for stored mint transaction hash from Oracle server...')
         const { findStoredTransactionHashFromServer } = await import('@/lib/transaction-hashes')
         
-        const mintAmount = `${Number(rbtcTokenBalance) / 100000000}`
-        const mintTimestamp = new Date(oracleUserData.registeredAt || oracleUserData.lastSyncTime || Date.now()).toISOString()
+        const mintAmount = (Number(rbtcTokenBalance) / 100000000).toString()
+        const mintTimestamp = oracleUserData.registeredAt
         
         realTxHash = await findStoredTransactionHashFromServer(
           address!,
@@ -740,30 +720,35 @@ export function DashboardContent() {
         )
         
         if (realTxHash) {
-          console.log('✅ Found stored mint transaction hash from Oracle server:', realTxHash)
+          console.log('✅ Found real transaction hash for Explorer link:', realTxHash)
         } else {
-          console.log('ℹ️ No stored mint transaction hash found in Oracle server')
+          console.log('ℹ️ No real transaction hash found, using Oracle identifier')
         }
       } catch (error) {
-        console.log('⚠️ Could not find stored transaction hash:', error)
+        console.log('⚠️ Could not find real transaction hash:', error)
       }
       
-      const mintTransaction: Transaction = {
-        hash: realTxHash || `oracle_mint_${oracleUserData.lastSyncTime || Date.now()}`,
+      // Create single clean mint transaction
+      const transaction: Transaction = {
+        hash: realTxHash || `oracle_mint_${oracleUserData.lastSyncTime}`,
         type: 'mint',
-        amount: `${Number(rbtcTokenBalance) / 100000000}`,
-        timestamp: new Date(oracleUserData.registeredAt || oracleUserData.lastSyncTime || Date.now()).toISOString(),
+        amount: (Number(rbtcTokenBalance) / 100000000).toString(),
+        timestamp: oracleUserData.registeredAt,
         status: 'success',
         steps: createTransactionSteps('mint'),
         currentStep: createTransactionSteps('mint').length - 1
       }
       
-      allTransactions.push(mintTransaction)
-      console.log(`✅ Created mint transaction record: ${Number(rbtcTokenBalance) / 100000000} rBTC${realTxHash ? ' (with real tx hash)' : ' (Oracle hash)'}`)
+      allTransactions.push(transaction)
+      console.log(`✅ Created single clean mint transaction: ${transaction.amount} rBTC${realTxHash ? ' (with real hash)' : ' (Oracle hash)'}`)
       foundTransactions = true
-    }
+    } 
     
-    // Method 3: Try Oracle API for additional transactions
+    // Skip legacy fallback - Method 1 handles all Oracle user cases
+    
+    // Method 3: Skip additional Oracle API calls - using clean Oracle user data only
+    // (Commenting out to avoid duplicate/unwanted transactions)
+    /*
     try {
       const oracleTransactions = await getUserTransactionHistory(address!, false)
       
@@ -782,6 +767,7 @@ export function DashboardContent() {
     } catch (error) {
       console.log('⚠️ Oracle aggregated transactions failed:', error)
     }
+    */
     
     // Method 4: Force blockchain scanning if no transactions found and no tokens
     if (!foundTransactions && rbtcTokenBalance === BigInt(0)) {
@@ -1686,21 +1672,22 @@ export function DashboardContent() {
                         </div>
                       </td>
                       <td className="py-3 px-2 hidden sm:table-cell">
-                        {tx.hash.startsWith('oracle_mint_') || tx.hash.startsWith('oracle_') ? (
-                          <span className="font-mono text-xs text-muted-foreground flex items-center gap-1">
-                            Oracle-{tx.type}
-                            <Info className="h-3 w-3" />
-                          </span>
-                        ) : tx.hash && tx.hash.startsWith('0x') && tx.hash.length === 66 ? (
+                        {tx.hash && tx.hash.startsWith('0x') && tx.hash.length === 66 ? (
                           <a 
                             href={`https://www.megaexplorer.xyz/tx/${tx.hash}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="font-mono text-xs text-primary hover:underline flex items-center gap-1"
+                            title={`View transaction ${tx.hash} on MegaETH Explorer`}
                           >
-                            {tx.hash.slice(0, 8)}...{tx.hash.slice(-6)}
+                            {tx.hash.slice(0, 10)}...{tx.hash.slice(-8)}
                             <ArrowUpRight className="h-3 w-3" />
                           </a>
+                        ) : tx.hash && (tx.hash.startsWith('oracle_mint_') || tx.hash.startsWith('oracle_')) ? (
+                          <span className="font-mono text-xs text-amber-600 flex items-center gap-1" title="Transaction processed by Oracle server">
+                            Oracle-{tx.type}
+                            <Info className="h-3 w-3" />
+                          </span>
                         ) : (
                           <span className="font-mono text-xs text-muted-foreground flex items-center gap-1">
                             Processing...
