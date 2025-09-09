@@ -713,40 +713,64 @@ export function DashboardContent() {
         console.log('🔍 HASH DEBUG: Oracle user data:', oracleUserData)
         console.log('🔍 HASH DEBUG: rBTC balance:', rbtcTokenBalance.toString())
         
-        // Use blockchain correlation cache to find real transaction hash
-        const { getTransactionHashForOracleUser } = await import('@/lib/transaction-hash-cache')
-        
-        // Find Oracle user hash for correlation
-        const { getOracleUsersData, findOracleUserByCorrelation } = await import('@/lib/oracle-decryption')
-        const freshOracleUsersData = await getOracleUsersData()
-        console.log('🔍 HASH DEBUG: Fresh Oracle data loaded:', !!freshOracleUsersData)
-        
-        if (freshOracleUsersData) {
-          console.log('🔍 HASH DEBUG: Oracle users count:', Object.keys(freshOracleUsersData).length)
-          
-          const correlatedUser = findOracleUserByCorrelation(
-            freshOracleUsersData,
-            address as string,
-            rbtcTokenBalance,
-            Date.parse(oracleUserData.registeredAt)
-          )
-          console.log('🔍 HASH DEBUG: Correlated user found:', !!correlatedUser)
-          
-          if (correlatedUser) {
-            // Find the user hash key
-            const userHashKey = Object.entries(freshOracleUsersData).find(
-              ([_, userData]) => userData === correlatedUser
-            )?.[0]
-            console.log('🔍 HASH DEBUG: User hash key found:', !!userHashKey)
+        // PRIORITY 1: Try to get real transaction hashes directly from Oracle server
+        console.log('🔍 HASH STEP 1: Trying direct Oracle server transaction hashes...')
+        try {
+          const oracleHashResponse = await fetch(`${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/get-transaction-hashes/${address}`)
+          if (oracleHashResponse.ok) {
+            const oracleHashData = await oracleHashResponse.json()
+            console.log('🔍 ORACLE HASH DATA:', oracleHashData)
             
-            if (userHashKey) {
-              console.log('🔍 HASH DEBUG: Calling getTransactionHashForOracleUser...')
-              realTxHash = await getTransactionHashForOracleUser(
-                userHashKey,
-                correlatedUser,
-                address
-              )
-              console.log('🔍 HASH DEBUG: Returned hash:', realTxHash)
+            if (oracleHashData.success && oracleHashData.transactionHashes && oracleHashData.transactionHashes.length > 0) {
+              // Use the most recent mint transaction hash
+              const mintTx = oracleHashData.transactionHashes.find((tx: any) => tx.type === 'mint')
+              if (mintTx && mintTx.hash) {
+                realTxHash = mintTx.hash
+                console.log('✅ ORACLE SUCCESS: Found real hash from Oracle server:', realTxHash)
+              }
+            }
+          }
+        } catch (error) {
+          console.log('⚠️ ORACLE WARNING: Could not get hashes from Oracle server:', error)
+        }
+
+        // PRIORITY 2: If Oracle server doesn't have hashes, try blockchain correlation cache
+        if (!realTxHash) {
+          console.log('🔍 HASH STEP 2: Oracle server has no hashes, trying blockchain correlation...')
+          const { getTransactionHashForOracleUser } = await import('@/lib/transaction-hash-cache')
+          
+          // Find Oracle user hash for correlation
+          const { getOracleUsersData, findOracleUserByCorrelation } = await import('@/lib/oracle-decryption')
+          const freshOracleUsersData = await getOracleUsersData()
+          console.log('🔍 HASH DEBUG: Fresh Oracle data loaded:', !!freshOracleUsersData)
+          
+          if (freshOracleUsersData) {
+            console.log('🔍 HASH DEBUG: Oracle users count:', Object.keys(freshOracleUsersData).length)
+          
+            const correlatedUser = findOracleUserByCorrelation(
+              freshOracleUsersData,
+              address as string,
+              rbtcTokenBalance,
+              Date.parse(oracleUserData.registeredAt)
+            )
+            console.log('🔍 HASH DEBUG: Correlated user found:', !!correlatedUser)
+            
+            if (correlatedUser) {
+              // Find the user hash key
+              const userHashKey = Object.entries(freshOracleUsersData).find(
+                ([_, userData]) => userData === correlatedUser
+              )?.[0]
+              console.log('🔍 HASH DEBUG: User hash key found:', !!userHashKey)
+              
+              if (userHashKey) {
+                console.log('🔍 HASH DEBUG: Calling getTransactionHashForOracleUser...')
+                realTxHash = await getTransactionHashForOracleUser(
+                  userHashKey,
+                  correlatedUser,
+                  address
+                )
+                console.log('🔍 HASH DEBUG: Returned hash:', realTxHash)
+              }
             }
           }
         }
