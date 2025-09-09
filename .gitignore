@@ -289,3 +289,12 @@ oracle-encrypted-backup-*.js
 /tmp/current-oracle.json
 test-bitcoin-display.js
 debug-address-display.js
+
+# Test scripts
+test-verification-oracle-card.js
+
+discover-oracle-endpoints.js
+
+test-users-endpoint.js
+
+test-store-transaction.js

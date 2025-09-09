@@ -418,7 +418,8 @@ export async function saveAddressToOracle(
     }
     
     // Use store-transaction-hash endpoint to save the verified address
-    const response = await fetch(`${ORACLE_API_BASE}/store-transaction-hash`, {
+    // Note: This endpoint is on base URL, not /api path
+    const response = await fetch(`https://oracle.reservebtc.io/store-transaction-hash`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
