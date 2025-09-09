@@ -236,7 +236,7 @@ export async function getUserTransactionHistory(
           
           // Always create a transaction from Oracle balance - no complex resolution needed
           transactions.push({
-            hash: `oracle_mint_${userData.registeredAt ? new Date(userData.registeredAt).getTime().toString(16) : Date.now().toString(16)}`,
+            hash: userData.lastTxHash || `oracle_mint_${userData.registeredAt ? new Date(userData.registeredAt).getTime().toString(16) : Date.now().toString(16)}`,
             type: 'mint' as const,
             amount: (userData.lastSyncedBalance / 100000000).toFixed(8),
             timestamp: new Date(userData.lastSyncTime || userData.registeredAt || Date.now()).toISOString(),
@@ -251,7 +251,9 @@ export async function getUserTransactionHistory(
               oracleBalance: userData.lastSyncedBalance
             }
           })
+          const transactionHash = userData.lastTxHash || `oracle_mint_${userData.registeredAt ? new Date(userData.registeredAt).getTime().toString(16) : Date.now().toString(16)}`
           console.log('✅ Transaction created from Oracle balance:', (userData.lastSyncedBalance / 100000000).toFixed(8), 'rBTC')
+          console.log('🔍 Transaction hash used:', transactionHash, userData.lastTxHash ? '(real blockchain hash)' : '(oracle fallback)')
         }
         
         console.log(`✅ FINAL RESULT: Processed ${transactions.length} transactions from Oracle`)
