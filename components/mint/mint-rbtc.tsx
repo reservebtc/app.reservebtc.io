@@ -189,8 +189,9 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         // Check if this is direct /mint access (no URL parameters)
         const isDirectAccess = !fromVerify && !specificAddress
         
-        if (lastMintUser && lastMintUser !== currentUser && !isDirectAccess) {
-          console.log('🧹 MINT: Clearing Bitcoin address state for DIFFERENT MetaMask user')
+        // NEVER CLEAR DATA FOR SAME USER - only clear for different users
+        if (lastMintUser && lastMintUser !== currentUser) {
+          console.log('🧹 MINT: Clearing Bitcoin address state for DIFFERENT MetaMask user:', { from: lastMintUser, to: currentUser })
           
           // Clear all Bitcoin address related state ONLY for different user
           setVerifiedBitcoinAddress('')
@@ -204,10 +205,8 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           setValue('bitcoinAddress', '', { shouldValidate: false })
           
           console.log('✅ MINT: Bitcoin address state cleared for user switch')
-        } else if (isDirectAccess) {
-          console.log('✅ MINT: Direct /mint access - preserving user data for:', currentUser)
         } else {
-          console.log('✅ MINT: Same user or verify flow - preserving verified addresses')
+          console.log('✅ MINT: Same user detected - NEVER clearing data for:', currentUser)
         }
         
         // Update current mint user
