@@ -61,6 +61,7 @@ export async function getUserTransactionHistory(
   forceRefresh: boolean = false
 ): Promise<ProcessedTransaction[]> {
   try {
+    console.log('🚀 FUNCTION CALLED: getUserTransactionHistory for:', userAddress)
     console.log('📊 Fetching encrypted transaction history from Oracle API:', userAddress)
     
     // NUCLEAR OPTION: Force clear ALL transaction data before loading anything
@@ -170,7 +171,10 @@ export async function getUserTransactionHistory(
       }
 
       if (userData) {
-        console.log('✅ Found user data in Oracle:', userData)
+        console.log('✅ TRANSACTION CREATION: Found user data in Oracle:', userData)
+        console.log('📊 TRANSACTION CREATION: User has lastSyncedBalance:', userData.lastSyncedBalance)
+        console.log('📊 TRANSACTION CREATION: User has transactionHashes:', userData.transactionHashes ? userData.transactionHashes.length : 'none')
+        console.log('📊 TRANSACTION CREATION: User has lastTxHash:', userData.lastTxHash ? 'yes' : 'no')
         
         // Extract transactions from Oracle format
         const transactions = []
@@ -222,9 +226,13 @@ export async function getUserTransactionHistory(
         }
         
         // UNIVERSAL FIX: Create transaction from Oracle balance if user has balance but no transactions found
+        console.log('🔍 UNIVERSAL FIX CHECK: userData.lastSyncedBalance =', userData.lastSyncedBalance)
+        console.log('🔍 UNIVERSAL FIX CHECK: transactions.length =', transactions.length)
+        console.log('🔍 UNIVERSAL FIX CHECK: Should create transaction?', userData.lastSyncedBalance > 0 && transactions.length === 0)
+        
         if (userData.lastSyncedBalance > 0 && transactions.length === 0) {
-          console.log('🔍 User has balance but no transactions, creating transaction from Oracle balance data...')
-          console.log('💰 Oracle balance:', userData.lastSyncedBalance, 'sats')
+          console.log('🔍 UNIVERSAL FIX: User has balance but no transactions, creating transaction from Oracle balance data...')
+          console.log('💰 UNIVERSAL FIX: Oracle balance:', userData.lastSyncedBalance, 'sats')
           
           // Always create a transaction from Oracle balance - no complex resolution needed
           transactions.push({
@@ -246,7 +254,8 @@ export async function getUserTransactionHistory(
           console.log('✅ Transaction created from Oracle balance:', (userData.lastSyncedBalance / 100000000).toFixed(8), 'rBTC')
         }
         
-        console.log(`✅ Processed ${transactions.length} transactions from Oracle`)
+        console.log(`✅ FINAL RESULT: Processed ${transactions.length} transactions from Oracle`)
+        console.log('✅ FINAL RESULT: Returning transactions:', transactions)
         
         // Cache the response locally for immediate UI updates
         const cacheKey = `rbtc_oracle_transactions_${userAddress.toLowerCase()}`
