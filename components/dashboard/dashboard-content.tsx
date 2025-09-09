@@ -812,15 +812,13 @@ export function DashboardContent() {
     
     // Skip legacy fallback - Method 1 handles all Oracle user cases
     
-    // Method 3: Skip additional Oracle API calls - using clean Oracle user data only
-    // (Commenting out to avoid duplicate/unwanted transactions)
-    /*
+    // Method 3: FIXED - Use getUserTransactionHistory which has universal transaction creation logic
     try {
-      const oracleTransactions = await getUserTransactionHistory(address!, false)
+      const oracleTransactions = await getUserTransactionHistory(address!, true)
       
       if (oracleTransactions.length > 0) {
-        console.log(`✅ Retrieved ${oracleTransactions.length} additional transactions from Oracle`)
-        // Merge with Oracle-generated mint transaction, avoiding duplicates
+        console.log(`✅ Retrieved ${oracleTransactions.length} transactions from getUserTransactionHistory`)
+        // Use these transactions directly - they already have universal logic
         oracleTransactions.forEach(tx => {
           if (!allTransactions.some(existing => existing.hash === tx.hash)) {
             allTransactions.push(tx)
@@ -833,7 +831,6 @@ export function DashboardContent() {
     } catch (error) {
       console.log('⚠️ Oracle aggregated transactions failed:', error)
     }
-    */
     
     // Method 4: Force blockchain scanning if no transactions found and no tokens
     if (!foundTransactions && rbtcTokenBalance === BigInt(0)) {
