@@ -228,6 +228,38 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       if (!address) return
       
       try {
+        // NUCLEAR CLEANUP: Clear all mint-related state before loading ANY data
+        console.log('🚨 MINT: NUCLEAR cleanup before loading addresses for:', address)
+        setVerifiedBitcoinAddress('')
+        setAllVerifiedAddresses([])
+        setBitcoinBalance(0)
+        setIsLoadingBalance(false)
+        setHasAttemptedFetch(false)
+        setAddressHasSpentCoins(false)
+        setValue('bitcoinAddress', '', { shouldValidate: false })
+        
+        // NUCLEAR: Clear localStorage data for other users BEFORE API call
+        const currentUser = address.toLowerCase()
+        const allKeys = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key) allKeys.push(key)
+        }
+        
+        allKeys.forEach(key => {
+          if (!key.includes(currentUser) && (
+            key.includes('rbtc') || 
+            key.includes('reservebtc') || 
+            key.includes('bitcoin') ||
+            key.includes('transaction') ||
+            key.includes('oracle') ||
+            key.includes('user_data')
+          )) {
+            console.log('🧹 MINT NUCLEAR: Removing other user key:', key)
+            localStorage.removeItem(key)
+          }
+        })
+        
         const verifiedAddrs = await getVerifiedBitcoinAddresses(address)
         console.log('📋 Loading verified addresses from centralized storage:', verifiedAddrs)
         
