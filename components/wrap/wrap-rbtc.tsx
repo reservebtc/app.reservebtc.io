@@ -62,9 +62,9 @@ export function WrapRBTC() {
   // 🔥 INSTANT UI CLEANUP: Clear balances and data IMMEDIATELY on address change
   useEffect(() => {
     if (address) {
-      console.log('🔄 Address change detected - executing instant cleanup...')
+      console.log('🔄 Address change detected - executing cleanup...')
       
-      // Clear all visible UI data to prevent old user data display
+      // Reset all UI state to prevent old user data display
       setRbtcBalance('0')
       setWrbtcBalance('0')
       setWrapAmount('')
@@ -77,7 +77,7 @@ export function WrapRBTC() {
       setPendingOperation(null)
       setWrapTransactions([])
       
-      console.log('✅ UI cleanup completed successfully')
+      console.log('✅ Cleanup completed successfully')
     }
   }, [address]) // CRITICAL: Depends on address for instant trigger
 
