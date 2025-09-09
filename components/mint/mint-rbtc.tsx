@@ -297,6 +297,93 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     loadVerifiedAddress()
   }, [address, searchParams])
 
+  // PROFESSIONAL FIX: Listen for MetaMask account changes directly (same as dashboard)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.ethereum) {
+      const handleAccountsChanged = (accounts: string[]) => {
+        if (accounts.length > 0) {
+          const newAccount = accounts[0].toLowerCase()
+          const storageKey = 'rbtc_mint_metamask_account'
+          const lastAccount = localStorage.getItem(storageKey)
+          
+          console.log('🔄 MINT: MetaMask accountsChanged event:', { lastAccount, newAccount })
+          
+          if (lastAccount && lastAccount !== newAccount) {
+            console.log('🚨 MINT: METAMASK ACCOUNT CHANGED! Clearing all data...')
+            
+            // AGGRESSIVE: Clear React state immediately
+            setVerifiedBitcoinAddress('')
+            setAllVerifiedAddresses([])
+            setBitcoinBalance(0)
+            setIsLoadingBalance(false)
+            setHasAttemptedFetch(false)
+            setAddressHasSpentCoins(false)
+            setMintStatus('idle')
+            setErrorMessage('')
+            
+            // Reset form
+            setValue('bitcoinAddress', '', { shouldValidate: false })
+            
+            // AGGRESSIVE: Clear all possible localStorage data
+            try {
+              const keysToRemove = []
+              for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i)
+                if (key) {
+                  keysToRemove.push(key)
+                }
+              }
+              
+              keysToRemove.forEach(key => {
+                if (key.includes('rbtc') || 
+                    key.includes('transaction') || 
+                    key.includes('oracle') ||
+                    key.includes('reservebtc') ||
+                    key.includes('bitcoin') ||
+                    key.includes('user_data') ||
+                    key.includes(lastAccount)) {
+                  console.log('🧹 MINT: Removing key:', key)
+                  localStorage.removeItem(key)
+                }
+              })
+              
+              // Complete localStorage clear
+              localStorage.clear()
+              sessionStorage.clear()
+              
+            } catch (e) {
+              console.warn('Storage cleanup failed:', e)
+            }
+            
+            // Set new account
+            localStorage.setItem(storageKey, newAccount)
+            
+            // Multiple refresh attempts for reliability
+            setTimeout(() => window.location.reload(), 50)
+            setTimeout(() => window.location.href = window.location.href, 100)
+            
+            return
+          }
+          
+          // Set initial account if not exists
+          if (!lastAccount) {
+            localStorage.setItem(storageKey, newAccount)
+          }
+        }
+      }
+      
+      // Add event listener for account changes
+      window.ethereum.on('accountsChanged', handleAccountsChanged)
+      
+      // Cleanup event listener
+      return () => {
+        if (window.ethereum && window.ethereum.removeListener) {
+          window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
+        }
+      }
+    }
+  }, [setValue])
+
   // Auto-refresh when all required data is available
   useEffect(() => {
     if (verifiedBitcoinAddress && publicClient && address && !hasAttemptedFetch) {
