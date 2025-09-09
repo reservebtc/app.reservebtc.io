@@ -132,7 +132,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }, [address, performCompleteDataCleanup])
 
-  // 🔥 DIRECT METAMASK LISTENER: Listen directly to MetaMask account changes
+  // 🔥 CARDINAL FORCED PAGE REFRESH: Guaranteed cleanup with page refresh
   useEffect(() => {
     if (typeof window !== 'undefined' && window.ethereum) {
       const handleAccountsChanged = (accounts: string[]) => {
@@ -140,12 +140,22 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           const newAccount = accounts[0].toLowerCase()
           const currentStoredAccount = localStorage.getItem('rbtc_current_metamask_user')
           
-          console.log('🔄 DIRECT METAMASK EVENT: Account changed:', { from: currentStoredAccount, to: newAccount })
+          console.log('🚨 CARDINAL METAMASK CHANGE DETECTED:', { from: currentStoredAccount, to: newAccount })
           
           if (currentStoredAccount && currentStoredAccount !== newAccount) {
-            console.log('🚨 METAMASK DIRECT CHANGE! Executing professional cleanup...')
+            console.log('🔥 CRITICAL USER SWITCH! FORCING NUCLEAR CLEANUP + PAGE REFRESH!')
+            
+            // STEP 1: IMMEDIATE DATA CLEANUP
             performCompleteDataCleanup()
+            
+            // STEP 2: SET NEW USER
             localStorage.setItem('rbtc_current_metamask_user', newAccount)
+            
+            // STEP 3: FORCED PAGE REFRESH FOR GUARANTEED CLEAN STATE
+            console.log('🔄 FORCING PAGE REFRESH for 100% data security...')
+            setTimeout(() => {
+              window.location.reload()
+            }, 100)
           }
         }
       }
@@ -158,6 +168,58 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         if (window.ethereum && window.ethereum.removeListener) {
           window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
         }
+      }
+    }
+  }, [performCompleteDataCleanup])
+
+  // 🔥 ADDITIONAL PAGE LOAD SECURITY: Check for user mismatch on page load
+  useEffect(() => {
+    if (address && typeof window !== 'undefined') {
+      const currentUser = address.toLowerCase()
+      const storedUser = localStorage.getItem('rbtc_current_metamask_user')
+      
+      console.log('🔍 PAGE LOAD SECURITY CHECK:', { currentUser, storedUser })
+      
+      if (storedUser && storedUser !== currentUser) {
+        console.log('🚨 USER MISMATCH ON PAGE LOAD! Executing emergency cleanup...')
+        performCompleteDataCleanup()
+        localStorage.setItem('rbtc_current_metamask_user', currentUser)
+      } else if (!storedUser) {
+        // First time setup
+        localStorage.setItem('rbtc_current_metamask_user', currentUser)
+        console.log('✅ Initial user setup on page load:', currentUser)
+      }
+    }
+  }, [address, performCompleteDataCleanup])
+
+  // 🔥 CONTINUOUS MONITORING: Periodic check for user changes (every 1 second)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.ethereum) {
+      const continuousCheck = setInterval(async () => {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' })
+          if (accounts.length > 0) {
+            const currentAccount = accounts[0].toLowerCase()
+            const storedAccount = localStorage.getItem('rbtc_current_metamask_user')
+            
+            if (storedAccount && storedAccount !== currentAccount) {
+              console.log('🚨 CONTINUOUS MONITORING: Account mismatch detected!')
+              console.log('🔥 FORCING IMMEDIATE CLEANUP + PAGE REFRESH!')
+              
+              performCompleteDataCleanup()
+              localStorage.setItem('rbtc_current_metamask_user', currentAccount)
+              
+              // Force page refresh for absolute security
+              window.location.reload()
+            }
+          }
+        } catch (error) {
+          console.warn('Continuous monitoring error:', error)
+        }
+      }, 1000) // Check every 1 second
+
+      return () => {
+        clearInterval(continuousCheck)
       }
     }
   }, [performCompleteDataCleanup])
