@@ -42,86 +42,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const { address, isConnected } = useAccount()
   const publicClient = usePublicClient()
 
-  // 🔥 100% AGGRESSIVE CLEANUP: Multi-level cleanup system on address change
-  useEffect(() => {
-    if (address) {
-      const currentUser = address.toLowerCase()
-      const storageKey = 'rbtc_current_mint_user'
-      const lastUser = localStorage.getItem(storageKey)
-      
-      console.log('🚨 100% AGGRESSIVE CLEANUP: Checking user:', { lastUser, currentUser })
-      
-      // CRITICAL CLEANUP on user change
-      if (lastUser && lastUser !== currentUser) {
-        console.log('🔥 CRITICAL USER SWITCH! 100% AGGRESSIVE CLEANUP OF ALL DATA!')
-        
-        // STEP 1: INSTANT CLEANUP OF ALL React states
-        console.log('🧹 STEP 1: Instant cleanup of all React states...')
-        setVerifiedBitcoinAddress('')
-        setAllVerifiedAddresses([])
-        setBitcoinBalance(0)
-        setIsLoadingBalance(false)
-        setHasAttemptedFetch(false)
-        setAddressHasSpentCoins(false)
-        setMintStatus('idle')
-        setErrorMessage('')
-        setShowFeeVaultWarning(false)
-        setShowAutoSyncDetails(false)
-        setAcceptedTerms(false)
-        setShowTermsDetails(false)
-        setCopiedAddress(false)
-        setShowAddressDropdown(false)
-        setIsMinting(false)
-        setTxHash('')
-        setRetryAttempt(0)
-        
-        // STEP 2: COMPLETE FORM CLEANUP (will be executed in separate useEffect after setValue declaration)
-        console.log('🧹 STEP 2: Complete form cleanup scheduled...')
-        
-        // STEP 3: NUCLEAR localStorage CLEANUP
-        console.log('🧹 STEP 3: Nuclear localStorage cleanup...')
-        try {
-          // Collect ALL keys
-          const allKeys = Object.keys(localStorage)
-          console.log('🔍 Found localStorage keys:', allKeys.length)
-          
-          // Remove ALL keys related to old user or system
-          allKeys.forEach(key => {
-            if (key.includes(lastUser) || 
-                key.includes('rbtc') || 
-                key.includes('reservebtc') ||
-                key.includes('bitcoin') ||
-                key.includes('transaction') ||
-                key.includes('oracle') ||
-                key.includes('user_data') ||
-                key.includes('verified') ||
-                key.includes('mint') ||
-                key.includes('metamask')) {
-              console.log('🗑️ REMOVING KEY:', key)
-              localStorage.removeItem(key)
-            }
-          })
-          
-          // ADDITIONAL: Complete sessionStorage cleanup
-          sessionStorage.clear()
-          console.log('✅ STEP 3 COMPLETED: All old user data removed')
-          
-        } catch (error) {
-          console.error('❌ Cleanup error:', error)
-        }
-        
-        // STEP 4: Set new user
-        localStorage.setItem(storageKey, currentUser)
-        console.log('✅ STEP 4: New user set:', currentUser)
-        
-        console.log('🎉 100% AGGRESSIVE CLEANUP COMPLETED! Interface fully cleaned for new user.')
-      } else {
-        // Set current user if new
-        localStorage.setItem(storageKey, currentUser)
-        console.log('✅ Current user set/confirmed:', currentUser)
-      }
-    }
-  }, [address]) // Dependency only on address for instant trigger
+
   
   // Smart contract interaction hooks
   const { writeContract, data: writeData, error: writeError, isPending: isWritePending } = useWriteContract()
@@ -152,21 +73,94 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const bitcoinAddress = watch('bitcoinAddress')
   const bitcoinValidation = verifiedBitcoinAddress ? validateBitcoinAddress(verifiedBitcoinAddress) : null
 
-  // 🔥 ADDITIONAL FORM CLEANUP: useEffect for form cleanup after user switch
+  // 🔥 PROFESSIONAL INSTANT DATA CLEANUP: Complete data cleanup function with form cleanup
+  const performCompleteDataCleanup = useCallback(() => {
+    console.log('🚨 PROFESSIONAL CLEANUP: Executing complete data cleanup...')
+    
+    // STEP 1: INSTANT CLEANUP OF ALL React states
+    setVerifiedBitcoinAddress('')
+    setAllVerifiedAddresses([])
+    setBitcoinBalance(0)
+    setIsLoadingBalance(false)
+    setHasAttemptedFetch(false)
+    setAddressHasSpentCoins(false)
+    setMintStatus('idle')
+    setErrorMessage('')
+    setShowFeeVaultWarning(false)
+    setShowAutoSyncDetails(false)
+    setAcceptedTerms(false)
+    setShowTermsDetails(false)
+    setCopiedAddress(false)
+    setShowAddressDropdown(false)
+    setIsMinting(false)
+    setTxHash('')
+    setRetryAttempt(0)
+    console.log('✅ STEP 1: All React states cleaned')
+    
+    // STEP 2: FORM CLEANUP
+    setValue('bitcoinAddress', '', { shouldValidate: false })
+    setValue('amount', '0', { shouldValidate: false })
+    console.log('✅ STEP 2: Form completely cleared')
+    
+    // STEP 3: NUCLEAR localStorage cleanup
+    try {
+      localStorage.clear()
+      sessionStorage.clear()
+      console.log('✅ STEP 3: All browser storage cleared')
+    } catch (error) {
+      console.error('❌ Storage cleanup error:', error)
+    }
+    
+    console.log('🎉 PROFESSIONAL CLEANUP COMPLETED!')
+  }, [setValue])
+
+  // 🔥 REAL-TIME METAMASK MONITORING: Professional MetaMask account change detection
   useEffect(() => {
-    if (address) {
+    if (typeof window !== 'undefined' && window.ethereum && address) {
       const currentUser = address.toLowerCase()
-      const storageKey = 'rbtc_current_mint_user'
+      
+      // Set current user tracking
+      const storageKey = 'rbtc_current_metamask_user'
       const lastUser = localStorage.getItem(storageKey)
       
-      // If user changed, clear form
       if (lastUser && lastUser !== currentUser) {
-        console.log('🧹 ADDITIONAL FORM CLEANUP: Clearing form after user change')
-        setValue('bitcoinAddress', '', { shouldValidate: false })
-        setValue('amount', '0', { shouldValidate: false })
+        console.log('🚨 METAMASK USER CHANGE DETECTED! Executing professional cleanup...')
+        performCompleteDataCleanup()
+      }
+      
+      localStorage.setItem(storageKey, currentUser)
+    }
+  }, [address, performCompleteDataCleanup])
+
+  // 🔥 DIRECT METAMASK LISTENER: Listen directly to MetaMask account changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.ethereum) {
+      const handleAccountsChanged = (accounts: string[]) => {
+        if (accounts.length > 0) {
+          const newAccount = accounts[0].toLowerCase()
+          const currentStoredAccount = localStorage.getItem('rbtc_current_metamask_user')
+          
+          console.log('🔄 DIRECT METAMASK EVENT: Account changed:', { from: currentStoredAccount, to: newAccount })
+          
+          if (currentStoredAccount && currentStoredAccount !== newAccount) {
+            console.log('🚨 METAMASK DIRECT CHANGE! Executing professional cleanup...')
+            performCompleteDataCleanup()
+            localStorage.setItem('rbtc_current_metamask_user', newAccount)
+          }
+        }
+      }
+
+      // Add event listener
+      window.ethereum.on('accountsChanged', handleAccountsChanged)
+      
+      // Cleanup event listener
+      return () => {
+        if (window.ethereum && window.ethereum.removeListener) {
+          window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
+        }
       }
     }
-  }, [address, setValue]) // Now setValue is already declared
+  }, [performCompleteDataCleanup])
 
   // Fetch Bitcoin balance for specific Bitcoin address using existing Oracle infrastructure
   const fetchBitcoinBalance = useCallback(async (btcAddress: string) => {
@@ -270,85 +264,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }, [publicClient, address])
 
-  // DISABLED: Old system with page refresh replaced by instant cleanup above
-
-  // PROFESSIONAL INSTANT CLEANUP: Real-time data cleanup on MetaMask switch WITHOUT page refresh
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.ethereum) {
-      const handleAccountsChanged = (accounts: string[]) => {
-        if (accounts.length > 0) {
-          const newAccount = accounts[0].toLowerCase()
-          const storageKey = 'rbtc_metamask_account'
-          const lastAccount = localStorage.getItem(storageKey)
-          
-          console.log('🔄 INSTANT CLEANUP: MetaMask switch detected:', { from: lastAccount, to: newAccount })
-          
-          if (lastAccount && lastAccount !== newAccount) {
-            console.log('🚨 METAMASK SWITCH DETECTED! DUPLICATE NUCLEAR CLEANUP!')
-            
-            // DUPLICATE NUCLEAR CLEANUP - in case the first one didn't work
-            console.log('💥 DUPLICATE CLEANUP: Full nuclear cleanup of all data...')
-            
-            // Full nuclear localStorage cleanup
-            try {
-              localStorage.clear()
-              sessionStorage.clear()
-              console.log('💥 NUCLEAR CLEANUP: localStorage and sessionStorage completely cleared')
-            } catch (e) {
-              console.warn('Nuclear cleanup error:', e)
-            }
-            
-            // IMPORTANT: Set new user after nuclear cleanup
-            localStorage.setItem(storageKey, newAccount)
-            localStorage.setItem('rbtc_current_mint_user', newAccount)
-            console.log('✅ DUPLICATE CLEANUP: New user set after nuclear cleanup:', newAccount)
-            
-            // Force update all states after nuclear cleanup
-            setTimeout(() => {
-              console.log('🔄 Force updating states after nuclear cleanup...')
-              setVerifiedBitcoinAddress('')
-              setAllVerifiedAddresses([])
-              setBitcoinBalance(0)
-              setIsLoadingBalance(false)
-              setHasAttemptedFetch(false)
-              setAddressHasSpentCoins(false)
-              setMintStatus('idle')
-              setErrorMessage('')
-              setShowFeeVaultWarning(false)
-              setShowAutoSyncDetails(false)
-              setAcceptedTerms(false)
-              setShowTermsDetails(false)
-              setCopiedAddress(false)
-              setShowAddressDropdown(false)
-              setIsMinting(false)
-              setTxHash('')
-              setRetryAttempt(0)
-              // setValue will be called in separate useEffect above
-              console.log('✅ Force state update completed')
-            }, 100)
-            
-            return
-          }
-          
-          // Set initial user if not exists
-          if (!lastAccount) {
-            localStorage.setItem(storageKey, newAccount)
-            console.log('✅ Initial MetaMask user set:', newAccount)
-          }
-        }
-      }
-      
-      // Add event listener for account changes
-      window.ethereum.on('accountsChanged', handleAccountsChanged)
-      
-      // Cleanup event listener
-      return () => {
-        if (window.ethereum && window.ethereum.removeListener) {
-          window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
-        }
-      }
-    }
-  }, [])
 
   // Load verified Bitcoin address from centralized storage
   useEffect(() => {
