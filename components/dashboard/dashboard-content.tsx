@@ -149,6 +149,54 @@ export function DashboardContent() {
     }
   }, [address])
 
+  // PROFESSIONAL FIX: Listen for MetaMask account changes directly
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.ethereum) {
+      const handleAccountsChanged = (accounts: string[]) => {
+        if (accounts.length > 0) {
+          const newAccount = accounts[0].toLowerCase()
+          const storageKey = 'rbtc_metamask_account'
+          const lastAccount = localStorage.getItem(storageKey)
+          
+          console.log('🔄 MetaMask accountsChanged event:', { lastAccount, newAccount })
+          
+          if (lastAccount && lastAccount !== newAccount) {
+            console.log('🚨 METAMASK ACCOUNT CHANGED! Forcing page refresh...')
+            
+            // Complete localStorage cleanup
+            try {
+              localStorage.clear()
+            } catch (e) {
+              console.warn('localStorage.clear() failed:', e)
+            }
+            
+            // Set new account
+            localStorage.setItem(storageKey, newAccount)
+            
+            // Force immediate page refresh
+            window.location.reload()
+            return
+          }
+          
+          // Set initial account if not exists
+          if (!lastAccount) {
+            localStorage.setItem(storageKey, newAccount)
+          }
+        }
+      }
+      
+      // Add event listener for account changes
+      window.ethereum.on('accountsChanged', handleAccountsChanged)
+      
+      // Cleanup event listener
+      return () => {
+        if (window.ethereum && window.ethereum.removeListener) {
+          window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
+        }
+      }
+    }
+  }, [])
+
   // Watch for new blocks to auto-refresh transactions
   const { data: currentBlockNumber } = useBlockNumber({
     watch: autoRefreshEnabled,
