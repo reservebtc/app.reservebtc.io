@@ -203,10 +203,15 @@ export async function getDecryptedOracleUsers(): Promise<Record<string, UserData
 
     if (!response.ok) {
       console.error('❌ UNIVERSAL ERROR: Encrypted endpoint failed:', response.status, response.statusText);
+      console.error('❌ UNIVERSAL ERROR: Response details:', await response.text().catch(() => 'Could not read response'));
+      console.error('❌ UNIVERSAL ERROR: Request URL:', `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`);
+      console.error('❌ UNIVERSAL ERROR: API Key present:', !!process.env.NEXT_PUBLIC_ORACLE_API_KEY);
+      console.error('❌ UNIVERSAL ERROR: Encryption key present:', !!process.env.NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY);
       console.log('🔄 FALLBACK: Trying public /users endpoint...');
       const publicData = await getOracleUsersData();
       if (publicData) {
         console.log('✅ FALLBACK SUCCESS: Public endpoint returned', Object.keys(publicData).length, 'users');
+        console.log('⚠️ WARNING: Using PUBLIC DATA with hashed addresses - no real transactions available!');
       } else {
         console.error('❌ UNIVERSAL ERROR: Both encrypted and public endpoints failed!');
       }

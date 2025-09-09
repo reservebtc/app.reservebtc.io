@@ -154,19 +154,34 @@ export function DashboardContent() {
         }
 
         console.log('✅ Oracle data loaded:', userData)
+        
+        // Check if we're getting public (hashed) or encrypted (real) data
+        if (userData.btcAddress && userData.btcAddress.length < 20) {
+          console.error('⚠️ CRITICAL: Receiving HASHED public data instead of real encrypted data!');
+          console.error('⚠️ CRITICAL: btcAddress is hashed:', userData.btcAddress);
+          console.error('⚠️ CRITICAL: This means /internal-users endpoint failed and fallback to /users was used');
+          console.error('⚠️ CRITICAL: No real transactions available - only Oracle balance data');
+        } else if (userData.btcAddress) {
+          console.log('✅ SUCCESS: Receiving REAL encrypted data with actual Bitcoin address:', userData.btcAddress);
+        }
+        
         setOracleData(userData)
 
         // Process Bitcoin addresses
         const addresses: VerifiedAddress[] = []
-        if (userData.btcAddress) {
+        const isHashedData = userData.btcAddress && userData.btcAddress.length < 20
+        
+        if (userData.btcAddress && !isHashedData) {
           addresses.push({
             address: userData.btcAddress,
             verifiedAt: userData.registeredAt,
             isVerified: true
           })
+        } else if (isHashedData) {
+          console.log('ℹ️ Skipping hashed Bitcoin address - cannot load real balance or mint')
         }
 
-        if (userData.btcAddresses && Array.isArray(userData.btcAddresses)) {
+        if (userData.btcAddresses && Array.isArray(userData.btcAddresses) && !isHashedData) {
           userData.btcAddresses.forEach(addr => {
             if (addr && !addresses.find(a => a.address === addr)) {
               addresses.push({
@@ -436,6 +451,22 @@ export function DashboardContent() {
             Add Address
           </Link>
         </div>
+
+        {/* Warning for hashed data */}
+        {oracleData && oracleData.btcAddress && oracleData.btcAddress.length < 20 && (
+          <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <span className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                Limited Data Mode
+              </span>
+            </div>
+            <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+              Using public Oracle data with privacy hashing. Real Bitcoin addresses and transactions are not available. 
+              Check API configuration to access full encrypted data.
+            </p>
+          </div>
+        )}
 
         {verifiedAddresses.length === 0 ? (
           <div className="text-center py-8">
