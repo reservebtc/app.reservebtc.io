@@ -577,6 +577,131 @@
                 font-size: 0.75rem;
             }
         }
+
+        /* Mobile Workflow Styles */
+        .workflow-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(45deg, 
+                #ff6b6b 0%, #4ecdc4 25%, #45b7d1 50%, #96ceb4 75%, #feca57 100%
+            );
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: workflowTitleGradient 4s ease-in-out infinite;
+        }
+
+        .workflow-steps {
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-direction: column;
+        }
+
+        .workflow-step {
+            position: relative;
+            flex-direction: row;
+            align-items: center;
+            text-align: left;
+            padding: 1rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            animation: workflowStepPulse 3s ease-in-out infinite;
+        }
+
+        .workflow-step:nth-child(1) { animation-delay: 0s; }
+        .workflow-step:nth-child(2) { animation-delay: 0.5s; }
+        .workflow-step:nth-child(3) { animation-delay: 1s; }
+        .workflow-step:nth-child(4) { animation-delay: 1.5s; }
+
+        .workflow-step::before {
+            content: attr(data-step);
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+            animation: stepNumberPulse 2s ease-in-out infinite;
+        }
+
+        .step-icon {
+            width: 35px;
+            height: 35px;
+            margin-right: 1rem;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+            background-size: 300% 300%;
+            animation: stepIconGradient 3s ease-in-out infinite;
+            font-size: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            font-size: 0.9rem;
+            font-weight: 600;
+            line-height: 1.4;
+            background: linear-gradient(45deg, #ff9800 0%, #2196f3 50%, #9c27b0 100%);
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: featureGradient 4s ease-in-out infinite;
+        }
+
+        .step-text small {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 400;
+            margin-top: 0.3rem;
+            background: linear-gradient(45deg, #64b5f6, #81c784);
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        @keyframes workflowTitleGradient {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes workflowStepPulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 0 0 rgba(255, 107, 107, 0);
+            }
+            50% { 
+                transform: scale(1.01);
+                box-shadow: 0 0 15px rgba(255, 107, 107, 0.1);
+            }
+        }
+
+        @keyframes stepNumberPulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+
+        @keyframes stepIconGradient {
+            0% { background-position: 0% 0%; }
+            50% { background-position: 100% 100%; }
+            100% { background-position: 0% 0%; }
+        }
     </style>
 </head>
 <body>
@@ -598,19 +723,24 @@
             <h2 class="main-title">Bitcoin-Backed Synthetic Token Protocol</h2>
             <p class="subtitle">Mint synthetic Bitcoin tokens on MegaETH — your Bitcoin stays secure in your wallet</p>
             
-            <!-- Features -->
-            <div class="features">
-                <div class="feature">
-                    <div class="feature-icon">🤖</div>
-                    <span class="feature-text">Synthetic Tokens</span>
+            <!-- Workflow steps -->
+            <div class="workflow-title">Workflow Logic:</div>
+            <div class="features workflow-steps">
+                <div class="feature workflow-step" data-step="1">
+                    <div class="feature-icon step-icon">✓</div>
+                    <span class="feature-text step-text">BIP-322 verification<br><small>Your BTC never leaves wallet</small></span>
                 </div>
-                <div class="feature">
-                    <div class="feature-icon">⚡</div>
-                    <span class="feature-text">MegaETH Network</span>
+                <div class="feature workflow-step" data-step="2">
+                    <div class="feature-icon step-icon">⚡</div>
+                    <span class="feature-text step-text">Auto mint/burn rBTC-SYNTH<br><small>Soulbound token</small></span>
                 </div>
-                <div class="feature">
-                    <div class="feature-icon">🔒</div>
-                    <span class="feature-text">Non-Custodial</span>
+                <div class="feature workflow-step" data-step="3">
+                    <div class="feature-icon step-icon">🔄</div>
+                    <span class="feature-text step-text">Wrap into wrBTC<br><small>Transferable ERC-20</small></span>
+                </div>
+                <div class="feature workflow-step" data-step="4">
+                    <div class="feature-icon step-icon">🚀</div>
+                    <span class="feature-text step-text">DeFi integration<br><small>MegaETH high-speed network</small></span>
                 </div>
             </div>
             
