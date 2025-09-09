@@ -59,6 +59,28 @@ export function WrapRBTC() {
   const [wrapTransactions, setWrapTransactions] = useState<WrapTransaction[]>([])
   const [activeTab, setActiveTab] = useState<'wrap' | 'unwrap'>('wrap')
 
+  // 🔥 INSTANT UI CLEANUP: Clear balances and data IMMEDIATELY on address change
+  useEffect(() => {
+    if (address) {
+      console.log('🔄 Address change detected - executing instant cleanup...')
+      
+      // Clear all visible UI data to prevent old user data display
+      setRbtcBalance('0')
+      setWrbtcBalance('0')
+      setWrapAmount('')
+      setUnwrapAmount('')
+      setVerifiedAddresses([])
+      setIsWrapping(false)
+      setIsUnwrapping(false)
+      setShowRiskModal(false)
+      setAcceptedRisks(false)
+      setPendingOperation(null)
+      setWrapTransactions([])
+      
+      console.log('✅ UI cleanup completed successfully')
+    }
+  }, [address]) // CRITICAL: Depends on address for instant trigger
+
   // Load balances
   useEffect(() => {
     if (!address || !publicClient) return
