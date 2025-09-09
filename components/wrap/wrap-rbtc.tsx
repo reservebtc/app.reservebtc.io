@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAccount, usePublicClient } from 'wagmi'
+import { useAccount, usePublicClient, useWalletClient } from 'wagmi'
 import { formatUnits, parseUnits } from 'viem'
 import { 
   Wallet, 
@@ -23,8 +23,9 @@ import {
   DollarSign
 } from 'lucide-react'
 import Link from 'next/link'
-import { CONTRACTS } from '@/app/lib/contracts'
+import { CONTRACTS, CONTRACT_ABIS } from '@/app/lib/contracts'
 import { getVerifiedBitcoinAddresses } from '@/lib/user-data-storage'
+import { syncWrBTCDataToOracle } from '@/lib/wrbtc-tracking'
 
 interface VerifiedAddress {
   address: string
@@ -44,6 +45,7 @@ interface WrapTransaction {
 export function WrapRBTC() {
   const { address, isConnected } = useAccount()
   const publicClient = usePublicClient()
+  const { data: walletClient } = useWalletClient()
   
   // State
   const [rbtcBalance, setRbtcBalance] = useState<string>('0')
@@ -144,40 +146,95 @@ export function WrapRBTC() {
 
   // Confirm wrap after risk acceptance
   const confirmWrap = async () => {
-    if (!wrapAmount || !address || !acceptedRisks) return
+    if (!wrapAmount || !address || !acceptedRisks || !walletClient) return
     
     setIsWrapping(true)
     setShowRiskModal(false)
     
     try {
-      // Demo simulation - in production this would call actual contracts
-      console.log('Wrapping', wrapAmount, 'rBTC-SYNTH → wrBTC')
+      console.log('🔄 WRAP: Executing real contract wrap transaction...')
       
-      // Simulate transaction
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      const wrapAmountWei = parseUnits(wrapAmount, 8)
       
+      // Step 1: Call rBTC-SYNTH wrap function
+      const wrapTxHash = await walletClient.writeContract({
+        address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
+        abi: [
+          {
+            name: 'wrap',
+            type: 'function',
+            stateMutability: 'nonpayable',
+            inputs: [{ name: 'amount', type: 'uint256' }],
+            outputs: []
+          }
+        ],
+        functionName: 'wrap',
+        args: [wrapAmountWei]
+      })
+      
+      console.log('✅ WRAP: Transaction sent, hash:', wrapTxHash)
+      
+      // Wait for transaction confirmation
+      const receipt = await publicClient.waitForTransactionReceipt({ 
+        hash: wrapTxHash,
+        confirmations: 1
+      })
+      
+      console.log('✅ WRAP: Transaction confirmed in block:', receipt.blockNumber)
+      
+      // Create transaction record
       const newTransaction: WrapTransaction = {
-        id: Date.now().toString(),
+        id: wrapTxHash,
         type: 'wrap',
         amount: wrapAmount,
         timestamp: new Date().toISOString(),
         status: 'completed',
-        txHash: `0x${Math.random().toString(16).substring(2)}`,
+        txHash: wrapTxHash,
         bitcoinAddress: verifiedAddresses[0]?.address
       }
       
       setWrapTransactions(prev => [newTransaction, ...prev])
       
-      // Update balances
-      const currentRbtc = parseFloat(rbtcBalance)
-      const wrapAmountNum = parseFloat(wrapAmount)
-      setRbtcBalance((currentRbtc - wrapAmountNum).toFixed(8))
-      setWrbtcBalance((parseFloat(wrbtcBalance) + wrapAmountNum).toFixed(8))
+      // Reload balances from contracts
+      const [newRbtcBalance, newWrbtcBalance] = await Promise.all([
+        publicClient.readContract({
+          address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
+          abi: CONTRACT_ABIS.RBTC_SYNTH,
+          functionName: 'balanceOf',
+          args: [address]
+        }),
+        publicClient.readContract({
+          address: CONTRACTS.VAULT_WRBTC as `0x${string}`,
+          abi: CONTRACT_ABIS.VAULT_WRBTC,
+          functionName: 'balanceOf',
+          args: [address]
+        })
+      ])
+      
+      setRbtcBalance(formatUnits(newRbtcBalance as bigint, 8))
+      setWrbtcBalance(formatUnits(newWrbtcBalance as bigint, 8))
+      
+      // Sync with Oracle server
+      console.log('🔄 WRAP: Syncing with Oracle server...')
+      await syncWrBTCDataToOracle(address)
       
       setWrapAmount('')
+      console.log('✅ WRAP: Transaction completed and synced with Oracle')
       
     } catch (error) {
-      console.error('Wrap failed:', error)
+      console.error('❌ WRAP: Transaction failed:', error)
+      
+      // Update transaction status to failed
+      const failedTransaction: WrapTransaction = {
+        id: Date.now().toString(),
+        type: 'wrap',
+        amount: wrapAmount,
+        timestamp: new Date().toISOString(),
+        status: 'failed',
+        bitcoinAddress: verifiedAddresses[0]?.address
+      }
+      
+      setWrapTransactions(prev => [failedTransaction, ...prev])
     } finally {
       setIsWrapping(false)
       setPendingOperation(null)
@@ -186,37 +243,84 @@ export function WrapRBTC() {
 
   // Handle unwrap operation
   const handleUnwrap = async () => {
-    if (!unwrapAmount || !address) return
+    if (!unwrapAmount || !address || !walletClient) return
     
     setIsUnwrapping(true)
     
     try {
-      console.log('Unwrapping', unwrapAmount, 'wrBTC → rBTC-SYNTH')
+      console.log('🔄 UNWRAP: Executing real contract redeem transaction...')
       
-      // Simulate transaction
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      const unwrapAmountWei = parseUnits(unwrapAmount, 8)
       
+      // Call VaultWrBTC redeem function
+      const redeemTxHash = await walletClient.writeContract({
+        address: CONTRACTS.VAULT_WRBTC as `0x${string}`,
+        abi: CONTRACT_ABIS.VAULT_WRBTC,
+        functionName: 'redeem',
+        args: [unwrapAmountWei]
+      })
+      
+      console.log('✅ UNWRAP: Transaction sent, hash:', redeemTxHash)
+      
+      // Wait for transaction confirmation
+      const receipt = await publicClient.waitForTransactionReceipt({ 
+        hash: redeemTxHash,
+        confirmations: 1
+      })
+      
+      console.log('✅ UNWRAP: Transaction confirmed in block:', receipt.blockNumber)
+      
+      // Create transaction record
       const newTransaction: WrapTransaction = {
-        id: Date.now().toString(),
+        id: redeemTxHash,
         type: 'unwrap',
         amount: unwrapAmount,
         timestamp: new Date().toISOString(),
         status: 'completed',
-        txHash: `0x${Math.random().toString(16).substring(2)}`
+        txHash: redeemTxHash
       }
       
       setWrapTransactions(prev => [newTransaction, ...prev])
       
-      // Update balances
-      const currentWrbtc = parseFloat(wrbtcBalance)
-      const unwrapAmountNum = parseFloat(unwrapAmount)
-      setWrbtcBalance((currentWrbtc - unwrapAmountNum).toFixed(8))
-      setRbtcBalance((parseFloat(rbtcBalance) + unwrapAmountNum).toFixed(8))
+      // Reload balances from contracts
+      const [newRbtcBalance, newWrbtcBalance] = await Promise.all([
+        publicClient.readContract({
+          address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
+          abi: CONTRACT_ABIS.RBTC_SYNTH,
+          functionName: 'balanceOf',
+          args: [address]
+        }),
+        publicClient.readContract({
+          address: CONTRACTS.VAULT_WRBTC as `0x${string}`,
+          abi: CONTRACT_ABIS.VAULT_WRBTC,
+          functionName: 'balanceOf',
+          args: [address]
+        })
+      ])
+      
+      setRbtcBalance(formatUnits(newRbtcBalance as bigint, 8))
+      setWrbtcBalance(formatUnits(newWrbtcBalance as bigint, 8))
+      
+      // Sync with Oracle server
+      console.log('🔄 UNWRAP: Syncing with Oracle server...')
+      await syncWrBTCDataToOracle(address)
       
       setUnwrapAmount('')
+      console.log('✅ UNWRAP: Transaction completed and synced with Oracle')
       
     } catch (error) {
-      console.error('Unwrap failed:', error)
+      console.error('❌ UNWRAP: Transaction failed:', error)
+      
+      // Update transaction status to failed
+      const failedTransaction: WrapTransaction = {
+        id: Date.now().toString(),
+        type: 'unwrap',
+        amount: unwrapAmount,
+        timestamp: new Date().toISOString(),
+        status: 'failed'
+      }
+      
+      setWrapTransactions(prev => [failedTransaction, ...prev])
     } finally {
       setIsUnwrapping(false)
     }

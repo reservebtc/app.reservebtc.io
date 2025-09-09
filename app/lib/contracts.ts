@@ -64,8 +64,13 @@ export const CONTRACT_ABIS = {
     'function transfer(address to, uint256 amount) returns (bool)',
     'function approve(address spender, uint256 amount) returns (bool)',
     'function allowance(address owner, address spender) view returns (uint256)',
+    'function redeem(uint256 amount)',
+    'function onWrap(address user, uint256 amount)',
     'event Transfer(address indexed from, address indexed to, uint256 value)',
     'event Approval(address indexed owner, address indexed spender, uint256 value)',
+    'event Wrapped(address indexed user, uint256 amount)',
+    'event Redeemed(address indexed user, uint256 amount)',
+    'event Slashed(address indexed user, uint256 amount)',
   ],
   
   ORACLE_AGGREGATOR: [

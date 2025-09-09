@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAccount, useReadContract } from 'wagmi'
 import { formatUnits } from 'viem'
 import { useRouter } from 'next/navigation'
+import { useUserDashboard } from '@/hooks/useUserProfile'
 import { 
   Wallet, 
   Bitcoin, 
@@ -59,15 +60,32 @@ export function DashboardContent() {
   const { address, isConnected } = useAccount()
   const router = useRouter()
   
-  // State
-  const [verifiedAddresses, setVerifiedAddresses] = useState<VerifiedAddress[]>([])
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [oracleData, setOracleData] = useState<OracleUserData | null>(null)
-  const [rbtcBalance, setRbtcBalance] = useState<string>('0')
-  const [wrbtcBalance, setWrbtcBalance] = useState<string>('0')
+  // Use new universal user profile hook
+  const {
+    totalBalance,
+    rBTCBalance,
+    wrBTCBalance,
+    recentTransactions,
+    totalTransactionCount,
+    lastTransactionHash,
+    ethAddress,
+    bitcoinAddresses,
+    isVerified,
+    hasTransactions,
+    profileCreatedAt,
+    lastActivityAt,
+    firstTransactionDate,
+    lastTransactionDate,
+    mostActiveContract,
+    averageTransactionValue,
+    dataCompletenessScore,
+    isLoading,
+    error,
+    refreshProfile
+  } = useUserDashboard()
+  
+  // Local state for UI interactions
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isLoadingBalances, setIsLoadingBalances] = useState(false)
   const [showAllAddresses, setShowAllAddresses] = useState(false)
 
   // Read rBTC-SYNTH balance from contract
@@ -328,7 +346,8 @@ export function DashboardContent() {
 
   // Get total Bitcoin balance from all addresses
   const getTotalBitcoinBalance = (): number => {
-    return verifiedAddresses.reduce((total, addr) => total + (addr.balance || 0), 0)
+    // TODO: Get real Bitcoin balances from addresses
+    return 0
   }
 
   // Copy to clipboard function
@@ -357,6 +376,43 @@ export function DashboardContent() {
           <p className="text-muted-foreground mb-6">
             Please connect your MetaMask wallet to view your dashboard.
           </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="container max-w-6xl mx-auto p-6">
+        <div className="text-center py-12">
+          <RefreshCw className="h-12 w-12 animate-spin mx-auto text-primary mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Loading Your Profile...</h2>
+          <p className="text-muted-foreground mb-6">
+            🔓 Decrypting user data from Oracle server...
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="container max-w-6xl mx-auto p-6">
+        <div className="text-center py-12">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Profile Load Error</h2>
+          <p className="text-muted-foreground mb-6">
+            {error}
+          </p>
+          <button
+            onClick={refreshProfile}
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Retry Loading Profile
+          </button>
         </div>
       </div>
     )
@@ -415,12 +471,12 @@ export function DashboardContent() {
             )}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            From {verifiedAddresses.length} verified address{verifiedAddresses.length !== 1 ? 'es' : ''} 
-            {verifiedAddresses.some(addr => isTestnetAddress(addr.address)) && 
-             verifiedAddresses.some(addr => !isTestnetAddress(addr.address)) && 
+            From {bitcoinAddresses.length} verified address{bitcoinAddresses.length !== 1 ? 'es' : ''} 
+            {bitcoinAddresses.some(addr => isTestnetAddress(addr)) && 
+             bitcoinAddresses.some(addr => !isTestnetAddress(addr)) && 
              ' (mainnet + testnet)'}
-            {verifiedAddresses.every(addr => isTestnetAddress(addr.address)) && verifiedAddresses.length > 0 && ' (testnet)'}
-            {verifiedAddresses.every(addr => !isTestnetAddress(addr.address)) && verifiedAddresses.length > 0 && ' (mainnet)'}
+            {bitcoinAddresses.every(addr => isTestnetAddress(addr)) && bitcoinAddresses.length > 0 && ' (testnet)'}
+            {bitcoinAddresses.every(addr => !isTestnetAddress(addr)) && bitcoinAddresses.length > 0 && ' (mainnet)'}
           </p>
         </div>
 
@@ -434,7 +490,7 @@ export function DashboardContent() {
             <span className="text-xs bg-blue-500/10 text-blue-600 px-2 py-1 rounded">Soulbound</span>
           </div>
           <div className="text-2xl font-bold">
-            {parseFloat(rbtcBalance).toFixed(8)}
+            {rBTCBalance}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Non-transferable token
@@ -470,7 +526,7 @@ export function DashboardContent() {
             <span className="text-xs bg-purple-500/10 text-purple-600 px-2 py-1 rounded">Transferable</span>
           </div>
           <div className="text-2xl font-bold">
-            {parseFloat(wrbtcBalance).toFixed(8)}
+            {wrBTCBalance}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             <Link 
@@ -515,7 +571,7 @@ export function DashboardContent() {
           </div>
         )}
 
-        {verifiedAddresses.length === 0 ? (
+        {bitcoinAddresses.length === 0 ? (
           <div className="text-center py-8">
             <Bitcoin className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-medium mb-2">No Bitcoin Addresses</h3>
@@ -532,20 +588,20 @@ export function DashboardContent() {
           </div>
         ) : (
           <div className="space-y-3">
-            {verifiedAddresses
+            {bitcoinAddresses
               .slice(0, showAllAddresses ? undefined : 3)
               .map((addr, index) => (
-                <div key={addr.address} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <div key={addr} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full ${addr.isVerified ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                    <div className="w-2 h-2 rounded-full bg-green-500" />
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm">{addr.address}</span>
+                        <span className="font-mono text-sm">{addr}</span>
                         <button
-                          onClick={() => copyAddress(addr.address)}
+                          onClick={() => copyAddress(addr)}
                           className="p-1 hover:bg-accent rounded transition-colors"
                         >
-                          {copiedAddress === addr.address ? (
+                          {copiedAddress === addr ? (
                             <CheckCircle className="h-3 w-3 text-green-600" />
                           ) : (
                             <Copy className="h-3 w-3 text-muted-foreground" />
@@ -553,15 +609,13 @@ export function DashboardContent() {
                         </button>
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Verified: {formatTimestamp(addr.verifiedAt)}
-                        {addr.balance !== undefined && (
-                          <span className="ml-2">• Balance: {addr.balance.toFixed(8)} BTC ({isTestnetAddress(addr.address) ? 'testnet' : 'mainnet'})</span>
-                        )}
+                        Verified Bitcoin address
+                        <span className="ml-2">({isTestnetAddress(addr) ? 'testnet' : 'mainnet'})</span>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {addr.isVerified ? (
+                    {isVerified ? (
                       <div className="flex items-center gap-1">
                         <CheckCircle className="h-4 w-4 text-green-600" />
                         <Link 
@@ -582,7 +636,7 @@ export function DashboardContent() {
               ))
             }
             
-            {verifiedAddresses.length > 3 && (
+            {bitcoinAddresses.length > 3 && (
               <button
                 onClick={() => setShowAllAddresses(!showAllAddresses)}
                 className="w-full flex items-center justify-center gap-2 p-3 text-sm text-muted-foreground hover:bg-muted/50 rounded-lg transition-colors"
@@ -595,7 +649,7 @@ export function DashboardContent() {
                 ) : (
                   <>
                     <ChevronDown className="h-4 w-4" />
-                    Show {verifiedAddresses.length - 3} More
+                    Show {bitcoinAddresses.length - 3} More
                   </>
                 )}
               </button>
@@ -612,11 +666,11 @@ export function DashboardContent() {
             <h2 className="text-xl font-semibold">Transaction History</h2>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>Total: {transactions.length}</span>
+            <span>Total: {totalTransactionCount}</span>
           </div>
         </div>
 
-        {transactions.length === 0 ? (
+        {recentTransactions.length === 0 ? (
           <div className="text-center py-8">
             <History className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-medium mb-2">No Transactions</h3>
@@ -626,7 +680,7 @@ export function DashboardContent() {
           </div>
         ) : (
           <div className="space-y-3">
-            {transactions.map((tx, index) => (
+            {recentTransactions.map((tx, index) => (
               <div key={tx.hash + index} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
