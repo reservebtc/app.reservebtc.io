@@ -173,6 +173,131 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }, [publicClient, address])
 
+  // PROFESSIONAL FIX: Monitor MetaMask account changes and force page refresh (same as dashboard)
+  useEffect(() => {
+    if (address) {
+      const lastUserKey = 'rbtc_current_metamask_user'
+      const lastUser = localStorage.getItem(lastUserKey)
+      
+      console.log('🔍 Checking MetaMask user change:', { lastUser, currentUser: address.toLowerCase() })
+      
+      if (lastUser && lastUser !== address.toLowerCase()) {
+        console.log('🚨 DETECTED MetaMask account switch! Forcing page refresh...')
+        
+        // Aggressive cleanup before refresh
+        try {
+          localStorage.clear()
+        } catch (e) {
+          console.warn('Failed to clear localStorage:', e)
+        }
+        
+        // Set new user
+        localStorage.setItem(lastUserKey, address.toLowerCase())
+        
+        // Force immediate page refresh
+        setTimeout(() => {
+          window.location.reload()
+        }, 100)
+        return
+      }
+      
+      // Set initial user
+      if (!lastUser) {
+        localStorage.setItem(lastUserKey, address.toLowerCase())
+        console.log('✅ Set initial MetaMask user:', address.toLowerCase())
+      }
+    }
+  }, [address])
+
+  // PROFESSIONAL FIX: Listen for MetaMask account changes directly (same as dashboard)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.ethereum) {
+      const handleAccountsChanged = (accounts: string[]) => {
+        if (accounts.length > 0) {
+          const newAccount = accounts[0].toLowerCase()
+          const storageKey = 'rbtc_metamask_account'
+          const lastAccount = localStorage.getItem(storageKey)
+          
+          console.log('🔄 MetaMask accountsChanged event:', { lastAccount, newAccount })
+          
+          if (lastAccount && lastAccount !== newAccount) {
+            console.log('🚨 METAMASK ACCOUNT CHANGED! Forcing page refresh...')
+            
+            // AGGRESSIVE: Clear React state immediately
+            setVerifiedBitcoinAddress('')
+            setAllVerifiedAddresses([])
+            setBitcoinBalance(0)
+            setIsLoadingBalance(true)
+            setHasAttemptedFetch(false)
+            setAddressHasSpentCoins(false)
+            setMintStatus('idle')
+            setErrorMessage('')
+            setShowFeeVaultWarning(false)
+            setShowAutoSyncDetails(false)
+            
+            // AGGRESSIVE: Clear all possible localStorage data
+            try {
+              // First clear specific known keys
+              const keysToRemove = []
+              for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i)
+                if (key) {
+                  keysToRemove.push(key)
+                }
+              }
+              
+              keysToRemove.forEach(key => {
+                if (key.includes('rbtc') || 
+                    key.includes('transaction') || 
+                    key.includes('oracle') ||
+                    key.includes('reservebtc') ||
+                    key.includes('bitcoin') ||
+                    key.includes('user_data') ||
+                    key.includes(lastAccount)) {
+                  console.log('🧹 AGGRESSIVE: Removing key:', key)
+                  localStorage.removeItem(key)
+                }
+              })
+              
+              // Then complete localStorage clear
+              localStorage.clear()
+              
+              // Clear sessionStorage too
+              sessionStorage.clear()
+              
+            } catch (e) {
+              console.warn('Storage cleanup failed:', e)
+            }
+            
+            // Set new account
+            localStorage.setItem(storageKey, newAccount)
+            
+            // Multiple refresh attempts for reliability
+            setTimeout(() => window.location.reload(), 50)
+            setTimeout(() => window.location.href = window.location.href, 100)
+            
+            return
+          }
+          
+          // Set initial account if not exists
+          if (!lastAccount) {
+            localStorage.setItem(storageKey, newAccount)
+          }
+        }
+      }
+      
+      // Add event listener for account changes
+      window.ethereum.on('accountsChanged', handleAccountsChanged)
+      
+      // Cleanup event listener
+      return () => {
+        if (window.ethereum && window.ethereum.removeListener) {
+          window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
+        }
+      }
+    }
+  }, [])
+
   // Load verified Bitcoin address from centralized storage
   useEffect(() => {
     const loadVerifiedAddress = async () => {
@@ -180,80 +305,32 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       const fromVerify = searchParams.get('from') === 'verify'
       const specificAddress = searchParams.get('address')
       
-      // SMART FIX: Only clear state if DIFFERENT user AND not direct /mint access
+      // PROFESSIONAL FIX: Auto-refresh page if user switched in MetaMask (same as dashboard)
       if (address) {
-        const mintUserKey = 'rbtc_mint_user'
-        const lastMintUser = localStorage.getItem(mintUserKey)
-        const currentUser = address.toLowerCase()
+        const lastUserKey = 'rbtc_last_mint_user'
+        const lastUser = localStorage.getItem(lastUserKey)
         
-        // Check if this is direct /mint access (no URL parameters)
-        const isDirectAccess = !fromVerify && !specificAddress
-        
-        // FORCED CLEANUP: Clear for different users with immediate state reset
-        if (lastMintUser && lastMintUser !== currentUser) {
-          console.log('🚨 MINT: DIFFERENT user detected - FORCING complete cleanup:', { from: lastMintUser, to: currentUser })
+        if (lastUser && lastUser.toLowerCase() !== address.toLowerCase()) {
+          console.log('🔄 MetaMask user switched detected, refreshing mint page...')
+          localStorage.setItem(lastUserKey, address.toLowerCase())
           
-          // IMMEDIATE: Clear ALL React state BEFORE any loading
-          setVerifiedBitcoinAddress('')
-          setAllVerifiedAddresses([])
-          setBitcoinBalance(0)
-          setIsLoadingBalance(false)
-          setHasAttemptedFetch(false)
-          setAddressHasSpentCoins(false)
-          setMintStatus('idle')
-          setErrorMessage('')
-          setShowFeeVaultWarning(false)
-          setShowAutoSyncDetails(false)
-          
-          // Reset ALL form values
-          setValue('bitcoinAddress', '', { shouldValidate: false })
-          
-          // AGGRESSIVE: Clear localStorage for ALL other users
-          try {
-            const allKeys = []
-            for (let i = 0; i < localStorage.length; i++) {
-              const key = localStorage.key(i)
-              if (key) allKeys.push(key)
+          // Clear all localStorage data before refresh
+          const keysToRemove = []
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i)
+            if (key && key !== lastUserKey) {
+              keysToRemove.push(key)
             }
-            
-            allKeys.forEach(key => {
-              if (!key.includes(currentUser) && (
-                key.includes('rbtc') || 
-                key.includes('reservebtc') || 
-                key.includes('bitcoin') ||
-                key.includes('transaction') ||
-                key.includes('oracle') ||
-                key.includes('user_data') ||
-                key.includes(lastMintUser)
-              )) {
-                console.log('🧹 MINT FORCED: Removing other user key:', key)
-                localStorage.removeItem(key)
-              }
-            })
-            
-            // NUCLEAR: Clear entire localStorage and sessionStorage
-            console.log('🧹 MINT NUCLEAR: Clearing all browser storage')
-            localStorage.clear()
-            sessionStorage.clear()
-            
-          } catch (e) {
-            console.warn('Storage cleanup failed:', e)
           }
+          keysToRemove.forEach(key => localStorage.removeItem(key))
           
-          // Force page refresh after cleanup
-          console.log('🔄 MINT: Forcing page refresh for clean state')
-          setTimeout(() => {
-            window.location.reload()
-          }, 100)
-          
-          return // Exit early to prevent loading old data
-          
-        } else {
-          console.log('✅ MINT: Same user - preserving data for:', currentUser)
+          // Force page refresh for clean state
+          window.location.reload()
+          return
         }
         
-        // Update current mint user
-        localStorage.setItem(mintUserKey, currentUser)
+        // Set current user as last connected
+        localStorage.setItem(lastUserKey, address.toLowerCase())
       }
       
       // If no address but we have URL params, try to load anyway for Bitcoin balance
