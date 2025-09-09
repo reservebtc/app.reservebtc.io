@@ -235,22 +235,13 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       if (!address) return
       
       try {
-        // SMART CLEANUP: Only clear if user actually changed
+        // DISABLE CLEANUP: Let data load naturally for same user
         const mintUserKey = 'rbtc_mint_user'
         const lastMintUser = localStorage.getItem(mintUserKey)
         const currentUser = address.toLowerCase()
         
         if (lastMintUser && lastMintUser !== currentUser) {
-          console.log('🧹 MINT: SMART cleanup for DIFFERENT user:', { from: lastMintUser, to: currentUser })
-          
-          // Clear state only for different user
-          setVerifiedBitcoinAddress('')
-          setAllVerifiedAddresses([])
-          setBitcoinBalance(0)
-          setIsLoadingBalance(false)
-          setHasAttemptedFetch(false)
-          setAddressHasSpentCoins(false)
-          setValue('bitcoinAddress', '', { shouldValidate: false })
+          console.log('🧹 MINT: Cleanup ONLY for DIFFERENT user:', { from: lastMintUser, to: currentUser })
           
           // Clear localStorage data ONLY for other users
           const allKeys = []
@@ -268,12 +259,12 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               key.includes('oracle') ||
               key.includes('user_data')
             )) {
-              console.log('🧹 MINT SMART: Removing other user key:', key)
+              console.log('🧹 MINT: Removing other user localStorage key:', key)
               localStorage.removeItem(key)
             }
           })
         } else {
-          console.log('✅ MINT: Same user - preserving verified addresses for:', currentUser)
+          console.log('✅ MINT: Same user - NO cleanup, loading data normally for:', currentUser)
         }
         
         const verifiedAddrs = await getVerifiedBitcoinAddresses(address)
