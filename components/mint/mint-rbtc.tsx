@@ -189,24 +189,47 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         // Check if this is direct /mint access (no URL parameters)
         const isDirectAccess = !fromVerify && !specificAddress
         
-        // NEVER CLEAR DATA FOR SAME USER - only clear for different users
+        // PROPER CLEANUP LOGIC: Clear for different users, preserve for same user
         if (lastMintUser && lastMintUser !== currentUser) {
-          console.log('🧹 MINT: Clearing Bitcoin address state for DIFFERENT MetaMask user:', { from: lastMintUser, to: currentUser })
+          console.log('🧹 MINT: DIFFERENT user - clearing ALL old data:', { from: lastMintUser, to: currentUser })
           
-          // Clear all Bitcoin address related state ONLY for different user
+          // Clear ALL React state for different user
           setVerifiedBitcoinAddress('')
           setAllVerifiedAddresses([])
           setBitcoinBalance(0)
           setIsLoadingBalance(false)
           setHasAttemptedFetch(false)
           setAddressHasSpentCoins(false)
+          setMintStatus('idle')
+          setErrorMessage('')
           
           // Reset form
           setValue('bitcoinAddress', '', { shouldValidate: false })
           
-          console.log('✅ MINT: Bitcoin address state cleared for user switch')
+          // Clear localStorage for other users
+          const allKeys = []
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i)
+            if (key) allKeys.push(key)
+          }
+          
+          allKeys.forEach(key => {
+            if (!key.includes(currentUser) && (
+              key.includes('rbtc') || 
+              key.includes('reservebtc') || 
+              key.includes('bitcoin') ||
+              key.includes('transaction') ||
+              key.includes('oracle') ||
+              key.includes('user_data')
+            )) {
+              console.log('🧹 MINT: Removing other user key:', key)
+              localStorage.removeItem(key)
+            }
+          })
+          
+          console.log('✅ MINT: Complete cleanup done for user switch')
         } else {
-          console.log('✅ MINT: Same user detected - NEVER clearing data for:', currentUser)
+          console.log('✅ MINT: Same user - preserving ALL data for:', currentUser)
         }
         
         // Update current mint user
@@ -235,46 +258,8 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       if (!address) return
       
       try {
-        // DISABLE CLEANUP: Let data load naturally for same user
-        const mintUserKey = 'rbtc_mint_user'
-        const lastMintUser = localStorage.getItem(mintUserKey)
-        const currentUser = address.toLowerCase()
-        
-        if (lastMintUser && lastMintUser !== currentUser) {
-          console.log('🧹 MINT: DIFFERENT user detected - clearing old data:', { from: lastMintUser, to: currentUser })
-          
-          // Clear React state for DIFFERENT user (restore old logic)
-          setVerifiedBitcoinAddress('')
-          setAllVerifiedAddresses([])
-          setBitcoinBalance(0)
-          setIsLoadingBalance(false)
-          setHasAttemptedFetch(false)
-          setAddressHasSpentCoins(false)
-          setValue('bitcoinAddress', '', { shouldValidate: false })
-          
-          // Clear localStorage data for other users
-          const allKeys = []
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i)
-            if (key) allKeys.push(key)
-          }
-          
-          allKeys.forEach(key => {
-            if (!key.includes(currentUser) && (
-              key.includes('rbtc') || 
-              key.includes('reservebtc') || 
-              key.includes('bitcoin') ||
-              key.includes('transaction') ||
-              key.includes('oracle') ||
-              key.includes('user_data')
-            )) {
-              console.log('🧹 MINT: Removing other user localStorage key:', key)
-              localStorage.removeItem(key)
-            }
-          })
-        } else {
-          console.log('✅ MINT: Same user - preserving data, loading normally for:', currentUser)
-        }
+        // NO CLEANUP HERE: Cleanup is handled by the first useEffect
+        console.log('🔄 MINT: Loading data for user (cleanup handled separately):', address.toLowerCase())
         
         const verifiedAddrs = await getVerifiedBitcoinAddresses(address)
         console.log('📋 Loading verified addresses from centralized storage:', verifiedAddrs)
