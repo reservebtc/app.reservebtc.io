@@ -31,25 +31,25 @@ export function validateBitcoinAddress(address: string): BitcoinValidationResult
       }
     }
 
-    // Determine address type
+    // Determine address type (support both mainnet and testnet)
     let type: BitcoinAddressType = 'unknown'
     
-    if (trimmedAddress.startsWith('bc1p')) {
+    if (trimmedAddress.startsWith('bc1p') || trimmedAddress.startsWith('tb1p')) {
       type = 'taproot' // Bech32m (P2TR)
-    } else if (trimmedAddress.startsWith('bc1q')) {
+    } else if (trimmedAddress.startsWith('bc1q') || trimmedAddress.startsWith('tb1q')) {
       type = 'segwit' // Bech32 (P2WPKH/P2WSH)
-    } else if (trimmedAddress.startsWith('1')) {
-      type = 'legacy' // P2PKH
-    } else if (trimmedAddress.startsWith('3')) {
-      type = 'legacy' // P2SH
+    } else if (trimmedAddress.startsWith('1') || trimmedAddress.startsWith('m') || trimmedAddress.startsWith('n')) {
+      type = 'legacy' // P2PKH (mainnet: 1..., testnet: m.../n...)
+    } else if (trimmedAddress.startsWith('3') || trimmedAddress.startsWith('2')) {
+      type = 'legacy' // P2SH (mainnet: 3..., testnet: 2...)
     }
 
-    // Only allow mainnet addresses (bc1... or 1... or 3...)
-    if (!trimmedAddress.match(/^(bc1[a-z0-9]{25,62}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})$/)) {
+    // Allow both mainnet and testnet addresses for development
+    if (!trimmedAddress.match(/^(bc1[a-z0-9]{25,62}|tb1[a-z0-9]{25,62}|[13mnx2][a-km-zA-HJ-NP-Z1-9]{25,34})$/)) {
       return {
         isValid: false,
         type,
-        error: 'Only mainnet Bitcoin addresses are supported'
+        error: 'Invalid Bitcoin address format'
       }
     }
 

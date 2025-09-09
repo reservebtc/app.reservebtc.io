@@ -472,9 +472,7 @@ export function DashboardContent() {
 
     try {
       // Get all verified Bitcoin addresses for this user
-      console.log('🔍 DASHBOARD DEBUG: Calling getVerifiedBitcoinAddresses for:', address)
       const verifiedAddresses = await getVerifiedBitcoinAddresses(address)
-      console.log('🔍 DASHBOARD DEBUG: getVerifiedBitcoinAddresses returned:', verifiedAddresses)
       console.log(`📍 Found ${verifiedAddresses.length} verified Bitcoin addresses for user`)
       console.log('🔍 Verified addresses details:', verifiedAddresses)
 
@@ -1409,7 +1407,7 @@ export function DashboardContent() {
                           </p>
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {addr.address.startsWith('tb1') ? '🧪 Testnet' : '🌐 Mainnet'}
+                          {(addr.address.startsWith('tb1') || addr.address.startsWith('2') || addr.address.startsWith('m') || addr.address.startsWith('n')) ? '🧪 Testnet' : '🌐 Mainnet'}
                         </div>
                       </div>
                     </div>

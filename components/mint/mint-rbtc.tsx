@@ -1152,7 +1152,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                           {verifiedBitcoinAddress}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {verifiedBitcoinAddress.startsWith('tb1') ? 'Testnet' : 'Mainnet'} • {getBitcoinAddressTypeLabel(bitcoinValidation?.type || 'unknown')}
+                          {(verifiedBitcoinAddress.startsWith('tb1') || verifiedBitcoinAddress.startsWith('2') || verifiedBitcoinAddress.startsWith('m') || verifiedBitcoinAddress.startsWith('n')) ? 'Testnet' : 'Mainnet'} • {getBitcoinAddressTypeLabel(bitcoinValidation?.type || 'unknown')}
                         </div>
                       </div>
                     </div>
@@ -1239,7 +1239,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                                   )}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
-                                  {addr.address.startsWith('tb1') ? 'Testnet' : 'Mainnet'} • Verified {verificationDate}
+                                  {(addr.address.startsWith('tb1') || addr.address.startsWith('2') || addr.address.startsWith('m') || addr.address.startsWith('n')) ? 'Testnet' : 'Mainnet'} • Verified {verificationDate}
                                 </div>
                               </div>
                             </div>
@@ -1309,7 +1309,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                   </div>
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>Network:</span>
-                    <span>{verifiedBitcoinAddress.startsWith('tb1') ? 'Testnet' : 'Mainnet'}</span>
+                    <span>{(verifiedBitcoinAddress.startsWith('tb1') || verifiedBitcoinAddress.startsWith('2') || verifiedBitcoinAddress.startsWith('m') || verifiedBitcoinAddress.startsWith('n')) ? 'Testnet' : 'Mainnet'}</span>
                   </div>
                 </div>
               </div>
