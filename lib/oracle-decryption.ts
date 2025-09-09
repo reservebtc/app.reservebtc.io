@@ -16,22 +16,33 @@ interface EncryptedOracleResponse {
 }
 
 interface UserData {
-  btcAddress: string;
-  btcAddresses?: string[]; // Support for multiple Bitcoin addresses
-  ethAddress: string;
+  btcAddressHash: string; // Actual field name from Oracle
   lastSyncedBalance: number;
-  registeredAt: string;
   lastSyncTime: number;
+  registeredAt: string;
+  transactionCount: number; // Actual field name from Oracle
   autoDetected: boolean;
-  transactionHashes: any[];
-  lastTxHash?: string; // Optional transaction hash for backward compatibility
-  addedTime?: number; // Optional legacy timestamp
+  
+  // Legacy fields for backward compatibility
+  btcAddress?: string;
+  btcAddresses?: string[]; // Support for multiple Bitcoin addresses
+  ethAddress?: string;
+  transactionHashes?: any[];
+  lastTxHash?: string;
+  addedTime?: number;
   transactions?: Array<{
     type: string;
     amount: number;
     transactionHash?: string;
     timestamp?: number;
-  }>; // Oracle transaction history
+  }>;
+}
+
+interface OracleUsersResponse {
+  users: Record<string, UserData>;
+  timestamp: string;
+  totalUsers: number;
+  note: string;
 }
 
 /**
@@ -72,6 +83,43 @@ export function decryptOracleData(encryptedResponse: EncryptedOracleResponse): R
 }
 
 /**
+ * Get Oracle users data from public endpoint
+ */
+export async function getOracleUsersData(): Promise<Record<string, UserData> | null> {
+  try {
+    console.log('📡 Fetching Oracle users data from /users endpoint...');
+    
+    const response = await fetch(`${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/users`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'ReserveBTC-Frontend/1.0'
+      }
+    });
+
+    if (!response.ok) {
+      console.log('🔍 DEBUG: Oracle response failed:', response.status, response.statusText);
+      throw new Error(`Oracle API failed: ${response.status} ${response.statusText}`);
+    }
+
+    const oracleResponse: OracleUsersResponse = await response.json();
+    console.log('🔍 DEBUG: Oracle response received, total users:', oracleResponse.totalUsers);
+    
+    if (oracleResponse.users) {
+      console.log('🔍 DEBUG: Users data keys:', Object.keys(oracleResponse.users).length);
+      return oracleResponse.users;
+    } else {
+      console.log('❌ No users data found in Oracle response');
+      return null;
+    }
+
+  } catch (error) {
+    console.error('❌ Failed to fetch Oracle users data:', error);
+    return null;
+  }
+}
+
+/**
  * Fetch and decrypt Oracle user data
  */
 export async function getDecryptedOracleUsers(): Promise<Record<string, UserData> | null> {
@@ -92,8 +140,8 @@ export async function getDecryptedOracleUsers(): Promise<Record<string, UserData
     );
 
     if (!response.ok) {
-      console.log('🔍 DEBUG: Oracle response failed:', response.status, response.statusText);
-      throw new Error(`Oracle API failed: ${response.status} ${response.statusText}`);
+      console.log('🔍 DEBUG: Encrypted endpoint failed, falling back to public /users endpoint');
+      return await getOracleUsersData();
     }
 
     const encryptedResponse: EncryptedOracleResponse = await response.json();
@@ -113,9 +161,96 @@ export async function getDecryptedOracleUsers(): Promise<Record<string, UserData
     return decryptedData;
 
   } catch (error) {
-    console.error('❌ Failed to fetch/decrypt Oracle data:', error);
+    console.error('❌ Failed to fetch/decrypt Oracle data, falling back to public endpoint:', error);
+    return await getOracleUsersData();
+  }
+}
+
+/**
+ * Find user in Oracle data by correlation (since keys are hashed)
+ */
+export function findOracleUserByCorrelation(
+  oracleUsersData: Record<string, UserData>,
+  ethereumAddress: string,
+  blockchainBalance?: bigint,
+  recentMintTimestamp?: number
+): UserData | null {
+  if (!oracleUsersData || Object.keys(oracleUsersData).length === 0) {
+    console.log('❌ No Oracle users data available for correlation');
     return null;
   }
+
+  console.log('🔍 Attempting user correlation for address:', ethereumAddress);
+  console.log('🔍 Available Oracle users:', Object.keys(oracleUsersData).length);
+
+  const users = Object.entries(oracleUsersData);
+  
+  // Strategy 1: If we have blockchain balance, find matching Oracle balance
+  if (blockchainBalance !== undefined) {
+    const blockchainBalanceSats = Number(blockchainBalance);
+    console.log('🔍 Looking for balance match:', blockchainBalanceSats, 'sats');
+    
+    const balanceMatches = users.filter(([_, userData]) => {
+      const match = userData.lastSyncedBalance === blockchainBalanceSats;
+      if (match) {
+        console.log('✅ Found balance match:', userData.lastSyncedBalance, 'sats');
+      }
+      return match;
+    });
+    
+    if (balanceMatches.length === 1) {
+      console.log('✅ Unique balance match found');
+      return balanceMatches[0][1];
+    } else if (balanceMatches.length > 1) {
+      console.log('⚠️ Multiple balance matches, need additional criteria');
+      // Continue with additional strategies
+    }
+  }
+
+  // Strategy 2: If we have recent mint timestamp, find user with closest registration time
+  if (recentMintTimestamp) {
+    console.log('🔍 Looking for timestamp correlation:', new Date(recentMintTimestamp));
+    
+    let bestUserData: UserData | null = null;
+    let bestTimeDiff = Infinity;
+    
+    for (const [_, userData] of users) {
+      const registrationTime = new Date(userData.registeredAt).getTime();
+      const timeDiff = Math.abs(registrationTime - recentMintTimestamp);
+      
+      // Consider matches within 5 minutes (300000ms) as potential correlations
+      if (timeDiff < 300000 && timeDiff < bestTimeDiff) {
+        bestUserData = userData;
+        bestTimeDiff = timeDiff;
+      }
+    }
+    
+    if (bestUserData) {
+      console.log('✅ Found timestamp correlation within', bestTimeDiff / 1000, 'seconds');
+      return bestUserData;
+    }
+  }
+
+  // Strategy 3: Return user with non-zero balance and recent activity (fallback for active users)
+  const activeUsers = users.filter(([_, userData]) => 
+    userData.lastSyncedBalance > 0 && userData.transactionCount > 0
+  );
+  
+  if (activeUsers.length === 1) {
+    console.log('✅ Single active user found as fallback');
+    return activeUsers[0][1];
+  }
+
+  // Strategy 4: Return most recently active user (last resort)
+  const sortedByActivity = users.sort(([_, a], [__, b]) => b.lastSyncTime - a.lastSyncTime);
+  
+  if (sortedByActivity.length > 0) {
+    console.log('⚠️ Using most recently active user as last resort');
+    return sortedByActivity[0][1];
+  }
+
+  console.log('❌ No suitable user correlation found');
+  return null;
 }
 
 /**

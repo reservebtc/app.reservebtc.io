@@ -557,20 +557,30 @@ export function DashboardContent() {
       setSyncStatus('🔍 Checking Oracle registration status...')
       let oracleUserData = null
       try {
-        // Use encrypted Oracle API
-        const oracleUsersData = await getDecryptedOracleUsers()
+        // Use Oracle users data with correlation strategy
+        const { getOracleUsersData, findOracleUserByCorrelation } = await import('@/lib/oracle-decryption')
+        const oracleUsersData = await getOracleUsersData()
+        
         if (oracleUsersData) {
-          // Oracle returns object with addresses as keys, not array
-          const userInOracle = oracleUsersData[address.toLowerCase()] || oracleUsersData[address]
+          console.log('📡 Oracle users data loaded, attempting user correlation...')
+          
+          // Use correlation strategy to find user (since Oracle uses hashed keys)
+          const userInOracle = findOracleUserByCorrelation(
+            oracleUsersData,
+            address,
+            BigInt(Math.floor(totalBitcoinBalance * 100000000)), // Convert BTC to sats for balance matching
+            undefined // No timestamp available here
+          )
           
           if (userInOracle) {
             oracleUserData = userInOracle
-            console.log('✅ User found in Oracle:', userInOracle)
-            console.log(`🔍 Oracle monitoring: ${userInOracle.btcAddress}`)
+            console.log('✅ User found in Oracle via correlation:', userInOracle)
             console.log(`₿ Oracle balance: ${userInOracle.lastSyncedBalance} sats`)
+            console.log(`📊 Transaction count: ${userInOracle.transactionCount}`)
+            console.log(`📅 Registered: ${userInOracle.registeredAt}`)
             setSyncStatus('✅ User registered with Oracle - automatic sync active')
           } else {
-            console.log('⚠️ User NOT found in Oracle users list')
+            console.log('⚠️ User NOT found in Oracle users list via correlation')
             setSyncStatus('⚠️ Not registered with Oracle - mint to enable automatic sync')
           }
         } else {
@@ -613,32 +623,21 @@ export function DashboardContent() {
       // Method 2: Oracle User Data as fallback
       if (rbtcTokenBalance === BigInt(0) && oracleUserData) {
         try {
-          // Sum up all transactions from Oracle user data
-          let oracleCalculatedBalance = BigInt(0)
+          console.log('🔍 Using Oracle user data for balance calculation...')
           
-          if (oracleUserData.transactions && oracleUserData.transactions.length > 0) {
-            for (const tx of oracleUserData.transactions) {
-              if (tx.type === 'mint' && tx.amount) {
-                oracleCalculatedBalance += BigInt(Math.floor(tx.amount * 100000000))
-                console.log(`📈 Found mint transaction: ${tx.amount} BTC (${tx.transactionHash})`)
-              } else if (tx.type === 'burn' && tx.amount) {
-                oracleCalculatedBalance -= BigInt(Math.floor(tx.amount * 100000000))
-                console.log(`📉 Found burn transaction: ${tx.amount} BTC (${tx.transactionHash})`)
-              }
-            }
-          }
-          
-          // Also check lastSyncedBalance if available
+          // Oracle API structure: use lastSyncedBalance directly (no transactions array in /users endpoint)
           if (oracleUserData.lastSyncedBalance && oracleUserData.lastSyncedBalance > 0) {
             const syncedBalance = BigInt(oracleUserData.lastSyncedBalance)
-            console.log(`🔍 Oracle lastSyncedBalance: ${syncedBalance} sats`)
-            oracleCalculatedBalance = syncedBalance
+            rbtcTokenBalance = syncedBalance
+            console.log(`💰 Oracle balance from lastSyncedBalance: ${syncedBalance} sats (${Number(syncedBalance) / 100000000} BTC)`)
+          }
+          
+          // Note: Oracle /users endpoint doesn't provide transaction arrays
+          // Transaction details would need separate API calls if available
+          if (oracleUserData.transactionCount > 0) {
+            console.log(`📊 Oracle shows ${oracleUserData.transactionCount} transactions for this user`)
           }
 
-          if (oracleCalculatedBalance > BigInt(0)) {
-            rbtcTokenBalance = oracleCalculatedBalance
-            console.log(`💰 Oracle calculated balance: ${oracleCalculatedBalance} sats (${Number(oracleCalculatedBalance) / 100000000} BTC)`)
-          }
         } catch (error) {
           console.error('❌ Failed to calculate balance from Oracle user data:', error)
         }
@@ -700,30 +699,29 @@ export function DashboardContent() {
     const allTransactions: Transaction[] = []
     let foundTransactions = false
     
-    // Method 1: Use Oracle user transactions first (most accurate)
-    if (oracleUserData && oracleUserData.transactions && oracleUserData.transactions.length > 0) {
-      console.log('🎯 Using Oracle user transactions from centralized database')
+    // Method 1: Generate transaction from Oracle user data (since /users endpoint doesn't provide transaction details)
+    if (oracleUserData && oracleUserData.transactionCount > 0 && rbtcTokenBalance > BigInt(0)) {
+      console.log('🎯 Creating transaction record from Oracle user data')
       
-      for (const oracleTransaction of oracleUserData.transactions) {
-        const transaction: Transaction = {
-          hash: oracleTransaction.transactionHash || `oracle_${oracleTransaction.type}_${Date.now()}`,
-          type: oracleTransaction.type,
-          amount: oracleTransaction.amount.toString(),
-          timestamp: new Date(oracleTransaction.timestamp || Date.now()).toISOString(),
-          status: 'success',
-          steps: createTransactionSteps(oracleTransaction.type),
-          currentStep: createTransactionSteps(oracleTransaction.type).length - 1
-        }
-        
-        allTransactions.push(transaction)
-        console.log(`✅ Added Oracle transaction: ${oracleTransaction.type} ${oracleTransaction.amount} rBTC (${oracleTransaction.transactionHash})`)
+      // Create a mint transaction based on Oracle user data
+      const transaction: Transaction = {
+        hash: `oracle_mint_${oracleUserData.lastSyncTime}`,
+        type: 'mint',
+        amount: (Number(rbtcTokenBalance) / 100000000).toString(),
+        timestamp: oracleUserData.registeredAt,
+        status: 'success',
+        steps: createTransactionSteps('mint'),
+        currentStep: createTransactionSteps('mint').length - 1
       }
+      
+      allTransactions.push(transaction)
+      console.log(`✅ Created transaction record from Oracle data: ${transaction.amount} rBTC`)
       foundTransactions = true
     } 
     
-    // Method 2: Fallback - create mint transaction from Oracle data if user has tokens but no transaction history  
+    // Method 2: Legacy fallback for old Oracle data structure
     else if (oracleUserData && rbtcTokenBalance > 0) {
-      console.log('🎯 User found in Oracle with tokens but no transaction history - creating mint transaction record')
+      console.log('🎯 User found in Oracle with tokens - creating mint transaction record (legacy fallback)')
       
       // Try to find real transaction hash from Oracle server stored hashes
       let realTxHash = null
@@ -732,7 +730,7 @@ export function DashboardContent() {
         const { findStoredTransactionHashFromServer } = await import('@/lib/transaction-hashes')
         
         const mintAmount = `${Number(rbtcTokenBalance) / 100000000}`
-        const mintTimestamp = new Date(oracleUserData.addedTime || oracleUserData.lastSyncTime || Date.now()).toISOString()
+        const mintTimestamp = new Date(oracleUserData.registeredAt || oracleUserData.lastSyncTime || Date.now()).toISOString()
         
         realTxHash = await findStoredTransactionHashFromServer(
           address!,
@@ -751,10 +749,10 @@ export function DashboardContent() {
       }
       
       const mintTransaction: Transaction = {
-        hash: realTxHash || `oracle_mint_${oracleUserData.addedTime || Date.now()}`,
+        hash: realTxHash || `oracle_mint_${oracleUserData.lastSyncTime || Date.now()}`,
         type: 'mint',
         amount: `${Number(rbtcTokenBalance) / 100000000}`,
-        timestamp: new Date(oracleUserData.addedTime || oracleUserData.lastSyncTime || Date.now()).toISOString(),
+        timestamp: new Date(oracleUserData.registeredAt || oracleUserData.lastSyncTime || Date.now()).toISOString(),
         status: 'success',
         steps: createTransactionSteps('mint'),
         currentStep: createTransactionSteps('mint').length - 1

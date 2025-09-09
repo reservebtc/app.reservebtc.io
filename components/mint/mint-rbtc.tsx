@@ -670,22 +670,35 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
 
       try {
         console.log('🔍 Fetching transaction hash from Oracle user data...')
-        const response = await fetch('https://oracle.reservebtc.io/users')
-        if (!response.ok) {
-          throw new Error('Failed to fetch Oracle users')
+        const { getOracleUsersData, findOracleUserByCorrelation } = await import('@/lib/oracle-decryption')
+        
+        const oracleUsersData = await getOracleUsersData()
+        if (!oracleUsersData) {
+          throw new Error('Failed to fetch Oracle users data')
         }
 
-        const oracleData = await response.json()
-        const userKey = address.toLowerCase()
-        const userData = oracleData[userKey]
+        // Use correlation strategy to find the user (since Oracle uses hashed keys)
+        const userData = findOracleUserByCorrelation(
+          oracleUsersData,
+          address,
+          undefined, // No blockchain balance available at this point
+          Date.now() // Use current time for recent mint correlation
+        )
 
-        if (userData && userData.transactions && userData.transactions.length > 0) {
-          // Get the most recent transaction hash
-          const latestTransaction = userData.transactions[userData.transactions.length - 1]
-          if (latestTransaction.transactionHash && latestTransaction.transactionHash !== txHash) {
-            console.log('✅ Updated txHash from Oracle:', latestTransaction.transactionHash)
-            setTxHash(latestTransaction.transactionHash)
+        if (userData && userData.transactionCount > 0) {
+          console.log('✅ Found correlated Oracle user with', userData.transactionCount, 'transactions')
+          console.log('💰 Oracle user balance:', userData.lastSyncedBalance, 'sats')
+          
+          // Note: Oracle API doesn't provide individual transaction details in /users endpoint
+          // For now, we'll use the fact that user exists and has transactions
+          console.log('ℹ️ Oracle user confirmed with transaction activity')
+          
+          // Check if we should update auto-discovery timing based on Oracle activity
+          if (userData.transactionCount >= 1) {
+            console.log('⚡ Oracle shows transaction activity - mint may be processed')
           }
+        } else {
+          console.log('ℹ️ No matching Oracle user found yet (may still be processing)')
         }
       } catch (error) {
         console.error('❌ Error fetching transaction hash from Oracle:', error)

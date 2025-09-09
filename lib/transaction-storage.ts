@@ -354,8 +354,8 @@ export async function getVerifiedAddressesFromOracle(
         // Create address array from Oracle format (support multiple addresses)
         const rawAddresses = enhancedUserData.btcAddresses || [enhancedUserData.btcAddress]
         const addresses = rawAddresses
-          .filter(address => address && address.length > 10 && !address.includes('pending_verification'))
-          .map((address, index) => ({
+          .filter((address): address is string => Boolean(address) && typeof address === 'string' && address.length > 10 && !address.includes('pending_verification'))
+          .map((address) => ({
             address: address,
             verifiedAt: new Date(userData.registeredAt || userData.addedTime || Date.now()).toISOString(),
             signature: 'oracle_verified' // Oracle doesn't store signatures
