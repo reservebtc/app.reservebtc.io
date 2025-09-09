@@ -10,6 +10,7 @@ interface EncryptedOracleResponse {
     encrypted: string;
     iv: string;
     authTag: string;
+    compression?: boolean;
   };
   timestamp: string;
   note: string;
@@ -84,45 +85,75 @@ export async function decryptOracleData(encryptedResponse: EncryptedOracleRespon
       }
     }
 
-    // AES-256-CBC decryption with encryption key from environment
-    console.log('🔓 UNIVERSAL DECRYPTION: Attempting AES-256-CBC decryption...');
+    // Multi-layer decryption to match Oracle encryption process
+    console.log('🔓 UNIVERSAL DECRYPTION: Attempting multi-layer decryption...');
     try {
-      // Import crypto dynamically for Next.js compatibility
+      // Import crypto and zlib dynamically for Next.js compatibility
       const crypto = await import('crypto');
+      const zlib = await import('zlib');
       const encryptionKey = process.env.NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY;
       
       if (!encryptionKey) {
         console.error('❌ UNIVERSAL ERROR: No encryption key found in environment!');
         console.error('❌ UNIVERSAL ERROR: Set NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY in Vercel env vars');
+        console.error('❌ UNIVERSAL ERROR: Available env keys:', Object.keys(process.env).filter(key => key.includes('ORACLE')));
         throw new Error('No encryption key');
       }
+      
+      console.log('🔑 Using encryption key (first 8 chars):', encryptionKey.substring(0, 8) + '...');
       
       console.log('🔑 UNIVERSAL DECRYPTION: Using AES encryption key from environment...');
       console.log('🔍 DEBUG: Encrypted data format:', {
         encryptedLength: encryptedData.encrypted?.length,
         iv: encryptedData.iv,
-        authTag: encryptedData.authTag
+        authTag: encryptedData.authTag,
+        compression: (encryptedData as any).compression
       });
       
-      const decipher = crypto.createDecipher('aes-256-cbc', encryptionKey);
-      let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
-      decrypted += decipher.final('utf8');
-      const userData = JSON.parse(decrypted);
+      // Step 1: Base64 decode the outer layer
+      console.log('🔓 Step 1: Base64 decoding outer layer...');
+      const base64DecodedData = Buffer.from(encryptedData.encrypted, 'base64').toString('base64');
       
-      console.log('✅ UNIVERSAL SUCCESS: AES-256-CBC decryption successful!');
+      // Step 2: AES-256-CBC decryption
+      console.log('🔓 Step 2: AES-256-CBC decryption...');
+      const decipher = crypto.createDecipher('aes-256-cbc', encryptionKey);
+      let decrypted = decipher.update(base64DecodedData, 'base64', 'utf8');
+      decrypted += decipher.final('utf8');
+      
+      // Step 3: Decompression (if compressed)
+      console.log('🔓 Step 3: Checking for compression...');
+      let finalData = decrypted;
+      if ((encryptedData as any).compression !== false) {
+        try {
+          console.log('🔓 Step 3a: Decompressing zlib data...');
+          const compressedBuffer = Buffer.from(decrypted, 'base64');
+          const decompressedBuffer = zlib.inflateSync(compressedBuffer);
+          finalData = decompressedBuffer.toString('utf8');
+          console.log('✅ Decompression successful');
+        } catch (decompressionError) {
+          console.log('ℹ️ No compression detected, using raw data');
+          finalData = decrypted;
+        }
+      }
+      
+      // Step 4: JSON parse
+      console.log('🔓 Step 4: JSON parsing...');
+      const userData = JSON.parse(finalData);
+      
+      console.log('✅ UNIVERSAL SUCCESS: Multi-layer decryption successful!');
       console.log('📊 UNIVERSAL SUCCESS: Decrypted', Object.keys(userData).length, 'users');
       console.log('📋 UNIVERSAL SUCCESS: Sample user keys:', Object.keys(userData).slice(0, 3));
       return userData;
     } catch (aesError) {
-      console.error('❌ UNIVERSAL ERROR: AES-256-CBC decryption failed!');
+      console.error('❌ UNIVERSAL ERROR: Multi-layer decryption failed!');
       console.error('❌ UNIVERSAL ERROR: AES Error details:', aesError instanceof Error ? aesError.message : String(aesError));
-      console.log('🔄 UNIVERSAL FALLBACK: Trying base64 decryption as backup...');
+      console.log('🔄 UNIVERSAL FALLBACK: Trying simple base64 decryption as backup...');
       
-      // Fallback to base64 if AES fails
+      // Fallback to simple base64 if multi-layer fails
       try {
-        const decodedData = atob(encryptedData.encrypted);
+        const decodedData = Buffer.from(encryptedData.encrypted, 'base64').toString('utf8');
         const userData = JSON.parse(decodedData);
-        console.log('✅ UNIVERSAL SUCCESS: Base64 fallback worked!');
+        console.log('✅ UNIVERSAL SUCCESS: Simple base64 fallback worked!');
         console.log('📊 UNIVERSAL SUCCESS: Decrypted', Object.keys(userData).length, 'users via base64');
         console.log('📋 UNIVERSAL SUCCESS: Sample user keys:', Object.keys(userData).slice(0, 3));
         return userData;
