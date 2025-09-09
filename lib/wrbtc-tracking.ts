@@ -44,7 +44,7 @@ const publicClient = createPublicClient({
  */
 export async function getWrBTCTransactionEvents(
   userAddress: string,
-  fromBlock: bigint = 0n,
+  fromBlock: bigint = BigInt(0),
   toBlock: bigint | 'latest' = 'latest'
 ): Promise<WrBTCTransaction[]> {
   try {
@@ -150,8 +150,8 @@ export function calculateWrBTCBalance(transactions: WrBTCTransaction[]): {
   totalRedeemed: string
   currentBalance: string
 } {
-  let totalWrapped = 0n
-  let totalRedeemed = 0n
+  let totalWrapped = BigInt(0)
+  let totalRedeemed = BigInt(0)
   
   for (const tx of transactions) {
     const amount = BigInt(tx.amount)

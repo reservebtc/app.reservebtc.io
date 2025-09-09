@@ -87,6 +87,7 @@ export function DashboardContent() {
   // Local state for UI interactions
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
   const [showAllAddresses, setShowAllAddresses] = useState(false)
+  const [isLoadingBalances, setIsLoadingBalances] = useState(false)
 
   // Read rBTC-SYNTH balance from contract
   const { data: rbtcBalanceData } = useReadContract({
@@ -128,13 +129,8 @@ export function DashboardContent() {
     if (lastUser && lastUser !== address.toLowerCase()) {
       console.log('🚨 MetaMask account changed! Clearing old data...')
       
-      // Clear all states
-      setVerifiedAddresses([])
-      setTransactions([])
-      setOracleData(null)
-      setRbtcBalance('0')
-      setWrbtcBalance('0')
-      setIsLoading(true)
+      // Clear all states - handled by new hook system
+      console.log('🧹 User changed - profile will be refreshed automatically')
       
       // Clear localStorage data for old user
       const keysToRemove = []
@@ -163,133 +159,11 @@ export function DashboardContent() {
     localStorage.setItem(currentUserKey, address.toLowerCase())
   }, [address])
 
-  // Load Oracle data
-  useEffect(() => {
-    if (!address) return
+  // Legacy Oracle data loading - now handled by useUserDashboard hook
+  // Removed to fix build errors and use new architecture
 
-    const loadOracleData = async () => {
-      try {
-        setIsLoading(true)
-        console.log('📡 Loading Oracle data for user:', address)
-        
-        const allUsers = await getDecryptedOracleUsers()
-        if (!allUsers) {
-          console.warn('⚠️ No Oracle users data received')
-          return
-        }
-
-        const userData = allUsers[address.toLowerCase()] || allUsers[address]
-        if (!userData) {
-          console.log('ℹ️ User not found in Oracle database')
-          setOracleData(null)
-          setVerifiedAddresses([])
-          setTransactions([])
-          return
-        }
-
-        console.log('✅ Oracle data loaded:', userData)
-        
-        // Check if we're getting public (hashed) or encrypted (real) data
-        if (userData.btcAddress && userData.btcAddress.length < 20) {
-          console.error('⚠️ CRITICAL: Receiving HASHED public data instead of real encrypted data!');
-          console.error('⚠️ CRITICAL: btcAddress is hashed:', userData.btcAddress);
-          console.error('⚠️ CRITICAL: This means /internal-users endpoint failed and fallback to /users was used');
-          console.error('⚠️ CRITICAL: No real transactions available - only Oracle balance data');
-        } else if (userData.btcAddress) {
-          console.log('✅ SUCCESS: Receiving REAL encrypted data with actual Bitcoin address:', userData.btcAddress);
-        }
-        
-        setOracleData(userData)
-
-        // Process Bitcoin addresses
-        const addresses: VerifiedAddress[] = []
-        const isHashedData = userData.btcAddress && userData.btcAddress.length < 20
-        
-        if (userData.btcAddress && !isHashedData) {
-          addresses.push({
-            address: userData.btcAddress,
-            verifiedAt: userData.registeredAt,
-            isVerified: true
-          })
-        } else if (isHashedData) {
-          console.log('ℹ️ Skipping hashed Bitcoin address - cannot load real balance or mint')
-        }
-
-        if (userData.btcAddresses && Array.isArray(userData.btcAddresses) && !isHashedData) {
-          userData.btcAddresses.forEach(addr => {
-            if (addr && !addresses.find(a => a.address === addr)) {
-              addresses.push({
-                address: addr,
-                verifiedAt: userData.registeredAt,
-                isVerified: true
-              })
-            }
-          })
-        }
-
-        setVerifiedAddresses(addresses)
-
-        // Load real Bitcoin balances from Mempool API
-        if (addresses.length > 0) {
-          loadBitcoinBalances(addresses)
-        }
-
-        // Process transactions
-        const txs: Transaction[] = []
-        if (userData.transactionHashes && Array.isArray(userData.transactionHashes)) {
-          userData.transactionHashes.forEach(tx => {
-            txs.push({
-              hash: tx.hash || tx.transactionHash,
-              type: tx.type || 'mint',
-              amount: tx.amount || '0',
-              timestamp: tx.timestamp || new Date().toISOString(),
-              status: tx.status || 'success',
-              bitcoinAddress: tx.bitcoinAddress || userData.btcAddress
-            })
-          })
-        } else if (userData.lastTxHash && userData.lastSyncedBalance > 0) {
-          // Create transaction from lastTxHash if no transaction array exists
-          txs.push({
-            hash: userData.lastTxHash,
-            type: 'mint',
-            amount: (userData.lastSyncedBalance / 100000000).toFixed(8),
-            timestamp: userData.registeredAt,
-            status: 'success',
-            bitcoinAddress: userData.btcAddress
-          })
-        }
-
-        setTransactions(txs)
-        console.log(`✅ Loaded ${addresses.length} addresses and ${txs.length} transactions`)
-
-      } catch (error) {
-        console.error('❌ Failed to load Oracle data:', error)
-        setOracleData(null)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadOracleData()
-  }, [address])
-
-  // Update rBTC balance when contract data changes
-  useEffect(() => {
-    if (rbtcBalanceData) {
-      const balance = formatUnits(rbtcBalanceData, 8)
-      setRbtcBalance(balance)
-      console.log('💰 rBTC-SYNTH balance updated:', balance)
-    }
-  }, [rbtcBalanceData])
-
-  // Update wrBTC balance when contract data changes
-  useEffect(() => {
-    if (wrbtcBalanceData) {
-      const balance = formatUnits(wrbtcBalanceData, 8)
-      setWrbtcBalance(balance)
-      console.log('💰 wrBTC balance updated:', balance)
-    }
-  }, [wrbtcBalanceData])
+  // Contract balance updates are now handled by useUserDashboard hook
+  // Legacy code removed - balances come from rBTCBalance and wrBTCBalance props
 
   // Detect if address is mainnet or testnet
   const isTestnetAddress = (address: string): boolean => {
@@ -321,34 +195,9 @@ export function DashboardContent() {
     }
   }
 
-  // Load Bitcoin balances for all addresses
-  const loadBitcoinBalances = async (addresses: VerifiedAddress[]) => {
-    try {
-      setIsLoadingBalances(true)
-      console.log('💰 Loading Bitcoin balances for all addresses...')
-      
-      const updatedAddresses = await Promise.all(
-        addresses.map(async (addr) => {
-          const balance = await fetchBitcoinBalance(addr.address)
-          return { ...addr, balance }
-        })
-      )
-      
-      setVerifiedAddresses(updatedAddresses)
-      
-      const totalBalance = updatedAddresses.reduce((total, addr) => total + (addr.balance || 0), 0)
-      console.log(`💰 Total Bitcoin balance: ${totalBalance.toFixed(8)} BTC`)
-      
-    } finally {
-      setIsLoadingBalances(false)
-    }
-  }
+  // Bitcoin balance loading is now handled by useUserDashboard hook
 
-  // Get total Bitcoin balance from all addresses
-  const getTotalBitcoinBalance = (): number => {
-    // TODO: Get real Bitcoin balances from addresses
-    return 0
-  }
+  // Total Bitcoin balance is now provided by useUserDashboard hook
 
   // Copy to clipboard function
   const copyAddress = async (text: string) => {
@@ -464,10 +313,10 @@ export function DashboardContent() {
             <span className="text-xs bg-orange-500/10 text-orange-600 px-2 py-1 rounded">Reserve</span>
           </div>
           <div className="text-2xl font-bold">
-            {isLoadingBalances ? (
+            {isLoading ? (
               <span className="text-muted-foreground">Loading...</span>
             ) : (
-              `${getTotalBitcoinBalance().toFixed(8)} BTC`
+              `${parseFloat(totalBalance).toFixed(8)} BTC`
             )}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
@@ -505,14 +354,14 @@ export function DashboardContent() {
               <span className="font-medium">Oracle Status</span>
             </div>
             <span className="text-xs bg-green-500/10 text-green-600 px-2 py-1 rounded">
-              {oracleData ? 'Synced' : 'No Data'}
+              {isVerified ? 'Synced' : 'No Data'}
             </span>
           </div>
           <div className="text-2xl font-bold">
-            {oracleData ? (oracleData.lastSyncedBalance / 100000000).toFixed(8) : '0.00000000'}
+            {totalBalance}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Oracle balance (sats: {oracleData?.lastSyncedBalance || 0})
+            Oracle synchronized balance
           </p>
         </div>
 
@@ -555,21 +404,7 @@ export function DashboardContent() {
           </Link>
         </div>
 
-        {/* Warning for hashed data */}
-        {oracleData && oracleData.btcAddress && oracleData.btcAddress.length < 20 && (
-          <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-yellow-600" />
-              <span className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
-                Limited Data Mode
-              </span>
-            </div>
-            <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
-              Using public Oracle data with privacy hashing. Real Bitcoin addresses and transactions are not available. 
-              Check API configuration to access full encrypted data.
-            </p>
-          </div>
-        )}
+        {/* Warning for limited data - removed legacy Oracle direct access */}
 
         {bitcoinAddresses.length === 0 ? (
           <div className="text-center py-8">

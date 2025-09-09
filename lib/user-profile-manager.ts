@@ -10,8 +10,9 @@
  * - Automatic data placement in correct UI locations
  */
 
-import { decryptSensitiveData, getDecryptedOracleUsers } from './oracle-decryption'
-import { encryptSensitiveData } from './encryption-utils'
+import { getDecryptedOracleUsers } from './oracle-decryption'
+import { encryptSensitiveData, decryptSensitiveData } from './encryption-utils'
+import crypto from 'crypto'
 
 // Universal user profile interface
 export interface UniversalUserProfile {
@@ -172,8 +173,9 @@ export class UserProfileManager {
         let encryptedProfile: any = null
         
         for (const [userKey, userData] of Object.entries(oracleData.users || {})) {
-          if (userKey === userHash || userData.userHash === userHash) {
-            encryptedProfile = userData.encryptedProfile
+          const typedUserData = userData as any
+          if (userKey === userHash || typedUserData.userHash === userHash) {
+            encryptedProfile = typedUserData.encryptedProfile
             break
           }
         }
@@ -379,7 +381,7 @@ export class UserProfileManager {
    */
   private createUserHash(address: string): string {
     // Simple hash - in production would use proper crypto
-    return require('crypto').createHash('sha256').update(address.toLowerCase()).digest('hex').substring(0, 16)
+    return crypto.createHash('sha256').update(address.toLowerCase()).digest('hex').substring(0, 16)
   }
 
   private extractHashes(transactions: any[]): string[] {
