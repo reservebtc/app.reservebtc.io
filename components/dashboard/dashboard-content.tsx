@@ -64,6 +64,7 @@ export function DashboardContent() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [oracleData, setOracleData] = useState<OracleUserData | null>(null)
   const [rbtcBalance, setRbtcBalance] = useState<string>('0')
+  const [wrbtcBalance, setWrbtcBalance] = useState<string>('0')
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingBalances, setIsLoadingBalances] = useState(false)
@@ -72,6 +73,20 @@ export function DashboardContent() {
   // Read rBTC-SYNTH balance from contract
   const { data: rbtcBalanceData } = useReadContract({
     address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
+    abi: [{
+      "inputs": [{"internalType": "address", "name": "account", "type": "address"}],
+      "name": "balanceOf",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    }],
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+  })
+
+  // Read wrBTC balance from VaultWrBTC contract
+  const { data: wrbtcBalanceData } = useReadContract({
+    address: CONTRACTS.VAULT_WRBTC as `0x${string}`,
     abi: [{
       "inputs": [{"internalType": "address", "name": "account", "type": "address"}],
       "name": "balanceOf",
@@ -100,6 +115,7 @@ export function DashboardContent() {
       setTransactions([])
       setOracleData(null)
       setRbtcBalance('0')
+      setWrbtcBalance('0')
       setIsLoading(true)
       
       // Clear localStorage data for old user
@@ -248,6 +264,15 @@ export function DashboardContent() {
     }
   }, [rbtcBalanceData])
 
+  // Update wrBTC balance when contract data changes
+  useEffect(() => {
+    if (wrbtcBalanceData) {
+      const balance = formatUnits(wrbtcBalanceData, 8)
+      setWrbtcBalance(balance)
+      console.log('💰 wrBTC balance updated:', balance)
+    }
+  }, [wrbtcBalanceData])
+
   // Detect if address is mainnet or testnet
   const isTestnetAddress = (address: string): boolean => {
     return address.startsWith('tb1') || address.startsWith('m') || address.startsWith('n') || address.startsWith('2')
@@ -369,7 +394,7 @@ export function DashboardContent() {
       </div>
 
       {/* Balance Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Bitcoin Balance */}
         <div className="bg-card border rounded-xl p-6">
           <div className="flex items-center justify-between mb-2">
@@ -432,6 +457,28 @@ export function DashboardContent() {
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Oracle balance (sats: {oracleData?.lastSyncedBalance || 0})
+          </p>
+        </div>
+
+        {/* wrBTC Balance */}
+        <div className="bg-card border rounded-xl p-6">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Link2 className="h-5 w-5 text-purple-500" />
+              <span className="font-medium">wrBTC</span>
+            </div>
+            <span className="text-xs bg-purple-500/10 text-purple-600 px-2 py-1 rounded">Transferable</span>
+          </div>
+          <div className="text-2xl font-bold">
+            {parseFloat(wrbtcBalance).toFixed(8)}
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            <Link 
+              href="/wrap" 
+              className="text-primary hover:underline"
+            >
+              Wrap rBTC → wrBTC
+            </Link>
           </p>
         </div>
       </div>
