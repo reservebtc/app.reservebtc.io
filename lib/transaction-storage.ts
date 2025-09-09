@@ -390,6 +390,33 @@ export async function saveAddressToOracle(
   try {
     console.log('💾 Saving verified address to Oracle:', { userAddress, bitcoinAddress })
     
+    // SECURITY CHECK: Validate Bitcoin address uniqueness across all users
+    console.log('🔒 Checking Bitcoin address uniqueness...')
+    const allUsersData = await getDecryptedOracleUsers()
+    
+    if (allUsersData) {
+      // Check if this Bitcoin address is already used by another ETH user
+      for (const [existingEthAddress, userData] of Object.entries(allUsersData)) {
+        if (existingEthAddress.toLowerCase() !== userAddress.toLowerCase()) {
+          // Check primary btcAddress
+          if (userData.btcAddress && userData.btcAddress.toLowerCase() === bitcoinAddress.toLowerCase()) {
+            throw new Error(`Bitcoin address ${bitcoinAddress} is already linked to another account. Each Bitcoin address can only be used once.`)
+          }
+          
+          // Check btcAddresses array
+          if (userData.btcAddresses && Array.isArray(userData.btcAddresses)) {
+            const hasAddress = userData.btcAddresses.some(addr => 
+              addr && addr.toLowerCase() === bitcoinAddress.toLowerCase()
+            )
+            if (hasAddress) {
+              throw new Error(`Bitcoin address ${bitcoinAddress} is already linked to another account. Each Bitcoin address can only be used once.`)
+            }
+          }
+        }
+      }
+      console.log('✅ Bitcoin address uniqueness validated - address is available')
+    }
+    
     // Use store-transaction-hash endpoint to save the verified address
     const response = await fetch(`${ORACLE_API_BASE}/store-transaction-hash`, {
       method: 'POST',
