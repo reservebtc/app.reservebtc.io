@@ -241,9 +241,18 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         const currentUser = address.toLowerCase()
         
         if (lastMintUser && lastMintUser !== currentUser) {
-          console.log('🧹 MINT: Cleanup ONLY for DIFFERENT user:', { from: lastMintUser, to: currentUser })
+          console.log('🧹 MINT: DIFFERENT user detected - clearing old data:', { from: lastMintUser, to: currentUser })
           
-          // Clear localStorage data ONLY for other users
+          // Clear React state for DIFFERENT user (restore old logic)
+          setVerifiedBitcoinAddress('')
+          setAllVerifiedAddresses([])
+          setBitcoinBalance(0)
+          setIsLoadingBalance(false)
+          setHasAttemptedFetch(false)
+          setAddressHasSpentCoins(false)
+          setValue('bitcoinAddress', '', { shouldValidate: false })
+          
+          // Clear localStorage data for other users
           const allKeys = []
           for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i)
@@ -264,7 +273,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             }
           })
         } else {
-          console.log('✅ MINT: Same user - NO cleanup, loading data normally for:', currentUser)
+          console.log('✅ MINT: Same user - preserving data, loading normally for:', currentUser)
         }
         
         const verifiedAddrs = await getVerifiedBitcoinAddresses(address)
