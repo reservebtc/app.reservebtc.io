@@ -42,21 +42,21 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const { address, isConnected } = useAccount()
   const publicClient = usePublicClient()
 
-  // 🔥 100% АГРЕССИВНАЯ ОЧИСТКА: Многоуровневая система очистки при изменении address
+  // 🔥 100% AGGRESSIVE CLEANUP: Multi-level cleanup system on address change
   useEffect(() => {
     if (address) {
       const currentUser = address.toLowerCase()
       const storageKey = 'rbtc_current_mint_user'
       const lastUser = localStorage.getItem(storageKey)
       
-      console.log('🚨 100% АГРЕССИВНАЯ ОЧИСТКА: Проверяем пользователя:', { lastUser, currentUser })
+      console.log('🚨 100% AGGRESSIVE CLEANUP: Checking user:', { lastUser, currentUser })
       
-      // КРИТИЧЕСКАЯ ОЧИСТКА при изменении пользователя
+      // CRITICAL CLEANUP on user change
       if (lastUser && lastUser !== currentUser) {
-        console.log('🔥 КРИТИЧЕСКОЕ ПЕРЕКЛЮЧЕНИЕ ПОЛЬЗОВАТЕЛЯ! 100% АГРЕССИВНАЯ ОЧИСТКА ВСЕХ ДАННЫХ!')
+        console.log('🔥 CRITICAL USER SWITCH! 100% AGGRESSIVE CLEANUP OF ALL DATA!')
         
-        // ШАГ 1: МГНОВЕННАЯ ОЧИСТКА ВСЕХ React состояний
-        console.log('🧹 ШАГ 1: Мгновенная очистка всех React состояний...')
+        // STEP 1: INSTANT CLEANUP OF ALL React states
+        console.log('🧹 STEP 1: Instant cleanup of all React states...')
         setVerifiedBitcoinAddress('')
         setAllVerifiedAddresses([])
         setBitcoinBalance(0)
@@ -75,17 +75,17 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         setTxHash('')
         setRetryAttempt(0)
         
-        // ШАГ 2: ПОЛНАЯ ОЧИСТКА ФОРМЫ (будет выполнена в отдельном useEffect после объявления setValue)
-        console.log('🧹 ШАГ 2: Полная очистка формы запланирована...')
+        // STEP 2: COMPLETE FORM CLEANUP (will be executed in separate useEffect after setValue declaration)
+        console.log('🧹 STEP 2: Complete form cleanup scheduled...')
         
-        // ШАГ 3: ЯДЕРНАЯ ОЧИСТКА localStorage
-        console.log('🧹 ШАГ 3: Ядерная очистка localStorage...')
+        // STEP 3: NUCLEAR localStorage CLEANUP
+        console.log('🧹 STEP 3: Nuclear localStorage cleanup...')
         try {
-          // Собираем ВСЕ ключи
+          // Collect ALL keys
           const allKeys = Object.keys(localStorage)
-          console.log('🔍 Найдено ключей localStorage:', allKeys.length)
+          console.log('🔍 Found localStorage keys:', allKeys.length)
           
-          // Удаляем ВСЕ ключи связанные со старым пользователем или системой
+          // Remove ALL keys related to old user or system
           allKeys.forEach(key => {
             if (key.includes(lastUser) || 
                 key.includes('rbtc') || 
@@ -97,31 +97,31 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                 key.includes('verified') ||
                 key.includes('mint') ||
                 key.includes('metamask')) {
-              console.log('🗑️ УДАЛЯЮ КЛЮЧ:', key)
+              console.log('🗑️ REMOVING KEY:', key)
               localStorage.removeItem(key)
             }
           })
           
-          // ДОПОЛНИТЕЛЬНО: Полная очистка sessionStorage
+          // ADDITIONAL: Complete sessionStorage cleanup
           sessionStorage.clear()
-          console.log('✅ ШАГ 3 ЗАВЕРШЕН: Все данные старого пользователя удалены')
+          console.log('✅ STEP 3 COMPLETED: All old user data removed')
           
         } catch (error) {
-          console.error('❌ Ошибка при очистке:', error)
+          console.error('❌ Cleanup error:', error)
         }
         
-        // ШАГ 4: Устанавливаем нового пользователя
+        // STEP 4: Set new user
         localStorage.setItem(storageKey, currentUser)
-        console.log('✅ ШАГ 4: Новый пользователь установлен:', currentUser)
+        console.log('✅ STEP 4: New user set:', currentUser)
         
-        console.log('🎉 100% АГРЕССИВНАЯ ОЧИСТКА ЗАВЕРШЕНА! Интерфейс полностью очищен для нового пользователя.')
+        console.log('🎉 100% AGGRESSIVE CLEANUP COMPLETED! Interface fully cleaned for new user.')
       } else {
-        // Устанавливаем текущего пользователя если он новый
+        // Set current user if new
         localStorage.setItem(storageKey, currentUser)
-        console.log('✅ Установлен/подтвержден текущий пользователь:', currentUser)
+        console.log('✅ Current user set/confirmed:', currentUser)
       }
     }
-  }, [address]) // Зависимость только от address для мгновенного срабатывания
+  }, [address]) // Dependency only on address for instant trigger
   
   // Smart contract interaction hooks
   const { writeContract, data: writeData, error: writeError, isPending: isWritePending } = useWriteContract()
@@ -152,21 +152,21 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const bitcoinAddress = watch('bitcoinAddress')
   const bitcoinValidation = verifiedBitcoinAddress ? validateBitcoinAddress(verifiedBitcoinAddress) : null
 
-  // 🔥 ДОПОЛНИТЕЛЬНАЯ ОЧИСТКА ФОРМЫ: useEffect для очистки формы после переключения пользователя
+  // 🔥 ADDITIONAL FORM CLEANUP: useEffect for form cleanup after user switch
   useEffect(() => {
     if (address) {
       const currentUser = address.toLowerCase()
       const storageKey = 'rbtc_current_mint_user'
       const lastUser = localStorage.getItem(storageKey)
       
-      // Если пользователь сменился, очищаем форму
+      // If user changed, clear form
       if (lastUser && lastUser !== currentUser) {
-        console.log('🧹 ДОПОЛНИТЕЛЬНАЯ ОЧИСТКА ФОРМЫ: Очищаем форму после смены пользователя')
+        console.log('🧹 ADDITIONAL FORM CLEANUP: Clearing form after user change')
         setValue('bitcoinAddress', '', { shouldValidate: false })
         setValue('amount', '0', { shouldValidate: false })
       }
     }
-  }, [address, setValue]) // Теперь setValue уже объявлен
+  }, [address, setValue]) // Now setValue is already declared
 
   // Fetch Bitcoin balance for specific Bitcoin address using existing Oracle infrastructure
   const fetchBitcoinBalance = useCallback(async (btcAddress: string) => {
@@ -270,9 +270,9 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }, [publicClient, address])
 
-  // ОТКЛЮЧЕНО: Старая система с обновлением страницы заменена на мгновенную очистку выше
+  // DISABLED: Old system with page refresh replaced by instant cleanup above
 
-  // ПРОФЕССИОНАЛЬНАЯ МГНОВЕННАЯ ОЧИСТКА: Очистка данных в реальном времени при переключении MetaMask БЕЗ обновления страницы
+  // PROFESSIONAL INSTANT CLEANUP: Real-time data cleanup on MetaMask switch WITHOUT page refresh
   useEffect(() => {
     if (typeof window !== 'undefined' && window.ethereum) {
       const handleAccountsChanged = (accounts: string[]) => {
@@ -281,31 +281,31 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           const storageKey = 'rbtc_metamask_account'
           const lastAccount = localStorage.getItem(storageKey)
           
-          console.log('🔄 МГНОВЕННАЯ ОЧИСТКА: Обнаружено переключение MetaMask:', { от: lastAccount, к: newAccount })
+          console.log('🔄 INSTANT CLEANUP: MetaMask switch detected:', { from: lastAccount, to: newAccount })
           
           if (lastAccount && lastAccount !== newAccount) {
-            console.log('🚨 ПЕРЕКЛЮЧЕНИЕ METAMASK ОБНАРУЖЕНО! ДУБЛИРУЮЩАЯ ЯДЕРНАЯ ОЧИСТКА!')
+            console.log('🚨 METAMASK SWITCH DETECTED! DUPLICATE NUCLEAR CLEANUP!')
             
-            // ДУБЛИРУЮЩАЯ ЯДЕРНАЯ ОЧИСТКА - на случай если первая не сработала
-            console.log('💥 ДУБЛИРУЮЩАЯ ОЧИСТКА: Полная ядерная очистка всех данных...')
+            // DUPLICATE NUCLEAR CLEANUP - in case the first one didn't work
+            console.log('💥 DUPLICATE CLEANUP: Full nuclear cleanup of all data...')
             
-            // Полная ядерная очистка localStorage
+            // Full nuclear localStorage cleanup
             try {
               localStorage.clear()
               sessionStorage.clear()
-              console.log('💥 ЯДЕРНАЯ ОЧИСТКА: localStorage и sessionStorage полностью очищены')
+              console.log('💥 NUCLEAR CLEANUP: localStorage and sessionStorage completely cleared')
             } catch (e) {
-              console.warn('Ошибка ядерной очистки:', e)
+              console.warn('Nuclear cleanup error:', e)
             }
             
-            // ВАЖНО: Устанавливаем нового пользователя после ядерной очистки
+            // IMPORTANT: Set new user after nuclear cleanup
             localStorage.setItem(storageKey, newAccount)
             localStorage.setItem('rbtc_current_mint_user', newAccount)
-            console.log('✅ ДУБЛИРУЮЩАЯ ОЧИСТКА: Новый пользователь установлен после ядерной очистки:', newAccount)
+            console.log('✅ DUPLICATE CLEANUP: New user set after nuclear cleanup:', newAccount)
             
-            // Принудительное обновление всех состояний после ядерной очистки
+            // Force update all states after nuclear cleanup
             setTimeout(() => {
-              console.log('🔄 Принудительное обновление состояний после ядерной очистки...')
+              console.log('🔄 Force updating states after nuclear cleanup...')
               setVerifiedBitcoinAddress('')
               setAllVerifiedAddresses([])
               setBitcoinBalance(0)
@@ -323,25 +323,25 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               setIsMinting(false)
               setTxHash('')
               setRetryAttempt(0)
-              // setValue будет вызван в отдельном useEffect выше
-              console.log('✅ Принудительное обновление состояний завершено')
+              // setValue will be called in separate useEffect above
+              console.log('✅ Force state update completed')
             }, 100)
             
             return
           }
           
-          // Устанавливаем начального пользователя если его нет
+          // Set initial user if not exists
           if (!lastAccount) {
             localStorage.setItem(storageKey, newAccount)
-            console.log('✅ Установлен начальный пользователь MetaMask:', newAccount)
+            console.log('✅ Initial MetaMask user set:', newAccount)
           }
         }
       }
       
-      // Добавляем слушатель событий изменения аккаунтов
+      // Add event listener for account changes
       window.ethereum.on('accountsChanged', handleAccountsChanged)
       
-      // Очистка слушателя событий
+      // Cleanup event listener
       return () => {
         if (window.ethereum && window.ethereum.removeListener) {
           window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
@@ -357,7 +357,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       const fromVerify = searchParams.get('from') === 'verify'
       const specificAddress = searchParams.get('address')
       
-      // МГНОВЕННАЯ ОЧИСТКА: Очистка уже обработана в слушателе событий выше, здесь только загружаем данные
+      // INSTANT CLEANUP: Cleanup already handled in event listener above, here we only load data
       
       // If no address but we have URL params, try to load anyway for Bitcoin balance
       if (!address && !specificAddress) {
