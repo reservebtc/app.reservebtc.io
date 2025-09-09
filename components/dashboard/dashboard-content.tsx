@@ -163,18 +163,54 @@ export function DashboardContent() {
           if (lastAccount && lastAccount !== newAccount) {
             console.log('🚨 METAMASK ACCOUNT CHANGED! Forcing page refresh...')
             
-            // Complete localStorage cleanup
+            // AGGRESSIVE: Clear React state immediately
+            setTransactions([])
+            setVerifiedAddresses([])
+            setIsLoadingData(true)
+            setIsLoadingTransactions(true)
+            setSyncStatus('')
+            
+            // AGGRESSIVE: Clear all possible localStorage data
             try {
+              // First clear specific known keys
+              const keysToRemove = []
+              for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i)
+                if (key) {
+                  keysToRemove.push(key)
+                }
+              }
+              
+              keysToRemove.forEach(key => {
+                if (key.includes('rbtc') || 
+                    key.includes('transaction') || 
+                    key.includes('oracle') ||
+                    key.includes('reservebtc') ||
+                    key.includes('bitcoin') ||
+                    key.includes('user_data') ||
+                    key.includes(lastAccount)) {
+                  console.log('🧹 AGGRESSIVE: Removing key:', key)
+                  localStorage.removeItem(key)
+                }
+              })
+              
+              // Then complete localStorage clear
               localStorage.clear()
+              
+              // Clear sessionStorage too
+              sessionStorage.clear()
+              
             } catch (e) {
-              console.warn('localStorage.clear() failed:', e)
+              console.warn('Storage cleanup failed:', e)
             }
             
             // Set new account
             localStorage.setItem(storageKey, newAccount)
             
-            // Force immediate page refresh
-            window.location.reload()
+            // Multiple refresh attempts for reliability
+            setTimeout(() => window.location.reload(), 50)
+            setTimeout(() => window.location.href = window.location.href, 100)
+            
             return
           }
           
