@@ -484,34 +484,17 @@ export function DashboardContent() {
         return
       }
 
-      // CRITICAL FIX: Set verified addresses immediately for UI display with mint status check
-      // First check which addresses have been minted by examining transaction history
-      console.log('🔍 Checking mint status for verified addresses...')
-      const userTransactionHistory = transactions || []
-      console.log('🔍 Available transactions for mint status check:', userTransactionHistory.length)
-      
-      // Convert to VerifiedAddress format that UI expects with mint status
-      const uiAddresses = verifiedAddresses.map(addr => {
-        // Check if this Bitcoin address has any mint transactions
-        const hasMintTransaction = userTransactionHistory.some(tx => 
-          tx.type === 'mint' && (
-            tx.bitcoinAddress === addr.address || 
-            tx.metadata?.bitcoinAddress === addr.address
-          )
-        )
-        
-        console.log(`🔍 Address ${addr.address}: hasMinted = ${hasMintTransaction}`)
-        
-        return {
-          address: addr.address,
-          balance: 0, // Will be updated below with real balance
-          verifiedAt: addr.verifiedAt,
-          signature: addr.signature,
-          hasMinted: hasMintTransaction
-        }
-      })
+      // CRITICAL FIX: Set verified addresses immediately for UI display (Oracle data first)
+      // Convert to VerifiedAddress format that UI expects - mint status will be updated later
+      const uiAddresses = verifiedAddresses.map(addr => ({
+        address: addr.address,
+        balance: 0, // Will be updated below with real balance
+        verifiedAt: addr.verifiedAt,
+        signature: addr.signature,
+        hasMinted: false // Will be updated later when transaction history is loaded
+      }))
       setVerifiedAddresses(uiAddresses)
-      console.log('✅ FIXED: Set verified addresses in UI state with mint status:', uiAddresses.length)
+      console.log('✅ FIXED: Set verified addresses in UI state from Oracle:', uiAddresses.length)
 
       // Get Bitcoin balances from all verified addresses and aggregate with Oracle
       let totalBitcoinBalance = 0
@@ -760,10 +743,37 @@ export function DashboardContent() {
       setTransactions(allTransactions)
       setSyncStatus(`✅ Loaded ${allTransactions.length} transactions (${foundTransactions ? 'Oracle + ' : ''}blockchain)`)
       console.log(`🎉 Total transactions loaded: ${allTransactions.length}`)
+      
+      // Update mint status for addresses after transactions are loaded
+      updateAddressesMintStatus(allTransactions)
     } else {
       setSyncStatus(`⚠️ No transactions found - mint some rBTC to see activity`)
       console.log('ℹ️ No transactions found for this user')
     }
+  }
+
+  // Function to update mint status of addresses after transactions are loaded
+  const updateAddressesMintStatus = (transactionHistory: Transaction[]) => {
+    console.log('🔍 Updating mint status for verified addresses...')
+    
+    setVerifiedAddresses(prevAddresses => 
+      prevAddresses.map(addr => {
+        // Check if this Bitcoin address has any mint transactions
+        const hasMintTransaction = transactionHistory.some(tx => 
+          tx.type === 'mint' && (
+            tx.bitcoinAddress === addr.address || 
+            tx.metadata?.bitcoinAddress === addr.address
+          )
+        )
+        
+        console.log(`🔍 Address ${addr.address}: hasMinted = ${hasMintTransaction}`)
+        
+        return {
+          ...addr,
+          hasMinted: hasMintTransaction
+        }
+      })
+    )
   }
 
   const loadTransactions = async () => {
@@ -801,6 +811,10 @@ export function DashboardContent() {
         console.log(`✅ Retrieved ${oracleTransactions.length} transactions from Oracle database`)
         setTransactions(oracleTransactions)
         setSyncStatus(`✅ Loaded ${oracleTransactions.length} transactions from professional database`)
+        
+        // Update mint status for addresses after transactions are loaded
+        updateAddressesMintStatus(oracleTransactions)
+        
         setIsLoadingTransactions(false)
         return
       }
@@ -843,6 +857,10 @@ export function DashboardContent() {
             console.log(`✅ Recovery successful! Found ${recoveryTransactions.length} transactions in Oracle after recovery`)
             setTransactions(recoveryTransactions)
             setSyncStatus(`✅ Recovery complete - loaded ${recoveryTransactions.length} transactions`)
+            
+            // Update mint status for addresses after recovery transactions are loaded
+            updateAddressesMintStatus(recoveryTransactions)
+            
             setIsLoadingTransactions(false)
             return
           }
