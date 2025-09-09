@@ -176,6 +176,32 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   // Load verified Bitcoin address from centralized storage
   useEffect(() => {
     const loadVerifiedAddress = async () => {
+      // PROFESSIONAL FIX: Clear Bitcoin address state immediately for new user
+      if (address) {
+        const mintUserKey = 'rbtc_mint_user'
+        const lastMintUser = localStorage.getItem(mintUserKey)
+        
+        if (lastMintUser && lastMintUser !== address.toLowerCase()) {
+          console.log('🧹 MINT: Clearing Bitcoin address state for new MetaMask user')
+          
+          // Clear all Bitcoin address related state
+          setVerifiedBitcoinAddress('')
+          setAllVerifiedAddresses([])
+          setBitcoinBalance(0)
+          setIsLoadingBalance(false)
+          setHasAttemptedFetch(false)
+          setAddressHasSpentCoins(false)
+          
+          // Reset form
+          setValue('bitcoinAddress', '', { shouldValidate: false })
+          
+          console.log('✅ MINT: Bitcoin address state cleared for user switch')
+        }
+        
+        // Update current mint user
+        localStorage.setItem(mintUserKey, address.toLowerCase())
+      }
+      
       // Check if we have URL parameters that indicate we should load an address
       const fromVerify = searchParams.get('from') === 'verify'
       const specificAddress = searchParams.get('address')
