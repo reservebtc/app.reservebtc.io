@@ -168,7 +168,7 @@ export default function APIPage() {
                   <h4 className="font-semibold mb-2">Request Body:</h4>
                   <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-sm overflow-x-auto">
 {`{
-  "bitcoinAddress": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+  "bitcoinAddress": "[YOUR_BITCOIN_ADDRESS]",
   "ethereumAddress": "0x1234567890123456789012345678901234567890",
   "message": "ReserveBTC Verification Message",
   "signature": "base64_encoded_signature"
@@ -180,7 +180,7 @@ export default function APIPage() {
 {`{
   "success": true,
   "data": {
-    "bitcoinAddress": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+    "bitcoinAddress": "[YOUR_BITCOIN_ADDRESS]",
     "ethereumAddress": "0x1234567890123456789012345678901234567890",
     "verified": true,
     "timestamp": "2024-01-01T00:00:00.000Z"
@@ -219,7 +219,7 @@ export default function APIPage() {
                   <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-sm overflow-x-auto">
 {`{
   "amount": "0.12345678",
-  "bitcoinAddress": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+  "bitcoinAddress": "[YOUR_BITCOIN_ADDRESS]",
   "ethereumAddress": "0x1234567890123456789012345678901234567890",
   "amountSatoshis": 12345678
 }`}</pre>

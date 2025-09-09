@@ -137,7 +137,7 @@ export default function VerificationPage() {
                   </h4>
                   <pre className="bg-gray-900 text-gray-100 p-3 rounded text-xs overflow-x-auto">
 {`ReserveBTC Verification
-Address: bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
+Address: [YOUR_BITCOIN_ADDRESS]
 EVM: 0x1234...5678
 Timestamp: 1698765432`}</pre>
                   <div className="mt-2 flex items-center space-x-2">

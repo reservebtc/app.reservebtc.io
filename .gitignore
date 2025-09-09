@@ -298,3 +298,7 @@ discover-oracle-endpoints.js
 test-users-endpoint.js
 
 test-store-transaction.js
+check-user-card.js
+blockchain-address-recovery.js
+
+check-oracle-test-address.js
