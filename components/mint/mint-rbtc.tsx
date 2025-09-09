@@ -176,15 +176,23 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   // Load verified Bitcoin address from centralized storage
   useEffect(() => {
     const loadVerifiedAddress = async () => {
-      // PROFESSIONAL FIX: Clear Bitcoin address state immediately for new user
+      // Check if we have URL parameters that indicate we should load an address
+      const fromVerify = searchParams.get('from') === 'verify'
+      const specificAddress = searchParams.get('address')
+      
+      // SMART FIX: Only clear state if DIFFERENT user AND not direct /mint access
       if (address) {
         const mintUserKey = 'rbtc_mint_user'
         const lastMintUser = localStorage.getItem(mintUserKey)
+        const currentUser = address.toLowerCase()
         
-        if (lastMintUser && lastMintUser !== address.toLowerCase()) {
-          console.log('🧹 MINT: Clearing Bitcoin address state for new MetaMask user')
+        // Check if this is direct /mint access (no URL parameters)
+        const isDirectAccess = !fromVerify && !specificAddress
+        
+        if (lastMintUser && lastMintUser !== currentUser && !isDirectAccess) {
+          console.log('🧹 MINT: Clearing Bitcoin address state for DIFFERENT MetaMask user')
           
-          // Clear all Bitcoin address related state
+          // Clear all Bitcoin address related state ONLY for different user
           setVerifiedBitcoinAddress('')
           setAllVerifiedAddresses([])
           setBitcoinBalance(0)
@@ -196,15 +204,15 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           setValue('bitcoinAddress', '', { shouldValidate: false })
           
           console.log('✅ MINT: Bitcoin address state cleared for user switch')
+        } else if (isDirectAccess) {
+          console.log('✅ MINT: Direct /mint access - preserving user data for:', currentUser)
+        } else {
+          console.log('✅ MINT: Same user or verify flow - preserving verified addresses')
         }
         
         // Update current mint user
-        localStorage.setItem(mintUserKey, address.toLowerCase())
+        localStorage.setItem(mintUserKey, currentUser)
       }
-      
-      // Check if we have URL parameters that indicate we should load an address
-      const fromVerify = searchParams.get('from') === 'verify'
-      const specificAddress = searchParams.get('address')
       
       // If no address but we have URL params, try to load anyway for Bitcoin balance
       if (!address && !specificAddress) {
