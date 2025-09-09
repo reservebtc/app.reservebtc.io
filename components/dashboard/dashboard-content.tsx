@@ -703,12 +703,13 @@ export function DashboardContent() {
     if (oracleUserData && oracleUserData.transactionCount > 0 && rbtcTokenBalance > BigInt(0)) {
       console.log('🎯 Creating clean mint transaction from Oracle user data')
       
-      // Try to find real transaction hash from Oracle server stored hashes
+      // Try to find real transaction hash using professional caching system
       let realTxHash = null
       try {
-        console.log('🔍 Searching for stored mint transaction hash from Oracle server...')
-        const { findStoredTransactionHashFromServer } = await import('@/lib/transaction-hashes')
+        console.log('🔍 Searching for real transaction hash with professional cache...')
         
+        // Method 1: Try Oracle server stored hashes first
+        const { findStoredTransactionHashFromServer } = await import('@/lib/transaction-hashes')
         const mintAmount = (Number(rbtcTokenBalance) / 100000000).toString()
         const mintTimestamp = oracleUserData.registeredAt
         
@@ -718,6 +719,39 @@ export function DashboardContent() {
           mintAmount,
           mintTimestamp
         )
+        
+        // Method 2: If Oracle server doesn't have it, use blockchain correlation cache
+        if (!realTxHash) {
+          console.log('🔗 Oracle server hash not found, trying blockchain correlation...')
+          const { getTransactionHashForOracleUser } = await import('@/lib/transaction-hash-cache')
+          
+          // Find Oracle user hash for correlation
+          const { getOracleUsersData, findOracleUserByCorrelation } = await import('@/lib/oracle-decryption')
+          const freshOracleUsersData = await getOracleUsersData()
+          if (freshOracleUsersData) {
+            const correlatedUser = findOracleUserByCorrelation(
+              freshOracleUsersData,
+              address as string,
+              rbtcTokenBalance,
+              Date.parse(oracleUserData.registeredAt)
+            )
+            
+            if (correlatedUser) {
+              // Find the user hash key
+              const userHashKey = Object.entries(freshOracleUsersData).find(
+                ([_, userData]) => userData === correlatedUser
+              )?.[0]
+              
+              if (userHashKey) {
+                realTxHash = await getTransactionHashForOracleUser(
+                  userHashKey,
+                  correlatedUser,
+                  address
+                )
+              }
+            }
+          }
+        }
         
         if (realTxHash) {
           console.log('✅ Found real transaction hash for Explorer link:', realTxHash)
