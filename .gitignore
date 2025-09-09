@@ -305,3 +305,6 @@ check-oracle-test-address.js
 
 # Oracle synchronization test script
 test-oracle-synchronization.js
+
+# Technical documentation - INTERNAL USE ONLY
+HASH_SYSTEM_TECHNICAL_DOCUMENTATION.md

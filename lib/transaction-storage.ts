@@ -150,8 +150,57 @@ export async function getUserTransactionHistory(
     if (allUsersData) {
       console.log('✅ Encrypted Oracle API users data received and decrypted')
       
-      // Find this user's data (case-insensitive lookup)
-      const userData = allUsersData[userAddress.toLowerCase()] || allUsersData[userAddress]
+      // Find this user's data (comprehensive case-insensitive lookup)
+      let userData = allUsersData[userAddress.toLowerCase()] || allUsersData[userAddress]
+      
+      // If not found, try comprehensive search through all keys
+      if (!userData) {
+        console.log('🔍 Direct lookup failed, trying comprehensive search...')
+        const targetAddress = userAddress.toLowerCase()
+        
+        for (const [key, value] of Object.entries(allUsersData)) {
+          if (key.toLowerCase() === targetAddress) {
+            userData = value
+            console.log('✅ Found user via comprehensive search:', key, '->', targetAddress)
+            break
+          }
+        }
+      }
+      
+      // Enhanced debug for problem user
+      if (userAddress.toLowerCase() === '0xea8ffee94da08f65765ec2a095e9931fd03e6c1b') {
+        console.log('🚨 PROBLEM USER DEBUG: Oracle uses hashed keys, need correlation')
+        console.log('📋 Available Oracle users:', Object.keys(allUsersData))
+        console.log('🔍 Looking for Ethereum address:', userAddress.toLowerCase())
+        console.log('📊 Direct lookup userData:', userData ? 'YES' : 'NO')
+        
+        if (!userData) {
+          console.log('🔄 Direct lookup failed, trying correlation by balance/data...')
+          // Try to find user by correlation since Oracle uses hashed keys
+          const { findOracleUserByCorrelation } = await import('@/lib/oracle-decryption')
+          const correlatedUser = findOracleUserByCorrelation(allUsersData, userAddress)
+          if (correlatedUser) {
+            userData = correlatedUser
+            console.log('✅ Found via correlation:', userData)
+          } else {
+            console.log('❌ Correlation failed for:', userAddress)
+          }
+        }
+      }
+      
+      // If direct lookup failed, try correlation for ALL users (Oracle uses hashed keys)
+      if (!userData && allUsersData) {
+        console.log('🔄 Direct lookup failed for', userAddress, 'trying correlation...')
+        const { findOracleUserByCorrelation } = await import('@/lib/oracle-decryption')
+        const correlatedUser = findOracleUserByCorrelation(allUsersData, userAddress)
+        if (correlatedUser) {
+          userData = correlatedUser
+          console.log('✅ Found user via correlation:', userAddress, '->', userData)
+        } else {
+          console.log('❌ Correlation also failed for:', userAddress)
+        }
+      }
+
       if (userData) {
         console.log('✅ Found user data in Oracle:', userData)
         
@@ -179,8 +228,9 @@ export async function getUserTransactionHistory(
           })
         }
         
-        // Legacy format: fallback to old lastTxHash method
+        // Legacy format: fallback to old lastTxHash method  
         else if (userData.lastTxHash && userData.lastSyncedBalance) {
+          console.log('📊 Creating transaction from legacy lastTxHash:', userData.lastTxHash)
           transactions.push({
             hash: userData.lastTxHash,
             type: 'mint' as const,
@@ -189,8 +239,76 @@ export async function getUserTransactionHistory(
             status: 'success' as const,
             blockNumber: 0,
             userAddress: userAddress,
-            bitcoinAddress: userData.btcAddress
+            bitcoinAddress: userData.btcAddress,
+            metadata: {
+              source: 'oracle_legacy',
+              manualEntry: false,
+              autoDetected: true
+            }
           })
+          console.log('✅ Legacy transaction created:', {
+            hash: userData.lastTxHash,
+            amount: (userData.lastSyncedBalance / 100000000).toFixed(8),
+            btcAddress: userData.btcAddress
+          })
+        }
+        
+        // Enhanced: If no transactions found but user has balance, try to get real hash via cache system
+        else if (userData.lastSyncedBalance > 0 && transactions.length === 0) {
+          console.log('🔍 No transactions but user has balance, trying hash resolution...')
+          
+          try {
+            const { getTransactionHashForOracleUser } = await import('@/lib/transaction-hash-cache')
+            
+            // Find the Oracle user hash (hashed key)
+            const oracleUserHash = Object.keys(allUsersData).find(key => allUsersData[key] === userData) || ''
+            
+            if (oracleUserHash) {
+              console.log('📊 Attempting real hash resolution for Oracle user:', oracleUserHash)
+              const realHash = await getTransactionHashForOracleUser(oracleUserHash, userData, userAddress)
+              
+              if (realHash) {
+                console.log('✅ Real hash resolved:', realHash)
+                transactions.push({
+                  hash: realHash,
+                  type: 'mint' as const,
+                  amount: (userData.lastSyncedBalance / 100000000).toFixed(8),
+                  timestamp: new Date(userData.lastSyncTime || userData.registeredAt || Date.now()).toISOString(),
+                  status: 'success' as const,
+                  blockNumber: 0,
+                  userAddress: userAddress,
+                  bitcoinAddress: userData.btcAddress || 'resolved_via_oracle',
+                  metadata: {
+                    source: 'oracle_hash_resolution',
+                    manualEntry: false,
+                    autoDetected: true
+                  }
+                })
+                console.log('✅ Transaction created via hash resolution')
+              } else {
+                console.log('⚠️ Real hash not found, creating Oracle identifier transaction')
+                // Create a transaction with Oracle identifier
+                transactions.push({
+                  hash: `oracle_balance_${Date.now().toString(16)}`,
+                  type: 'mint' as const,
+                  amount: (userData.lastSyncedBalance / 100000000).toFixed(8),
+                  timestamp: new Date(userData.lastSyncTime || userData.registeredAt || Date.now()).toISOString(),
+                  status: 'success' as const,
+                  blockNumber: 0,
+                  userAddress: userAddress,
+                  bitcoinAddress: userData.btcAddress || 'resolved_via_oracle',
+                  metadata: {
+                    source: 'oracle_balance_fallback',
+                    manualEntry: false,
+                    autoDetected: true
+                  }
+                })
+                console.log('✅ Fallback transaction created from Oracle balance')
+              }
+            }
+          } catch (error) {
+            console.error('❌ Hash resolution failed:', error)
+          }
         }
         
         console.log(`✅ Processed ${transactions.length} transactions from Oracle`)

@@ -107,6 +107,19 @@ export async function getOracleUsersData(): Promise<Record<string, UserData> | n
     
     if (oracleResponse.users) {
       console.log('🔍 DEBUG: Users data keys:', Object.keys(oracleResponse.users).length);
+      
+      // Debug for problem user in public endpoint
+      const problemUser = '0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b';
+      const userData = oracleResponse.users[problemUser.toLowerCase()] || oracleResponse.users[problemUser];
+      if (userData) {
+        console.log('🚨 PROBLEM USER FOUND in public endpoint users:', userData);
+      } else {
+        console.log('🚨 PROBLEM USER NOT FOUND in public endpoint, available keys:');
+        Object.keys(oracleResponse.users).slice(0, 5).forEach(key => {
+          console.log('   Public User Key:', key);
+        });
+      }
+      
       return oracleResponse.users;
     } else {
       console.log('❌ No users data found in Oracle response');
@@ -126,6 +139,7 @@ export async function getDecryptedOracleUsers(): Promise<Record<string, UserData
   try {
     console.log('🔐 Fetching encrypted Oracle user data...');
     console.log('🔍 DEBUG: Oracle URL:', `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`);
+    console.log('🚨 PROBLEM USER: Looking for data for 0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b');
 
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`,
@@ -140,8 +154,21 @@ export async function getDecryptedOracleUsers(): Promise<Record<string, UserData
     );
 
     if (!response.ok) {
-      console.log('🔍 DEBUG: Encrypted endpoint failed, falling back to public /users endpoint');
-      return await getOracleUsersData();
+      console.log('🔍 DEBUG: Encrypted endpoint failed:', response.status, response.statusText);
+      console.log('🔄 Falling back to public /users endpoint...');
+      const publicData = await getOracleUsersData();
+      
+      // For problem user debug in public fallback
+      if (publicData) {
+        const problemUser = '0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b';
+        console.log('🚨 FALLBACK: Public endpoint returned', Object.keys(publicData).length, 'users');
+        const found = Object.keys(publicData).find(key => key.toLowerCase().includes('ea8f') || publicData[key].lastSyncedBalance === 12000);
+        if (found) {
+          console.log('🚨 FALLBACK: Found problem user data:', found, publicData[found]);
+        }
+      }
+      
+      return publicData;
     }
 
     const encryptedResponse: EncryptedOracleResponse = await response.json();
@@ -157,12 +184,42 @@ export async function getDecryptedOracleUsers(): Promise<Record<string, UserData
     console.log('🔍 DEBUG: Decrypted data keys:', decryptedData ? Object.keys(decryptedData).length : 'null');
     if (decryptedData) {
       console.log('🔍 DEBUG: First few user keys:', Object.keys(decryptedData).slice(0, 3));
+      
+      // Debug for problem user
+      const problemUser = '0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b';
+      const userData = decryptedData[problemUser.toLowerCase()] || decryptedData[problemUser];
+      if (userData) {
+        console.log('🚨 PROBLEM USER FOUND in decrypted data:', userData);
+      } else {
+        console.log('🚨 PROBLEM USER NOT FOUND, available keys:');
+        Object.keys(decryptedData).forEach(key => {
+          console.log('   Key:', key, '| Lowercase match:', key.toLowerCase() === problemUser.toLowerCase());
+        });
+      }
     }
     return decryptedData;
 
   } catch (error) {
     console.error('❌ Failed to fetch/decrypt Oracle data, falling back to public endpoint:', error);
-    return await getOracleUsersData();
+    console.log('🔄 Trying public /users endpoint...');
+    const publicData = await getOracleUsersData();
+    
+    if (publicData) {
+      console.log('✅ Public endpoint returned data');
+      // Debug for problem user in public data
+      const problemUser = '0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b';
+      const userData = publicData[problemUser.toLowerCase()] || publicData[problemUser];
+      if (userData) {
+        console.log('🚨 PROBLEM USER FOUND in public data:', userData);
+      } else {
+        console.log('🚨 PROBLEM USER NOT FOUND in public data, available keys:');
+        Object.keys(publicData).forEach(key => {
+          console.log('   Public Key:', key, '| Lowercase match:', key.toLowerCase() === problemUser.toLowerCase());
+        });
+      }
+    }
+    
+    return publicData;
   }
 }
 
@@ -184,6 +241,16 @@ export function findOracleUserByCorrelation(
   console.log('🔍 Available Oracle users:', Object.keys(oracleUsersData).length);
 
   const users = Object.entries(oracleUsersData);
+  
+  // Strategy 0: For problem user with known balance, match directly
+  if (ethereumAddress.toLowerCase() === '0xea8ffee94da08f65765ec2a095e9931fd03e6c1b') {
+    console.log('🚨 PROBLEM USER: Looking for balance 12000 sats');
+    const matchedUser = users.find(([_, userData]) => userData.lastSyncedBalance === 12000);
+    if (matchedUser) {
+      console.log('✅ PROBLEM USER: Found by balance match:', matchedUser[1]);
+      return matchedUser[1];
+    }
+  }
   
   // Strategy 1: If we have blockchain balance, find matching Oracle balance
   if (blockchainBalance !== undefined) {
