@@ -189,11 +189,11 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         // Check if this is direct /mint access (no URL parameters)
         const isDirectAccess = !fromVerify && !specificAddress
         
-        // PROPER CLEANUP LOGIC: Clear for different users, preserve for same user
+        // FORCED CLEANUP: Clear for different users with immediate state reset
         if (lastMintUser && lastMintUser !== currentUser) {
-          console.log('🧹 MINT: DIFFERENT user - clearing ALL old data:', { from: lastMintUser, to: currentUser })
+          console.log('🚨 MINT: DIFFERENT user detected - FORCING complete cleanup:', { from: lastMintUser, to: currentUser })
           
-          // Clear ALL React state for different user
+          // IMMEDIATE: Clear ALL React state BEFORE any loading
           setVerifiedBitcoinAddress('')
           setAllVerifiedAddresses([])
           setBitcoinBalance(0)
@@ -202,34 +202,54 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           setAddressHasSpentCoins(false)
           setMintStatus('idle')
           setErrorMessage('')
+          setShowFeeVaultWarning(false)
+          setShowAutoSyncDetails(false)
           
-          // Reset form
+          // Reset ALL form values
           setValue('bitcoinAddress', '', { shouldValidate: false })
           
-          // Clear localStorage for other users
-          const allKeys = []
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i)
-            if (key) allKeys.push(key)
+          // AGGRESSIVE: Clear localStorage for ALL other users
+          try {
+            const allKeys = []
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i)
+              if (key) allKeys.push(key)
+            }
+            
+            allKeys.forEach(key => {
+              if (!key.includes(currentUser) && (
+                key.includes('rbtc') || 
+                key.includes('reservebtc') || 
+                key.includes('bitcoin') ||
+                key.includes('transaction') ||
+                key.includes('oracle') ||
+                key.includes('user_data') ||
+                key.includes(lastMintUser)
+              )) {
+                console.log('🧹 MINT FORCED: Removing other user key:', key)
+                localStorage.removeItem(key)
+              }
+            })
+            
+            // NUCLEAR: Clear entire localStorage and sessionStorage
+            console.log('🧹 MINT NUCLEAR: Clearing all browser storage')
+            localStorage.clear()
+            sessionStorage.clear()
+            
+          } catch (e) {
+            console.warn('Storage cleanup failed:', e)
           }
           
-          allKeys.forEach(key => {
-            if (!key.includes(currentUser) && (
-              key.includes('rbtc') || 
-              key.includes('reservebtc') || 
-              key.includes('bitcoin') ||
-              key.includes('transaction') ||
-              key.includes('oracle') ||
-              key.includes('user_data')
-            )) {
-              console.log('🧹 MINT: Removing other user key:', key)
-              localStorage.removeItem(key)
-            }
-          })
+          // Force page refresh after cleanup
+          console.log('🔄 MINT: Forcing page refresh for clean state')
+          setTimeout(() => {
+            window.location.reload()
+          }, 100)
           
-          console.log('✅ MINT: Complete cleanup done for user switch')
+          return // Exit early to prevent loading old data
+          
         } else {
-          console.log('✅ MINT: Same user - preserving ALL data for:', currentUser)
+          console.log('✅ MINT: Same user - preserving data for:', currentUser)
         }
         
         // Update current mint user
