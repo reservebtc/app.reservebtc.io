@@ -175,6 +175,19 @@ export async function getUserTransactionHistory(
         console.log('📊 TRANSACTION CREATION: User has lastSyncedBalance:', userData.lastSyncedBalance)
         console.log('📊 TRANSACTION CREATION: User has transactionHashes:', userData.transactionHashes ? userData.transactionHashes.length : 'none')
         console.log('📊 TRANSACTION CREATION: User has lastTxHash:', userData.lastTxHash ? 'yes' : 'no')
+        console.log('🔍 TRANSACTION DEBUG: userData.lastTxHash value:', userData.lastTxHash)
+        console.log('🔍 TRANSACTION DEBUG: All userData keys:', Object.keys(userData))
+        console.log('🔍 TRANSACTION DEBUG: Full userData object:', JSON.stringify(userData, null, 2))
+        
+        // Проверяем каждое ключевое поле отдельно
+        console.log('🔍 FIELD CHECK: btcAddress =', userData.btcAddress)
+        console.log('🔍 FIELD CHECK: ethAddress =', userData.ethAddress)
+        console.log('🔍 FIELD CHECK: lastSyncedBalance =', userData.lastSyncedBalance)
+        console.log('🔍 FIELD CHECK: registeredAt =', userData.registeredAt)
+        console.log('🔍 FIELD CHECK: lastSyncTime =', userData.lastSyncTime)
+        console.log('🔍 FIELD CHECK: lastTxHash =', userData.lastTxHash)
+        console.log('🔍 FIELD CHECK: transactionCount =', userData.transactionCount)
+        console.log('🔍 FIELD CHECK: transactionHashes =', userData.transactionHashes)
         
         // Extract transactions from Oracle format
         const transactions = []
