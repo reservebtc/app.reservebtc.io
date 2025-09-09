@@ -1582,25 +1582,15 @@ export function DashboardContent() {
                 : 'Showing transactions from your verified Bitcoin address'
               }
             </p>
-            {rbtcBalance && Number(rbtcBalance) > 0 && transactions.length === 0 && (
-              <p className="text-xs text-amber-600 mt-1">
-                ⚠️ Found rBTC tokens but no transaction history - scanning blockchain...
-              </p>
-            )}
             {syncStatus && !syncStatus.includes('✅') && !syncStatus.includes('Loaded') && (
               <p className="text-xs text-muted-foreground mt-1">{syncStatus}</p>
-            )}
-            {currentBlockNumber && autoRefreshEnabled && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Block: {currentBlockNumber.toString()} • Auto-refresh: ON
-              </p>
             )}
             {isLoadingTransactions && transactions.length === 0 && (
               <div className="mt-2 space-y-3">
                 <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />
                   <p className="text-xs text-blue-700 dark:text-blue-300">
-                    Scanning blockchain for transactions from all verified addresses...
+                    Loading transaction history...
                   </p>
                 </div>
                 
