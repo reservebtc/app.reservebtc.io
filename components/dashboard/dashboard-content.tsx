@@ -33,6 +33,7 @@ interface VerifiedAddress {
   address: string
   verifiedAt: string
   balance?: number
+  hasMinted?: boolean
 }
 
 interface TransactionStep {
@@ -51,6 +52,8 @@ interface Transaction {
   status: 'success' | 'pending' | 'failed'
   steps?: TransactionStep[]
   currentStep?: number
+  bitcoinAddress?: string
+  metadata?: Record<string, any>
 }
 
 declare global {
@@ -71,6 +74,8 @@ export function DashboardContent() {
   const [syncStatus, setSyncStatus] = useState<string>('')
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
   const [expandedTransactions, setExpandedTransactions] = useState<Set<string>>(new Set())
+  const [showAllAddresses, setShowAllAddresses] = useState(false)
+  const [maxAddressesDisplayed] = useState(3) // Show first 3 addresses by default
 
   // CRITICAL FIX: Monitor MetaMask account changes and force page refresh
   useEffect(() => {
@@ -479,16 +484,34 @@ export function DashboardContent() {
         return
       }
 
-      // CRITICAL FIX: Set verified addresses immediately for UI display
-      // Convert to VerifiedAddress format that UI expects
-      const uiAddresses = verifiedAddresses.map(addr => ({
-        address: addr.address,
-        balance: 0, // Will be updated below with real balance
-        verifiedAt: addr.verifiedAt,
-        signature: addr.signature
-      }))
+      // CRITICAL FIX: Set verified addresses immediately for UI display with mint status check
+      // First check which addresses have been minted by examining transaction history
+      console.log('🔍 Checking mint status for verified addresses...')
+      const userTransactionHistory = transactions || []
+      console.log('🔍 Available transactions for mint status check:', userTransactionHistory.length)
+      
+      // Convert to VerifiedAddress format that UI expects with mint status
+      const uiAddresses = verifiedAddresses.map(addr => {
+        // Check if this Bitcoin address has any mint transactions
+        const hasMintTransaction = userTransactionHistory.some(tx => 
+          tx.type === 'mint' && (
+            tx.bitcoinAddress === addr.address || 
+            tx.metadata?.bitcoinAddress === addr.address
+          )
+        )
+        
+        console.log(`🔍 Address ${addr.address}: hasMinted = ${hasMintTransaction}`)
+        
+        return {
+          address: addr.address,
+          balance: 0, // Will be updated below with real balance
+          verifiedAt: addr.verifiedAt,
+          signature: addr.signature,
+          hasMinted: hasMintTransaction
+        }
+      })
       setVerifiedAddresses(uiAddresses)
-      console.log('✅ FIXED: Set verified addresses in UI state:', uiAddresses.length)
+      console.log('✅ FIXED: Set verified addresses in UI state with mint status:', uiAddresses.length)
 
       // Get Bitcoin balances from all verified addresses and aggregate with Oracle
       let totalBitcoinBalance = 0
@@ -508,10 +531,14 @@ export function DashboardContent() {
             const balance = (data.chain_stats?.funded_txo_sum - data.chain_stats?.spent_txo_sum) / 100000000
             totalBitcoinBalance += balance
             
+            // Find original address data to preserve mint status
+            const originalAddressData = uiAddresses.find(addr => addr.address === verifiedAddr.address)
+            
             updatedAddresses.push({
               address: verifiedAddr.address,
               verifiedAt: verifiedAddr.verifiedAt,
-              balance: balance
+              balance: balance,
+              hasMinted: originalAddressData?.hasMinted || false
             })
             
             console.log(`📍 ${verifiedAddr.address}: ${balance} BTC (from Mempool.space)`)
@@ -520,10 +547,14 @@ export function DashboardContent() {
           }
         } catch (error) {
           console.log(`❌ Error fetching balance from Mempool.space for ${verifiedAddr.address}:`, error)
+          // Find original address data to preserve mint status for error case
+          const originalAddressData = uiAddresses.find(addr => addr.address === verifiedAddr.address)
+          
           updatedAddresses.push({
             address: verifiedAddr.address,
             verifiedAt: verifiedAddr.verifiedAt,
-            balance: 0
+            balance: 0,
+            hasMinted: originalAddressData?.hasMinted || false
           })
         }
       }
@@ -1292,6 +1323,7 @@ export function DashboardContent() {
               {/* Sort by verification date - newest first */}
               {verifiedAddresses
               .sort((a, b) => new Date(b.verifiedAt).getTime() - new Date(a.verifiedAt).getTime())
+              .slice(0, showAllAddresses ? undefined : maxAddressesDisplayed)
               .map((addr, index) => {
                 const isLatest = index === 0
                 const verificationDate = new Date(addr.verifiedAt)
@@ -1361,16 +1393,50 @@ export function DashboardContent() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 self-start sm:self-center">
+                    <div className="flex flex-col items-start sm:items-end gap-2 self-start sm:self-center">
                       <span className="text-sm font-medium">{addr.balance?.toFixed(8) || '0.00000000'} BTC</span>
-                      <div className="flex items-center gap-1">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                        <span className="text-xs text-green-600 hidden sm:inline">Verified</span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <span className="text-xs text-green-600 hidden sm:inline">Verified</span>
+                        </div>
+                        {!addr.hasMinted && (
+                          <Link
+                            href={`/mint?from=verify&address=${addr.address}`}
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-xs rounded-full font-medium hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-colors"
+                            title="This address is verified but hasn't been minted yet"
+                          >
+                            <ArrowUpRight className="h-3 w-3" />
+                            Mint Now
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </div>
                 )
               })}
+              
+              {/* Show/Hide More Addresses Button */}
+              {verifiedAddresses.length > maxAddressesDisplayed && (
+                <div className="pt-2 border-t border-border">
+                  <button
+                    onClick={() => setShowAllAddresses(!showAllAddresses)}
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showAllAddresses ? (
+                      <>
+                        <ChevronUp className="h-4 w-4" />
+                        Hide Additional Addresses
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4" />
+                        Show All {verifiedAddresses.length} Addresses ({verifiedAddresses.length - maxAddressesDisplayed} more)
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
           </div>
           ) : (
             <div className="text-center py-8 space-y-2">

@@ -413,12 +413,13 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             forceBalanceReload = true // Force balance reload from verification
             console.log('✅ Coming from verification page, selecting latest (forcing balance reload):', selectedAddress)
           } else {
-            // Default to latest verified address
+            // Auto-populate verified address for direct mint page access
             const sortedAddrs = verifiedAddrs.sort((a, b) => 
               new Date(b.verifiedAt).getTime() - new Date(a.verifiedAt).getTime()
             )
             selectedAddress = sortedAddrs[0].address
-            console.log('✅ Auto-selecting latest verified address:', selectedAddress)
+            forceBalanceReload = true // Force balance reload for direct access
+            console.log('✅ Direct mint access: Auto-selecting latest verified address with balance reload:', selectedAddress)
           }
           
           // Force reset balance and loading state when address changes
