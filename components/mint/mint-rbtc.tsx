@@ -14,6 +14,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { CONTRACTS } from '@/app/lib/contracts'
 import { getVerifiedBitcoinAddresses, saveVerifiedBitcoinAddress } from '@/lib/user-data-storage'
 import { requestOracleRegistration, checkOracleRegistration, waitForOracleRegistration } from '@/lib/oracle-integration'
+import { getTransactionHashForOracleUser } from '@/lib/transaction-hash-cache'
+import { getDecryptedOracleUsers, findOracleUserByCorrelation } from '@/lib/oracle-decryption'
 
 interface MintRBTCProps {
   onMintComplete?: (data: MintForm) => void
@@ -25,6 +27,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const [isMinting, setIsMinting] = useState(false)
   const [mintStatus, setMintStatus] = useState<'idle' | 'pending' | 'success' | 'error' | 'already-syncing' | 'retry'>('idle')
   const [txHash, setTxHash] = useState<string>('')
+  const [realTxHash, setRealTxHash] = useState<string>('')
   const [errorMessage, setErrorMessage] = useState<string>('')
   const [retryAttempt, setRetryAttempt] = useState<number>(0)
   const [verifiedBitcoinAddress, setVerifiedBitcoinAddress] = useState<string>('')
@@ -42,6 +45,44 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const { address, isConnected } = useAccount()
   const publicClient = usePublicClient()
 
+  // Oracle hash resolution function
+  const resolveRealTransactionHash = async (ethereumAddress: string): Promise<string | null> => {
+    try {
+      console.log('🔍 Resolving real transaction hash for:', ethereumAddress)
+      
+      // Get Oracle users data
+      const oracleUsersData = await getDecryptedOracleUsers()
+      if (!oracleUsersData) {
+        console.log('❌ No Oracle users data available')
+        return null
+      }
+
+      // Find user by correlation
+      const userData = findOracleUserByCorrelation(oracleUsersData, ethereumAddress)
+      if (!userData) {
+        console.log('❌ User not found in Oracle data')
+        return null
+      }
+
+      // Get transaction hash using cache system
+      const realHash = await getTransactionHashForOracleUser(
+        Object.keys(oracleUsersData).find(key => oracleUsersData[key] === userData) || '',
+        userData,
+        ethereumAddress
+      )
+
+      if (realHash) {
+        console.log('✅ Real transaction hash resolved:', realHash)
+        return realHash
+      } else {
+        console.log('⚠️ No real transaction hash found, using Oracle fallback')
+        return null
+      }
+    } catch (error) {
+      console.error('❌ Error resolving transaction hash:', error)
+      return null
+    }
+  }
 
   
   // Smart contract interaction hooks
@@ -94,6 +135,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     setShowAddressDropdown(false)
     setIsMinting(false)
     setTxHash('')
+    setRealTxHash('')
     setRetryAttempt(0)
     console.log('✅ STEP 1: All React states cleaned')
     
@@ -1043,6 +1085,23 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       setMintStatus('success')
       onMintComplete?.(data)
       
+      // STEP 5.5: Try to resolve real transaction hash from Oracle
+      if (address) {
+        try {
+          console.log('🔍 STEP 5.5: Attempting to resolve real transaction hash...')
+          // Wait a bit for Oracle to process the new transaction
+          await new Promise(resolve => setTimeout(resolve, 3000))
+          
+          const realHash = await resolveRealTransactionHash(address)
+          if (realHash) {
+            setRealTxHash(realHash)
+            console.log('✅ Real transaction hash resolved and cached:', realHash)
+          }
+        } catch (error) {
+          console.warn('⚠️ Failed to resolve real transaction hash:', error)
+        }
+      }
+      
       // STEP 6: Clear any cached data to force fresh load
       const cacheKeys = [
         `reservebtc_user_data_${address!.toLowerCase()}`,
@@ -1686,17 +1745,20 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             <p className="text-muted-foreground">
               Your mint transaction is being confirmed on MegaETH blockchain...
             </p>
-            {txHash && !txHash.startsWith('oracle_') && !txHash.startsWith('manual_') && (
+            {(realTxHash || (txHash && !txHash.startsWith('oracle_') && !txHash.startsWith('manual_'))) && (
               <div className="text-sm text-muted-foreground mt-4">
                 <p>Transaction Hash:</p>
                 <a
-                  href={`https://www.megaexplorer.xyz/tx/${txHash}`}
+                  href={`https://www.megaexplorer.xyz/tx/${realTxHash || txHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-mono text-primary hover:text-primary/80 underline transition-colors break-all"
                 >
-                  {txHash}
+                  {realTxHash || txHash}
                 </a>
+                {realTxHash && (
+                  <p className="text-xs mt-1 text-green-600">✅ Real blockchain transaction hash from Oracle</p>
+                )}
               </div>
             )}
             {txHash && (txHash.startsWith('oracle_') || txHash.startsWith('manual_')) && (
@@ -1723,11 +1785,11 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               Your rBTC tokens have been minted successfully.
             </p>
             
-            {/* Always show Explorer link when we have a valid transaction hash */}
-            {txHash && !txHash.startsWith('oracle_') && !txHash.startsWith('manual_') && !txHash.startsWith('existing_') && (
-              <div className="flex items-center justify-center mb-4">
+            {/* Show Explorer link with real Oracle hash when available */}
+            {(realTxHash || (txHash && !txHash.startsWith('oracle_') && !txHash.startsWith('manual_') && !txHash.startsWith('existing_'))) && (
+              <div className="flex flex-col items-center justify-center mb-4 space-y-2">
                 <a
-                  href={`https://www.megaexplorer.xyz/tx/${txHash}`}
+                  href={`https://www.megaexplorer.xyz/tx/${realTxHash || txHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-all hover:scale-105"
@@ -1735,6 +1797,16 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                   <ExternalLink className="h-4 w-4" />
                   View in Explorer
                 </a>
+                {realTxHash && (
+                  <p className="text-xs text-green-600 dark:text-green-400">
+                    ✅ Real blockchain transaction hash resolved from Oracle
+                  </p>
+                )}
+                {!realTxHash && txHash && !txHash.startsWith('oracle_') && (
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                    ⏳ Attempting to resolve Oracle hash... Check back in a moment
+                  </p>
+                )}
               </div>
             )}
             {/* Oracle Status Display - Single Consolidated Section */}
@@ -1798,20 +1870,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               </div>
             )}
 
-            {/* Blockchain Transaction Link - Only for Real Transactions */}
-            {txHash && !txHash.startsWith('oracle_') && !txHash.startsWith('manual_') && !txHash.startsWith('existing_') && !txHash.startsWith('autodiscovery_') && (
-              <div className="text-center">
-                <a
-                  href={`https://www.megaexplorer.xyz/tx/${txHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-sm font-medium transition-all hover:scale-105 active:scale-95"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  View on Explorer
-                </a>
-              </div>
-            )}
+            {/* Explorer link handled above - removed duplicate */}
           </div>
           
           {/* Next Steps Instructions */}
@@ -2131,6 +2190,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                     // Reset and go back to FeeVault
                     setMintStatus('idle')
                     setTxHash('')
+                    setRealTxHash('')
                     setErrorMessage('')
                     setRetryAttempt(0)
                     const feeVaultElement = document.querySelector('#fee-vault-section')
@@ -2146,6 +2206,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                   onClick={() => {
                     setMintStatus('idle')
                     setTxHash('')
+                    setRealTxHash('')
                     setErrorMessage('')
                     setRetryAttempt(prev => prev + 1)
                   }}
