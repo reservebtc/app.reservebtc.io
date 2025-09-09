@@ -63,6 +63,35 @@ export async function getUserTransactionHistory(
   try {
     console.log('📊 Fetching encrypted transaction history from Oracle API:', userAddress)
     
+    // NUCLEAR OPTION: Force clear ALL transaction data before loading anything
+    const currentUser = userAddress.toLowerCase()
+    console.log('🚨 NUCLEAR: Clearing all transaction data before load for user:', currentUser)
+    
+    // Clear ALL possible transaction cache keys
+    const allKeys = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key) allKeys.push(key)
+    }
+    
+    allKeys.forEach(key => {
+      if (key.includes('transaction') || 
+          key.includes('rbtc_oracle') ||
+          key.includes('oracle_transactions') ||
+          (key.includes('rbtc') && !key.includes(currentUser))) {
+        console.log('🧹 NUCLEAR: Force removing transaction key:', key)
+        localStorage.removeItem(key)
+      }
+    })
+    
+    // FORCE: Return empty array if this is not fresh Oracle data
+    const cacheKey = `rbtc_oracle_transactions_${currentUser}`
+    const existingCache = localStorage.getItem(cacheKey)
+    if (existingCache && !forceRefresh) {
+      console.log('🚨 NUCLEAR: Removing existing transaction cache to force fresh load')
+      localStorage.removeItem(cacheKey)
+    }
+    
     // PROFESSIONAL FIX: Auto-refresh page if user switched to clean all cached data
     const lastUserKey = 'rbtc_last_connected_user'
     const lastUser = localStorage.getItem(lastUserKey)
