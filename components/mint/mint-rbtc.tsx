@@ -41,6 +41,89 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const [showAddressDropdown, setShowAddressDropdown] = useState(false)
   const { address, isConnected } = useAccount()
   const publicClient = usePublicClient()
+
+  // 🔥 100% АГРЕССИВНАЯ ОЧИСТКА: Многоуровневая система очистки при изменении address
+  useEffect(() => {
+    if (address) {
+      const currentUser = address.toLowerCase()
+      const storageKey = 'rbtc_current_mint_user'
+      const lastUser = localStorage.getItem(storageKey)
+      
+      console.log('🚨 100% АГРЕССИВНАЯ ОЧИСТКА: Проверяем пользователя:', { lastUser, currentUser })
+      
+      // КРИТИЧЕСКАЯ ОЧИСТКА при изменении пользователя
+      if (lastUser && lastUser !== currentUser) {
+        console.log('🔥 КРИТИЧЕСКОЕ ПЕРЕКЛЮЧЕНИЕ ПОЛЬЗОВАТЕЛЯ! 100% АГРЕССИВНАЯ ОЧИСТКА ВСЕХ ДАННЫХ!')
+        
+        // ШАГ 1: МГНОВЕННАЯ ОЧИСТКА ВСЕХ React состояний
+        console.log('🧹 ШАГ 1: Мгновенная очистка всех React состояний...')
+        setVerifiedBitcoinAddress('')
+        setAllVerifiedAddresses([])
+        setBitcoinBalance(0)
+        setIsLoadingBalance(false)
+        setHasAttemptedFetch(false)
+        setAddressHasSpentCoins(false)
+        setMintStatus('idle')
+        setErrorMessage('')
+        setShowFeeVaultWarning(false)
+        setShowAutoSyncDetails(false)
+        setAcceptedTerms(false)
+        setShowTermsDetails(false)
+        setCopiedAddress(false)
+        setShowAddressDropdown(false)
+        setIsMinting(false)
+        setTxHash('')
+        setRetryAttempt(0)
+        
+        // ШАГ 2: ПОЛНАЯ ОЧИСТКА ФОРМЫ
+        console.log('🧹 ШАГ 2: Полная очистка формы...')
+        setValue('bitcoinAddress', '', { shouldValidate: false })
+        setValue('amount', '0', { shouldValidate: false })
+        
+        // ШАГ 3: ЯДЕРНАЯ ОЧИСТКА localStorage
+        console.log('🧹 ШАГ 3: Ядерная очистка localStorage...')
+        try {
+          // Собираем ВСЕ ключи
+          const allKeys = Object.keys(localStorage)
+          console.log('🔍 Найдено ключей localStorage:', allKeys.length)
+          
+          // Удаляем ВСЕ ключи связанные со старым пользователем или системой
+          allKeys.forEach(key => {
+            if (key.includes(lastUser) || 
+                key.includes('rbtc') || 
+                key.includes('reservebtc') ||
+                key.includes('bitcoin') ||
+                key.includes('transaction') ||
+                key.includes('oracle') ||
+                key.includes('user_data') ||
+                key.includes('verified') ||
+                key.includes('mint') ||
+                key.includes('metamask')) {
+              console.log('🗑️ УДАЛЯЮ КЛЮЧ:', key)
+              localStorage.removeItem(key)
+            }
+          })
+          
+          // ДОПОЛНИТЕЛЬНО: Полная очистка sessionStorage
+          sessionStorage.clear()
+          console.log('✅ ШАГ 3 ЗАВЕРШЕН: Все данные старого пользователя удалены')
+          
+        } catch (error) {
+          console.error('❌ Ошибка при очистке:', error)
+        }
+        
+        // ШАГ 4: Устанавливаем нового пользователя
+        localStorage.setItem(storageKey, currentUser)
+        console.log('✅ ШАГ 4: Новый пользователь установлен:', currentUser)
+        
+        console.log('🎉 100% АГРЕССИВНАЯ ОЧИСТКА ЗАВЕРШЕНА! Интерфейс полностью очищен для нового пользователя.')
+      } else {
+        // Устанавливаем текущего пользователя если он новый
+        localStorage.setItem(storageKey, currentUser)
+        console.log('✅ Установлен/подтвержден текущий пользователь:', currentUser)
+      }
+    }
+  }, [address, setValue]) // Зависимость от address для мгновенного срабатывания
   
   // Smart contract interaction hooks
   const { writeContract, data: writeData, error: writeError, isPending: isWritePending } = useWriteContract()
@@ -187,74 +270,49 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           console.log('🔄 МГНОВЕННАЯ ОЧИСТКА: Обнаружено переключение MetaMask:', { от: lastAccount, к: newAccount })
           
           if (lastAccount && lastAccount !== newAccount) {
-            console.log('🚨 ПЕРЕКЛЮЧЕНИЕ АККАУНТА METAMASK! МГНОВЕННАЯ ОЧИСТКА ВСЕХ ДАННЫХ...')
+            console.log('🚨 ПЕРЕКЛЮЧЕНИЕ METAMASK ОБНАРУЖЕНО! ДУБЛИРУЮЩАЯ ЯДЕРНАЯ ОЧИСТКА!')
             
-            // МГНОВЕННО: Очищаем ВСЕ React состояния для нового пользователя
-            console.log('🧹 МГНОВЕННАЯ ОЧИСТКА: Очищаем все React состояния...')
-            setVerifiedBitcoinAddress('')
-            setAllVerifiedAddresses([])
-            setBitcoinBalance(0)
-            setIsLoadingBalance(false)
-            setHasAttemptedFetch(false)
-            setAddressHasSpentCoins(false)
-            setMintStatus('idle')
-            setErrorMessage('')
-            setShowFeeVaultWarning(false)
-            setShowAutoSyncDetails(false)
-            setAcceptedTerms(false)
-            setShowTermsDetails(false)
-            setCopiedAddress(false)
-            setShowAddressDropdown(false)
-            setIsMinting(false)
-            setTxHash('')
-            setRetryAttempt(0)
+            // ДУБЛИРУЮЩАЯ ЯДЕРНАЯ ОЧИСТКА - на случай если первая не сработала
+            console.log('💥 ДУБЛИРУЮЩАЯ ОЧИСТКА: Полная ядерная очистка всех данных...')
             
-            // МГНОВЕННО: Очищаем форму React Hook Form
-            console.log('🧹 МГНОВЕННАЯ ОЧИСТКА: Очищаем форму...')
-            setValue('bitcoinAddress', '', { shouldValidate: false })
-            setValue('amount', '0', { shouldValidate: false })
-            
-            // МГНОВЕННО: Агрессивная очистка localStorage для старого пользователя
-            console.log('🧹 МГНОВЕННАЯ ОЧИСТКА: Удаляем данные старого пользователя из localStorage...')
+            // Полная ядерная очистка localStorage
             try {
-              const keysToRemove = []
-              for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i)
-                if (key) {
-                  keysToRemove.push(key)
-                }
-              }
-              
-              keysToRemove.forEach(key => {
-                // Удаляем все ключи связанные со старым пользователем ИЛИ общие данные
-                if (key.includes(lastAccount) || 
-                    key.includes('rbtc') || 
-                    key.includes('transaction') || 
-                    key.includes('oracle') ||
-                    key.includes('reservebtc') ||
-                    key.includes('bitcoin') ||
-                    key.includes('user_data') ||
-                    key.includes('verified') ||
-                    key.includes('mint')) {
-                  console.log('🗑️ МГНОВЕННАЯ ОЧИСТКА: Удаляю ключ старого пользователя:', key)
-                  localStorage.removeItem(key)
-                }
-              })
-              
-              // Дополнительная очистка sessionStorage
+              localStorage.clear()
               sessionStorage.clear()
-              console.log('✅ МГНОВЕННАЯ ОЧИСТКА: Все данные старого пользователя удалены')
-              
+              console.log('💥 ЯДЕРНАЯ ОЧИСТКА: localStorage и sessionStorage полностью очищены')
             } catch (e) {
-              console.warn('Ошибка при очистке хранилища:', e)
+              console.warn('Ошибка ядерной очистки:', e)
             }
             
-            // ВАЖНО: Устанавливаем нового пользователя
+            // ВАЖНО: Устанавливаем нового пользователя после ядерной очистки
             localStorage.setItem(storageKey, newAccount)
-            console.log('✅ МГНОВЕННАЯ ОЧИСТКА: Установлен новый пользователь:', newAccount)
+            localStorage.setItem('rbtc_current_mint_user', newAccount)
+            console.log('✅ ДУБЛИРУЮЩАЯ ОЧИСТКА: Новый пользователь установлен после ядерной очистки:', newAccount)
             
-            // НЕ ОБНОВЛЯЕМ СТРАНИЦУ! Данные уже очищены мгновенно
-            console.log('✅ МГНОВЕННАЯ ОЧИСТКА ЗАВЕРШЕНА: Интерфейс готов для нового пользователя БЕЗ обновления страницы')
+            // Принудительное обновление всех состояний после ядерной очистки
+            setTimeout(() => {
+              console.log('🔄 Принудительное обновление состояний после ядерной очистки...')
+              setVerifiedBitcoinAddress('')
+              setAllVerifiedAddresses([])
+              setBitcoinBalance(0)
+              setIsLoadingBalance(false)
+              setHasAttemptedFetch(false)
+              setAddressHasSpentCoins(false)
+              setMintStatus('idle')
+              setErrorMessage('')
+              setShowFeeVaultWarning(false)
+              setShowAutoSyncDetails(false)
+              setAcceptedTerms(false)
+              setShowTermsDetails(false)
+              setCopiedAddress(false)
+              setShowAddressDropdown(false)
+              setIsMinting(false)
+              setTxHash('')
+              setRetryAttempt(0)
+              setValue('bitcoinAddress', '', { shouldValidate: false })
+              setValue('amount', '0', { shouldValidate: false })
+              console.log('✅ Принудительное обновление состояний завершено')
+            }, 100)
             
             return
           }
