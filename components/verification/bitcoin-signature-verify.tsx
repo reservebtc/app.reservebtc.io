@@ -127,7 +127,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
               setAddressUniquenessCheck({
                 isChecking: false,
                 isUnique: false,
-                error: `Bitcoin address is already verified by another account (${existingEthAddress.substring(0, 8)}...)`,
+                error: `Bitcoin address is already verified by another account`,
                 conflictUser: existingEthAddress
               })
               return
