@@ -798,10 +798,8 @@ export function DashboardContent() {
         localStorage.removeItem(oracleCacheKey)
         console.log('🗑️ Cleared all caches for problem user')
         
-        // Import and run emergency recovery
-        const { emergencyUserDataRecovery } = await import('@/lib/user-data-storage')
-        await emergencyUserDataRecovery(address)
-        console.log('✅ Emergency recovery completed for problem user')
+        // All data comes from Oracle now - no emergency recovery needed
+        console.log('🔄 Retrying Oracle data retrieval for user')
       }
       
       // Primary data source: Professional Oracle API
@@ -828,15 +826,11 @@ export function DashboardContent() {
         setSyncStatus('🚨 Emergency data recovery in progress...')
         
         try {
-          // Import recovery function
-          const { emergencyUserDataRecovery } = await import('@/lib/user-data-storage')
-          await emergencyUserDataRecovery(address)
-          
-          // Trigger Oracle sync after recovery
+          // All data comes from Oracle now - trigger sync directly
           const { requestOracleSync } = await import('@/lib/transaction-storage')
           await requestOracleSync(address)
           
-          setSyncStatus('✅ Emergency recovery completed, retrying Oracle API...')
+          setSyncStatus('✅ Oracle sync requested, retrying API...')
           
           // Clear all transaction caches to force fresh blockchain scan
           const CACHE_VERSION = 'v2_atomic'
