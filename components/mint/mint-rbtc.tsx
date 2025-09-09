@@ -606,6 +606,61 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }, [verifiedBitcoinAddress, addressHasSpentCoins, isLoadingBalance, hasAttemptedFetch, bitcoinBalance])
 
+  // Monitor Fee Vault balance and auto-hide warning when sufficient funds are deposited
+  useEffect(() => {
+    const checkFeeVaultBalance = async () => {
+      if (!address || !publicClient || !showFeeVaultWarning) {
+        return
+      }
+
+      try {
+        console.log('🔍 Checking Fee Vault balance for auto-hide logic...')
+        
+        const feeVaultBalance = await publicClient.readContract({
+          address: CONTRACTS.FEE_VAULT as `0x${string}`,
+          abi: [
+            {
+              name: 'balanceOf',
+              type: 'function',
+              stateMutability: 'view',
+              inputs: [{ name: 'account', type: 'address' }],
+              outputs: [{ name: '', type: 'uint256' }]
+            }
+          ],
+          functionName: 'balanceOf',
+          args: [address as `0x${string}`]
+        }) as unknown as bigint
+        
+        const balanceInEth = parseFloat(formatEther(feeVaultBalance))
+        console.log('Fee Vault balance check:', balanceInEth, 'ETH')
+        
+        // Hide warning if balance is now sufficient
+        if (balanceInEth >= 0.01) {
+          console.log('✅ Fee Vault balance is now sufficient, hiding warning')
+          setShowFeeVaultWarning(false)
+        }
+      } catch (error) {
+        console.error('❌ Error checking Fee Vault balance for auto-hide:', error)
+      }
+    }
+
+    // Check immediately
+    checkFeeVaultBalance()
+
+    // Set up polling to check balance every 3 seconds when warning is shown
+    let interval: NodeJS.Timeout | null = null
+    if (showFeeVaultWarning && address && publicClient) {
+      interval = setInterval(checkFeeVaultBalance, 3000)
+    }
+
+    // Cleanup interval on unmount or when warning is hidden
+    return () => {
+      if (interval) {
+        clearInterval(interval)
+      }
+    }
+  }, [address, publicClient, showFeeVaultWarning])
+
   // PROFESSIONAL PROTECTION: MetaMask account change detection (same as dashboard)
   useEffect(() => {
     if (typeof window !== 'undefined' && window.ethereum) {
