@@ -225,18 +225,18 @@ export async function getUserTransactionHistory(
           })
         }
         
-        // UNIVERSAL FIX: Create transaction from Oracle balance if user has balance but no transactions found
-        console.log('🔍 UNIVERSAL FIX CHECK: userData.lastSyncedBalance =', userData.lastSyncedBalance)
-        console.log('🔍 UNIVERSAL FIX CHECK: transactions.length =', transactions.length)
-        console.log('🔍 UNIVERSAL FIX CHECK: Should create transaction?', userData.lastSyncedBalance > 0 && transactions.length === 0)
+        // REAL TRANSACTIONS ONLY: Show transaction only if there's a real lastTxHash
+        console.log('🔍 REAL TRANSACTION CHECK: userData.lastTxHash =', userData.lastTxHash ? 'exists' : 'none')
+        console.log('🔍 REAL TRANSACTION CHECK: transactions.length =', transactions.length)
+        console.log('🔍 REAL TRANSACTION CHECK: Should show real transaction?', userData.lastTxHash && transactions.length === 0)
         
-        if (userData.lastSyncedBalance > 0 && transactions.length === 0) {
-          console.log('🔍 UNIVERSAL FIX: User has balance but no transactions, creating transaction from Oracle balance data...')
-          console.log('💰 UNIVERSAL FIX: Oracle balance:', userData.lastSyncedBalance, 'sats')
+        if (userData.lastTxHash && transactions.length === 0) {
+          console.log('🔍 REAL TRANSACTION: User has real lastTxHash, displaying actual transaction...')
+          console.log('💰 REAL TRANSACTION: Oracle balance:', userData.lastSyncedBalance, 'sats')
           
-          // Always create a transaction from Oracle balance - no complex resolution needed
+          // Display only real transaction with actual blockchain hash
           transactions.push({
-            hash: userData.lastTxHash || `oracle_mint_${userData.registeredAt ? new Date(userData.registeredAt).getTime().toString(16) : Date.now().toString(16)}`,
+            hash: userData.lastTxHash,
             type: 'mint' as const,
             amount: (userData.lastSyncedBalance / 100000000).toFixed(8),
             timestamp: new Date(userData.lastSyncTime || userData.registeredAt || Date.now()).toISOString(),
@@ -245,15 +245,14 @@ export async function getUserTransactionHistory(
             userAddress: userAddress,
             bitcoinAddress: userData.btcAddress || 'oracle_verified',
             metadata: {
-              source: 'oracle_balance_direct',
+              source: 'oracle_real_transaction',
               manualEntry: false,
               autoDetected: true,
               oracleBalance: userData.lastSyncedBalance
             }
           })
-          const transactionHash = userData.lastTxHash || `oracle_mint_${userData.registeredAt ? new Date(userData.registeredAt).getTime().toString(16) : Date.now().toString(16)}`
-          console.log('✅ Transaction created from Oracle balance:', (userData.lastSyncedBalance / 100000000).toFixed(8), 'rBTC')
-          console.log('🔍 Transaction hash used:', transactionHash, userData.lastTxHash ? '(real blockchain hash)' : '(oracle fallback)')
+          console.log('✅ REAL TRANSACTION displayed:', (userData.lastSyncedBalance / 100000000).toFixed(8), 'rBTC')
+          console.log('🔍 Real blockchain hash:', userData.lastTxHash)
         }
         
         console.log(`✅ FINAL RESULT: Processed ${transactions.length} transactions from Oracle`)
