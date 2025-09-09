@@ -26,6 +26,12 @@ interface UserData {
   transactionHashes: any[];
   lastTxHash?: string; // Optional transaction hash for backward compatibility
   addedTime?: number; // Optional legacy timestamp
+  transactions?: Array<{
+    type: string;
+    amount: number;
+    transactionHash?: string;
+    timestamp?: number;
+  }>; // Oracle transaction history
 }
 
 /**

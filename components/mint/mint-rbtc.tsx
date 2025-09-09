@@ -664,7 +664,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   // Fetch transaction hash from Oracle user data when mint is successful
   useEffect(() => {
     const fetchTransactionHashFromOracle = async () => {
-      if (!address || !mintStatus === 'success' || !txHash || txHash.includes('existing_') || txHash.includes('oracle_')) {
+      if (!address || mintStatus !== 'success' || !txHash || txHash.includes('existing_') || txHash.includes('oracle_')) {
         return
       }
 
