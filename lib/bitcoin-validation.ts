@@ -1,5 +1,6 @@
 import { validate } from 'bitcoin-address-validation'
 
+// Bitcoin address validation utilities for mainnet addresses only
 export type BitcoinAddressType = 'legacy' | 'segwit' | 'taproot' | 'unknown'
 
 export interface BitcoinValidationResult {
