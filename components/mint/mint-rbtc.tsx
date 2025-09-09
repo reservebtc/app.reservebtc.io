@@ -75,10 +75,8 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         setTxHash('')
         setRetryAttempt(0)
         
-        // ШАГ 2: ПОЛНАЯ ОЧИСТКА ФОРМЫ
-        console.log('🧹 ШАГ 2: Полная очистка формы...')
-        setValue('bitcoinAddress', '', { shouldValidate: false })
-        setValue('amount', '0', { shouldValidate: false })
+        // ШАГ 2: ПОЛНАЯ ОЧИСТКА ФОРМЫ (будет выполнена в отдельном useEffect после объявления setValue)
+        console.log('🧹 ШАГ 2: Полная очистка формы запланирована...')
         
         // ШАГ 3: ЯДЕРНАЯ ОЧИСТКА localStorage
         console.log('🧹 ШАГ 3: Ядерная очистка localStorage...')
@@ -123,7 +121,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         console.log('✅ Установлен/подтвержден текущий пользователь:', currentUser)
       }
     }
-  }, [address, setValue]) // Зависимость от address для мгновенного срабатывания
+  }, [address]) // Зависимость только от address для мгновенного срабатывания
   
   // Smart contract interaction hooks
   const { writeContract, data: writeData, error: writeError, isPending: isWritePending } = useWriteContract()
@@ -153,6 +151,22 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const amount = watch('amount')
   const bitcoinAddress = watch('bitcoinAddress')
   const bitcoinValidation = verifiedBitcoinAddress ? validateBitcoinAddress(verifiedBitcoinAddress) : null
+
+  // 🔥 ДОПОЛНИТЕЛЬНАЯ ОЧИСТКА ФОРМЫ: useEffect для очистки формы после переключения пользователя
+  useEffect(() => {
+    if (address) {
+      const currentUser = address.toLowerCase()
+      const storageKey = 'rbtc_current_mint_user'
+      const lastUser = localStorage.getItem(storageKey)
+      
+      // Если пользователь сменился, очищаем форму
+      if (lastUser && lastUser !== currentUser) {
+        console.log('🧹 ДОПОЛНИТЕЛЬНАЯ ОЧИСТКА ФОРМЫ: Очищаем форму после смены пользователя')
+        setValue('bitcoinAddress', '', { shouldValidate: false })
+        setValue('amount', '0', { shouldValidate: false })
+      }
+    }
+  }, [address, setValue]) // Теперь setValue уже объявлен
 
   // Fetch Bitcoin balance for specific Bitcoin address using existing Oracle infrastructure
   const fetchBitcoinBalance = useCallback(async (btcAddress: string) => {
@@ -309,8 +323,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               setIsMinting(false)
               setTxHash('')
               setRetryAttempt(0)
-              setValue('bitcoinAddress', '', { shouldValidate: false })
-              setValue('amount', '0', { shouldValidate: false })
+              // setValue будет вызван в отдельном useEffect выше
               console.log('✅ Принудительное обновление состояний завершено')
             }, 100)
             
