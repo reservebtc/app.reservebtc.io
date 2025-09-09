@@ -661,6 +661,51 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }, [address, publicClient, showFeeVaultWarning])
 
+  // Fetch transaction hash from Oracle user data when mint is successful
+  useEffect(() => {
+    const fetchTransactionHashFromOracle = async () => {
+      if (!address || !mintStatus === 'success' || !txHash || txHash.includes('existing_') || txHash.includes('oracle_')) {
+        return
+      }
+
+      try {
+        console.log('🔍 Fetching transaction hash from Oracle user data...')
+        const response = await fetch('https://oracle.reservebtc.io/users')
+        if (!response.ok) {
+          throw new Error('Failed to fetch Oracle users')
+        }
+
+        const oracleData = await response.json()
+        const userKey = address.toLowerCase()
+        const userData = oracleData[userKey]
+
+        if (userData && userData.transactions && userData.transactions.length > 0) {
+          // Get the most recent transaction hash
+          const latestTransaction = userData.transactions[userData.transactions.length - 1]
+          if (latestTransaction.transactionHash && latestTransaction.transactionHash !== txHash) {
+            console.log('✅ Updated txHash from Oracle:', latestTransaction.transactionHash)
+            setTxHash(latestTransaction.transactionHash)
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error fetching transaction hash from Oracle:', error)
+      }
+    }
+
+    // Run immediately and then poll every 5 seconds for 30 seconds
+    fetchTransactionHashFromOracle()
+    
+    if (mintStatus === 'success') {
+      const interval = setInterval(fetchTransactionHashFromOracle, 5000)
+      const timeout = setTimeout(() => clearInterval(interval), 30000)
+      
+      return () => {
+        clearInterval(interval)
+        clearTimeout(timeout)
+      }
+    }
+  }, [address, mintStatus, txHash])
+
   // PROFESSIONAL PROTECTION: MetaMask account change detection (same as dashboard)
   useEffect(() => {
     if (typeof window !== 'undefined' && window.ethereum) {
@@ -1664,16 +1709,18 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             <p className="text-muted-foreground">
               Your rBTC tokens have been minted successfully.
             </p>
-            {txHash && !txHash.startsWith('oracle_') && !txHash.startsWith('manual_') && (
-              <div className="text-sm text-muted-foreground">
-                Transaction:{' '}
+            
+            {/* Always show Explorer link when we have a valid transaction hash */}
+            {txHash && !txHash.startsWith('oracle_') && !txHash.startsWith('manual_') && !txHash.startsWith('existing_') && (
+              <div className="flex items-center justify-center mb-4">
                 <a
                   href={`https://www.megaexplorer.xyz/tx/${txHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-mono text-primary hover:text-primary/80 underline transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-all hover:scale-105"
                 >
-                  {txHash.slice(0, 10)}...{txHash.slice(-8)}
+                  <ExternalLink className="h-4 w-4" />
+                  View in Explorer
                 </a>
               </div>
             )}
@@ -1697,7 +1744,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                 <p className="text-blue-700 dark:text-blue-300 text-sm mb-4">
                   {txHash.startsWith('existing_') 
                     ? 'Your Bitcoin address is already registered and being monitored 24/7 by the Oracle system.' 
-                    : 'Oracle will automatically discover and register your address within 5-10 minutes. No further action required.'}
+                    : 'Oracle will automatically discover and register your address within 1-2 minutes. No further action required.'}
                 </p>
 
                 <div className="bg-white/70 dark:bg-gray-900/70 rounded-lg p-4 mb-4 text-left">
@@ -1733,7 +1780,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                 <p className="text-xs text-blue-600 dark:text-blue-400 mt-3">
                   {txHash.startsWith('existing_') 
                     ? 'You should already appear in the Oracle users list above' 
-                    : 'You will appear in Oracle users list once auto-discovery completes (~5-10 min)'}
+                    : 'You will appear in Oracle users list once auto-discovery completes (~1-2 min)'}
                 </p>
               </div>
             )}
