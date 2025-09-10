@@ -1,0 +1,450 @@
+/**
+ * Professional Oracle Integration Module
+ * 
+ * This module handles integration with the Professional Oracle Server
+ * providing enterprise-grade user profile management and transaction history
+ */
+
+import crypto from 'crypto';
+
+// Configuration
+const ORACLE_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://oracle.reservebtc.io'
+  : 'http://localhost:3000';
+
+// Encryption key for data decryption (matches server)
+const ENCRYPTION_KEY = Buffer.from('3fc8e1758b839719ebebe4853c9ee20f7ff2d91ca0e53357ec269f300ef873db', 'hex');
+
+// ============================================================================
+// TYPES AND INTERFACES
+// ============================================================================
+
+export interface UserProfile {
+  userId: string;
+  ethAddress: string;
+  bitcoinAddress?: string;
+  signature?: string;
+  source: string;
+  createdAt: string;
+  lastActivityAt: string;
+  verification: {
+    status: 'pending' | 'verified' | 'failed';
+    verifiedAt?: string;
+    signature?: string;
+  };
+  statistics: {
+    totalTransactions: number;
+    totalMintAmount: string;
+    totalBurnAmount: string;
+    totalWrapAmount: string;
+    totalUnwrapAmount: string;
+    totalFees: string;
+    lastSyncBalance: string;
+  };
+  settings: {
+    notifications: boolean;
+    dataRetention: string;
+  };
+  metadata: {
+    version: string;
+    lastUpdated: string;
+  };
+}
+
+export interface TransactionRecord {
+  id: string;
+  hash: string;
+  type: 'mint' | 'burn' | 'wrap' | 'unwrap' | 'sync';
+  amount: string;
+  timestamp: string;
+  blockNumber: number;
+  contract: string;
+  status: 'pending' | 'success' | 'failed';
+  fee?: string;
+  metadata?: Record<string, any>;
+  addedAt: string;
+  userId: string;
+}
+
+export interface EncryptedResponse {
+  encrypted: boolean;
+  data: string;
+  iv: string;
+  authTag: string;
+  algorithm: string;
+  timestamp: string;
+  additionalData?: string;
+}
+
+export interface OracleStatus {
+  status: string;
+  mode: string;
+  version: string;
+  uptime: number;
+  metrics: {
+    totalUsers: number;
+    totalTransactions: number;
+    totalMintOperations: number;
+    totalBurnOperations: number;
+    totalWrapOperations: number;
+    totalUnwrapOperations: number;
+    activeUsers: number;
+  };
+  blockchain: {
+    chainId: number;
+    lastSync?: string;
+  };
+  features: string[];
+}
+
+// ============================================================================
+// ENCRYPTION/DECRYPTION UTILITIES
+// ============================================================================
+
+/**
+ * Decrypt AES-256-GCM encrypted data from Oracle server
+ */
+function decryptOracleData(encryptedPayload: EncryptedResponse): any {
+  try {
+    if (!encryptedPayload.encrypted) {
+      throw new Error('Data is not encrypted');
+    }
+
+    const { data, iv, authTag, additionalData = '' } = encryptedPayload;
+    
+    const decipher = crypto.createDecipheriv('aes-256-gcm', ENCRYPTION_KEY, Buffer.from(iv, 'hex'));
+    decipher.setAuthTag(Buffer.from(authTag, 'hex'));
+    
+    if (additionalData) {
+      decipher.setAAD(Buffer.from(additionalData));
+    }
+    
+    let decrypted = decipher.update(data, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    
+    return JSON.parse(decrypted);
+  } catch (error) {
+    console.error('🔒 Oracle data decryption failed:', error);
+    throw new Error('Failed to decrypt Oracle response');
+  }
+}
+
+// ============================================================================
+// API COMMUNICATION LAYER
+// ============================================================================
+
+/**
+ * Make authenticated request to Oracle server
+ */
+async function makeOracleRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
+  const url = `${ORACLE_BASE_URL}${endpoint}`;
+  
+  const defaultHeaders = {
+    'Content-Type': 'application/json',
+    'User-Agent': 'ReserveBTC-Frontend/2.0.0',
+  };
+
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Oracle API request failed: ${response.status} ${response.statusText}`);
+  }
+
+  return response;
+}
+
+// ============================================================================
+// USER MANAGEMENT FUNCTIONS
+// ============================================================================
+
+/**
+ * Register new user via verification (automatic user creation)
+ */
+export async function registerUserViaOracleVerification(
+  ethAddress: string,
+  bitcoinAddress?: string,
+  signature?: string,
+  verificationType: string = 'website'
+): Promise<{ success: boolean; userId?: string; error?: string }> {
+  try {
+    console.log('🏢 ORACLE REGISTRATION: Creating user profile...');
+    console.log(`   ETH: ${ethAddress}`);
+    console.log(`   BTC: ${bitcoinAddress || 'pending'}`);
+    
+    const response = await makeOracleRequest('/store-verification', {
+      method: 'POST',
+      body: JSON.stringify({
+        ethAddress,
+        bitcoinAddress,
+        signature,
+        status: 'verified',
+        verificationType
+      }),
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      console.log('✅ ORACLE REGISTRATION: User profile created successfully');
+      console.log(`   User ID: ${result.userId}`);
+      console.log(`   Total users: ${result.totalUsers}`);
+      
+      return {
+        success: true,
+        userId: result.userId
+      };
+    } else {
+      console.error('❌ ORACLE REGISTRATION: Failed to create user profile');
+      return {
+        success: false,
+        error: result.error || 'Unknown error'
+      };
+    }
+  } catch (error: any) {
+    console.error('❌ ORACLE REGISTRATION: Request failed:', error);
+    return {
+      success: false,
+      error: error.message || 'Network error'
+    };
+  }
+}
+
+/**
+ * Get Oracle server status and metrics
+ */
+export async function getOracleStatus(): Promise<OracleStatus | null> {
+  try {
+    const response = await makeOracleRequest('/status');
+    const status = await response.json();
+    
+    console.log('📊 ORACLE STATUS:', {
+      mode: status.mode,
+      users: status.metrics?.totalUsers || 0,
+      transactions: status.metrics?.totalTransactions || 0
+    });
+    
+    return status;
+  } catch (error) {
+    console.error('❌ Failed to get Oracle status:', error);
+    return null;
+  }
+}
+
+/**
+ * Get all users from Oracle (encrypted)
+ */
+export async function getAllUsersFromOracle(): Promise<{
+  totalUsers: number;
+  users: Array<{
+    ethAddress: string;
+    bitcoinAddress?: string;
+    lastSyncedBalance: string;
+    transactionCount: number;
+    registeredAt: string;
+    lastActivityAt: string;
+    verificationStatus: string;
+    source: string;
+  }>;
+} | null> {
+  try {
+    const response = await makeOracleRequest('/users');
+    const encryptedData = await response.json() as EncryptedResponse;
+    
+    if (!encryptedData.encrypted) {
+      throw new Error('Expected encrypted response from Oracle');
+    }
+    
+    const decryptedData = decryptOracleData(encryptedData);
+    
+    console.log(`📊 ORACLE USERS: Retrieved ${decryptedData.totalUsers} users`);
+    
+    return decryptedData;
+  } catch (error) {
+    console.error('❌ Failed to get users from Oracle:', error);
+    return null;
+  }
+}
+
+/**
+ * Get specific user profile and transaction history
+ */
+export async function getUserFromOracle(ethAddress: string): Promise<{
+  profile: UserProfile;
+  transactions: TransactionRecord[];
+  totalTransactions: number;
+} | null> {
+  try {
+    const response = await makeOracleRequest(`/user/${ethAddress}`);
+    const encryptedData = await response.json() as EncryptedResponse;
+    
+    if (!encryptedData.encrypted) {
+      throw new Error('Expected encrypted response from Oracle');
+    }
+    
+    const decryptedData = decryptOracleData(encryptedData);
+    
+    console.log(`👤 ORACLE USER: Retrieved profile for ${ethAddress.substring(0, 10)}...`);
+    console.log(`   Transactions: ${decryptedData.totalTransactions}`);
+    console.log(`   Last activity: ${decryptedData.profile.lastActivityAt}`);
+    
+    return decryptedData;
+  } catch (error) {
+    console.error(`❌ Failed to get user ${ethAddress} from Oracle:`, error);
+    return null;
+  }
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Check if user exists in Oracle database
+ */
+export async function checkUserExistsInOracle(ethAddress: string): Promise<boolean> {
+  try {
+    const userData = await getUserFromOracle(ethAddress);
+    return userData !== null;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Get user statistics from Oracle
+ */
+export async function getUserStatisticsFromOracle(ethAddress: string): Promise<UserProfile['statistics'] | null> {
+  try {
+    const userData = await getUserFromOracle(ethAddress);
+    return userData?.profile.statistics || null;
+  } catch (error) {
+    console.error('❌ Failed to get user statistics:', error);
+    return null;
+  }
+}
+
+/**
+ * Get user transaction history from Oracle
+ */
+export async function getUserTransactionHistory(ethAddress: string): Promise<TransactionRecord[]> {
+  try {
+    const userData = await getUserFromOracle(ethAddress);
+    return userData?.transactions || [];
+  } catch (error) {
+    console.error('❌ Failed to get transaction history:', error);
+    return [];
+  }
+}
+
+/**
+ * Format transaction for display
+ */
+export function formatTransactionForDisplay(transaction: TransactionRecord) {
+  return {
+    hash: transaction.hash,
+    type: transaction.type.toUpperCase(),
+    amount: transaction.amount,
+    timestamp: new Date(transaction.timestamp).toLocaleString(),
+    status: transaction.status,
+    explorerUrl: `https://explorer.megaeth.com/tx/${transaction.hash}`,
+    blockNumber: transaction.blockNumber,
+    fee: transaction.fee || '0'
+  };
+}
+
+/**
+ * Calculate user portfolio summary
+ */
+export function calculateUserPortfolioSummary(profile: UserProfile) {
+  const stats = profile.statistics;
+  
+  return {
+    totalValue: (
+      parseFloat(stats.totalMintAmount) - 
+      parseFloat(stats.totalBurnAmount) + 
+      parseFloat(stats.totalWrapAmount) - 
+      parseFloat(stats.totalUnwrapAmount)
+    ).toFixed(8),
+    totalMinted: parseFloat(stats.totalMintAmount).toFixed(8),
+    totalBurned: parseFloat(stats.totalBurnAmount).toFixed(8),
+    totalWrapped: parseFloat(stats.totalWrapAmount).toFixed(8),
+    totalUnwrapped: parseFloat(stats.totalUnwrapAmount).toFixed(8),
+    totalFeesPaid: parseFloat(stats.totalFees).toFixed(8),
+    totalTransactions: stats.totalTransactions,
+    lastSyncBalance: parseFloat(stats.lastSyncBalance).toFixed(8),
+    memberSince: new Date(profile.createdAt).toLocaleDateString(),
+    verificationStatus: profile.verification.status
+  };
+}
+
+// ============================================================================
+// INTEGRATION HELPERS FOR EXISTING CODE
+// ============================================================================
+
+/**
+ * Create Oracle profile during verification (replaces old method)
+ */
+export async function createOracleProfile(
+  ethAddress: string,
+  bitcoinAddress?: string,
+  signature?: string
+): Promise<{ success: boolean; message: string }> {
+  console.log('🏢 ORACLE INTEGRATION: Creating user profile via Professional Oracle...');
+  
+  const result = await registerUserViaOracleVerification(
+    ethAddress,
+    bitcoinAddress,
+    signature,
+    'website_verification'
+  );
+  
+  if (result.success) {
+    return {
+      success: true,
+      message: 'Oracle profile created successfully'
+    };
+  } else {
+    return {
+      success: false,
+      message: result.error || 'Failed to create Oracle profile'
+    };
+  }
+}
+
+/**
+ * Check Oracle health and connectivity
+ */
+export async function checkOracleHealth(): Promise<boolean> {
+  try {
+    const response = await makeOracleRequest('/health');
+    const health = await response.json();
+    return health.status === 'healthy';
+  } catch (error) {
+    console.error('❌ Oracle health check failed:', error);
+    return false;
+  }
+}
+
+// ============================================================================
+// EXPORT ALL FUNCTIONS
+// ============================================================================
+
+export default {
+  registerUserViaOracleVerification,
+  getOracleStatus,
+  getAllUsersFromOracle,
+  getUserFromOracle,
+  checkUserExistsInOracle,
+  getUserStatisticsFromOracle,
+  getUserTransactionHistory,
+  formatTransactionForDisplay,
+  calculateUserPortfolioSummary,
+  createOracleProfile,
+  checkOracleHealth
+};

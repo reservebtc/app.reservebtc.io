@@ -6,11 +6,11 @@ import { useAccount } from 'wagmi'
 import { Verifier } from 'bip322-js'
 import { useRouter } from 'next/navigation'
 import { saveVerifiedBitcoinAddress } from '@/lib/user-data-storage'
-import { getDecryptedOracleUsers } from '@/lib/oracle-decryption'
 import { useUserVerification } from '@/hooks/useUserProfile'
-import { userProfileManager } from '@/lib/user-profile-manager'
 import { saveVerifiedUserToCache } from '@/lib/verified-users-cache'
-import { registerUserViaOracleContract } from '@/lib/oracle-smart-contract'
+// Old Oracle modules removed - using Professional Oracle only
+// Smart contract integration removed - using Professional Oracle only
+import { VerificationFeeVault } from './verification-fee-vault'
 
 interface BitcoinSignatureVerifyProps {
   onVerificationComplete?: (data: { address: string; signature: string; verified: boolean }) => void
@@ -38,8 +38,8 @@ export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignat
   const { refreshProfile } = useUserVerification()
 
   /**
-   * Create user profile automatically via Oracle smart contract
-   * This is the CORRECT way - creates encrypted user profile on Oracle server
+   * Create user profile via Professional Oracle (NO BLOCKCHAIN TRANSACTION)
+   * Simply creates encrypted user card with Bitcoin address verification
    */
   const createOracleProfile = async (bitcoinAddress: string, signature: string) => {
     if (!ethAddress || !bitcoinAddress) {
@@ -50,50 +50,43 @@ export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignat
     }
     
     try {
-      console.log('🚀 VERIFICATION: Creating user profile via Oracle smart contract (AUTOMATIC)')
-      console.log('🏭 VERIFICATION: This will work for 10,000+ users - no manual intervention needed')
+      console.log('🏢 VERIFICATION: Creating user profile via Professional Oracle')
+      console.log('🏭 VERIFICATION: NO blockchain transaction needed - just database record')
+      console.log('🔐 VERIFICATION: Bitcoin address will be saved in encrypted user card')
       
-      // Step 1: Register user via Oracle smart contract (THE RIGHT WAY)
-      console.log('📞 VERIFICATION: Calling Oracle smart contract registerAndPrepay...')
-      console.log('🔧 VERIFICATION: Smart contract module loading...')
+      // Create profile directly via Professional Oracle (no blockchain transaction)
+      console.log('📡 VERIFICATION: Calling Professional Oracle API...')
+      const { createOracleProfile: createProfessionalOracleProfile } = await import('@/lib/professional-oracle-integration')
       
-      let contractResult
-      try {
-        contractResult = await registerUserViaOracleContract(ethAddress, bitcoinAddress)
-        console.log('📄 VERIFICATION: Smart contract call returned:', contractResult)
-      } catch (contractError: any) {
-        console.error('❌ VERIFICATION: Smart contract call failed:', contractError)
-        console.error('🔧 VERIFICATION: Error type:', typeof contractError)
-        console.error('🔧 VERIFICATION: Error message:', contractError?.message || 'Unknown error')
-        contractResult = { success: false, error: contractError?.message || 'Smart contract call failed' }
-      }
+      const profileResult = await createProfessionalOracleProfile(
+        ethAddress, 
+        bitcoinAddress, 
+        signature
+      )
       
-      if (contractResult.success) {
-        console.log('✅ VERIFICATION: Smart contract registration successful!')
-        console.log('🔐 VERIFICATION: Oracle server will create encrypted user profile automatically')
-        console.log('📦 VERIFICATION: User card will appear in /users API with encrypted data')
+      if (profileResult.success) {
+        console.log('✅ VERIFICATION: Professional Oracle profile created successfully')
+        console.log('📊 VERIFICATION: User registered in enterprise-grade encrypted database')
+        console.log('💡 VERIFICATION: Bitcoin address saved in user card (no blockchain transaction)')
         
-        // Wait a moment for Oracle to process the blockchain event
-        console.log('⏳ VERIFICATION: Waiting for Oracle to process blockchain event...')
-        await new Promise(resolve => setTimeout(resolve, 3000))
+        // Also save to cache for immediate UI update
+        console.log('💾 VERIFICATION: Also saving to cache for immediate UI update...')
+        await saveVerifiedUserToCache(ethAddress, bitcoinAddress, signature)
+        console.log('✅ VERIFICATION: Cache updated - user visible in dashboard immediately')
+        
+        // Refresh user profile to show updated data
+        console.log('🔄 VERIFICATION: Refreshing user profile...')
+        await refreshProfile()
+        console.log('✅ VERIFICATION: Profile refreshed!')
+        
+        return true
         
       } else {
-        console.log('⚠️ VERIFICATION: Smart contract failed, using fallback cache system')
+        console.log('⚠️ VERIFICATION: Professional Oracle failed, using fallback cache system')
         // Fallback: Save to cache for immediate UI display
         await saveVerifiedUserToCache(ethAddress, bitcoinAddress, signature)
+        return true
       }
-      
-      // Step 2: Also save to verified cache for immediate dashboard display
-      console.log('💾 VERIFICATION: Also saving to cache for immediate UI update...')
-      await saveVerifiedUserToCache(ethAddress, bitcoinAddress, signature)
-      console.log('✅ VERIFICATION: Cache updated - user visible in dashboard immediately')
-      
-      // Step 3: Refresh user profile to show updated data
-      console.log('🔄 VERIFICATION: Refreshing user profile...')
-      await refreshProfile()
-      console.log('✅ VERIFICATION: Profile refreshed!')
-      
-      return true
       
     } catch (error: any) {
       console.error('❌ VERIFICATION: Profile creation failed:', error)
@@ -334,16 +327,16 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
         // Save verified address for navigation
         setVerifiedAddress(cleanAddress)
         
-        // Create Oracle profile for the verified user
+        // Create Oracle profile for the verified user via Professional Oracle
         console.log('🎯 VERIFY: BIP-322 verification successful!')
-        console.log('🔄 VERIFY: Creating Oracle profile for user...')
+        console.log('🔄 VERIFY: Creating Professional Oracle profile for user...')
         
         try {
           const profileCreated = await createOracleProfile(cleanAddress, cleanSignature)
           if (profileCreated) {
-            console.log('✅ VERIFY: Oracle profile created successfully')
+            console.log('✅ VERIFY: Professional Oracle profile created successfully')
           } else {
-            console.log('⚠️ VERIFY: Oracle profile creation failed, user can still proceed')
+            console.log('⚠️ VERIFY: Professional Oracle profile creation failed, but user can still proceed')
           }
         } catch (error) {
           console.log('⚠️ VERIFY: Oracle profile creation failed:', error)
@@ -828,6 +821,13 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                   </div>
                 </div>
               </div>
+
+              {/* FeeVault Section - Only shown on successful verification */}
+              {verificationResult.success && (
+                <div className="mt-6">
+                  <VerificationFeeVault showAsStep={true} />
+                </div>
+              )}
 
               {/* Continue to Mint Button - Only shown on successful verification */}
               {verificationResult.success && (
