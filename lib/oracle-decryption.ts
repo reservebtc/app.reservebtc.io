@@ -6,14 +6,11 @@
 
 interface EncryptedOracleResponse {
   encrypted: boolean;
-  data: {
-    encrypted: string;
-    iv: string;
-    authTag: string;
-    compression?: boolean;
-  };
+  data: string;
+  iv: string;
+  algorithm: string;
   timestamp: string;
-  note: string;
+  note?: string;
 }
 
 interface UserData {
@@ -59,28 +56,13 @@ export async function decryptOracleData(encryptedResponse: EncryptedOracleRespon
       return null;
     }
 
-    const encryptedData = encryptedResponse.data;
+    // Handle direct AES-256-CBC decryption
+    console.log('🔓 PRIVACY: Using AES-256-CBC decryption...');
+    console.log('🔍 PRIVACY: Algorithm:', encryptedResponse.algorithm);
+    console.log('🔍 PRIVACY: IV length:', encryptedResponse.iv?.length);
+    console.log('🔍 PRIVACY: Data length:', encryptedResponse.data?.length);
 
-    // Handle fallback base64 decryption
-    if (encryptedData.iv === 'fallback' && encryptedData.authTag === 'fallback') {
-      console.log('🔓 PRIVACY: Using base64 decryption...');
-      try {
-        const decodedData = atob(encryptedData.encrypted);
-        const userData = JSON.parse(decodedData);
-        
-        console.log('✅ PRIVACY: Base64 decryption successful!');
-        return userData.users || userData;
-      } catch (error) {
-        console.error('❌ PRIVACY: Base64 decryption failed');
-        return null;
-      }
-    }
-
-    // Multi-layer decryption
-    console.log('🔓 PRIVACY: Attempting AES decryption...');
     try {
-      const crypto = await import('crypto');
-      const zlib = await import('zlib');
       const encryptionKey = process.env.NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY;
       
       if (!encryptionKey) {
@@ -88,37 +70,60 @@ export async function decryptOracleData(encryptedResponse: EncryptedOracleRespon
         throw new Error('No encryption key');
       }
       
-      const base64DecodedData = Buffer.from(encryptedData.encrypted, 'base64').toString('base64');
-      const decipher = crypto.createDecipher('aes-256-cbc', encryptionKey);
-      let decrypted = decipher.update(base64DecodedData, 'base64', 'utf8');
-      decrypted += decipher.final('utf8');
-      
-      let finalData = decrypted;
-      if ((encryptedData as any).compression !== false) {
-        try {
-          const compressedBuffer = Buffer.from(decrypted, 'base64');
-          const decompressedBuffer = zlib.inflateSync(compressedBuffer);
-          finalData = decompressedBuffer.toString('utf8');
-        } catch (decompressionError) {
-          finalData = decrypted;
-        }
+      // For browser environment, use Web Crypto API
+      if (typeof window !== 'undefined') {
+        console.log('🌐 PRIVACY: Using Web Crypto API for browser...');
+        
+        const keyBuffer = new Uint8Array(
+          encryptionKey.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
+        );
+        const ivBuffer = new Uint8Array(
+          encryptedResponse.iv.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
+        );
+        const encryptedBuffer = new Uint8Array(
+          encryptedResponse.data.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
+        );
+        
+        const cryptoKey = await crypto.subtle.importKey(
+          'raw',
+          keyBuffer,
+          { name: 'AES-CBC' },
+          false,
+          ['decrypt']
+        );
+        
+        const decryptedBuffer = await crypto.subtle.decrypt(
+          { name: 'AES-CBC', iv: ivBuffer },
+          cryptoKey,
+          encryptedBuffer
+        );
+        
+        const decryptedText = new TextDecoder().decode(decryptedBuffer);
+        const userData = JSON.parse(decryptedText);
+        
+        console.log('✅ PRIVACY: Web Crypto API decryption successful!');
+        return userData.users || [];
+      } else {
+        // For Node.js environment
+        console.log('💻 PRIVACY: Using Node.js crypto for server...');
+        const crypto = await import('crypto');
+        
+        const keyBuffer = Buffer.from(encryptionKey, 'hex');
+        const iv = Buffer.from(encryptedResponse.iv, 'hex');
+        const encryptedData = Buffer.from(encryptedResponse.data, 'hex');
+        
+        const decipher = crypto.createDecipheriv('aes-256-cbc', keyBuffer, iv);
+        let decrypted = decipher.update(encryptedData);
+        decrypted = Buffer.concat([decrypted, decipher.final()]);
+        
+        const userData = JSON.parse(decrypted.toString('utf8'));
+        
+        console.log('✅ PRIVACY: Node.js crypto decryption successful!');
+        return userData.users || [];
       }
-      
-      const userData = JSON.parse(finalData);
-      console.log('✅ PRIVACY: AES decryption successful!');
-      return userData.users || userData;
     } catch (aesError) {
-      console.log('🔄 PRIVACY: Trying base64 fallback...');
-      
-      try {
-        const decodedData = Buffer.from(encryptedData.encrypted, 'base64').toString('utf8');
-        const userData = JSON.parse(decodedData);
-        console.log('✅ PRIVACY: Base64 fallback successful!');
-        return userData.users || userData;
-      } catch (base64Error) {
-        console.error('❌ PRIVACY: All decryption methods failed');
-        return null;
-      }
+      console.error('❌ PRIVACY: AES decryption failed:', aesError);
+      return null;
     }
 
   } catch (error) {
