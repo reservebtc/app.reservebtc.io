@@ -226,10 +226,87 @@ export function DashboardContent() {
     }
   }
 
+  // Check if Bitcoin address already minted tokens
+  const hasAddressMinted = (bitcoinAddress: string): boolean => {
+    if (!recentTransactions || recentTransactions.length === 0) {
+      console.log(`🔍 No transactions found for mint check`)
+      return false
+    }
+
+    const mintTransactions = recentTransactions.filter(tx => 
+      tx.type === 'mint' && 
+      (tx.bitcoinAddress === bitcoinAddress || 
+       (tx.source === 'rBTC' && parseFloat(tx.amount || '0') > 0))
+    )
+
+    console.log(`🔍 MINT CHECK for ${bitcoinAddress.substring(0, 20)}...`)
+    console.log(`   - Total transactions:`, recentTransactions.length)
+    console.log(`   - Mint transactions found:`, mintTransactions.length)
+    console.log(`   - Has minted:`, mintTransactions.length > 0)
+    
+    if (mintTransactions.length > 0) {
+      console.log(`   - Mint transaction details:`, mintTransactions[0])
+    }
+
+    return mintTransactions.length > 0
+  }
+
   // Format timestamp
   const formatTimestamp = (timestamp: string): string => {
     const date = new Date(timestamp)
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }
+
+  // Get professional transaction type description
+  const getTransactionDescription = (type: string): { title: string; description: string } => {
+    switch (type.toLowerCase()) {
+      case 'mint':
+        return {
+          title: 'Synthetic Token Mint',
+          description: 'Created rBTC-SYNTH tokens from Bitcoin reserves'
+        }
+      case 'burn':
+        return {
+          title: 'Token Burn',
+          description: 'Destroyed rBTC-SYNTH tokens to release Bitcoin'
+        }
+      case 'wrap':
+        return {
+          title: 'Token Wrapping',
+          description: 'Wrapped rBTC-SYNTH into transferable wrBTC'
+        }
+      case 'unwrap':
+      case 'redeem':
+        return {
+          title: 'Token Unwrapping',
+          description: 'Unwrapped wrBTC back to rBTC-SYNTH'
+        }
+      case 'balance_sync':
+        return {
+          title: 'Oracle Balance Sync',
+          description: 'Synchronized Bitcoin balance with Oracle server'
+        }
+      case 'transfer':
+        return {
+          title: 'Token Transfer',
+          description: 'Transferred wrBTC tokens between addresses'
+        }
+      case 'deposit':
+        return {
+          title: 'Bitcoin Deposit',
+          description: 'Deposited Bitcoin to verified address'
+        }
+      case 'withdrawal':
+        return {
+          title: 'Bitcoin Withdrawal',
+          description: 'Withdrew Bitcoin from verified address'
+        }
+      default:
+        return {
+          title: type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' '),
+          description: 'ReserveBTC system transaction'
+        }
+    }
   }
 
   if (!isConnected || !address) {
@@ -456,7 +533,19 @@ export function DashboardContent() {
           console.log('🔍 DASHBOARD: Bitcoin Addresses Section')
           console.log('   - bitcoinAddresses prop:', bitcoinAddresses)
           console.log('   - Length:', bitcoinAddresses.length)
+          console.log('   - isVerified:', isVerified)
+          console.log('   - hasTransactions:', hasTransactions)
+          console.log('   - recentTransactions length:', recentTransactions?.length || 0)
           console.log('   - Data from useUserDashboard hook')
+          
+          // Check mint status for each address
+          if (bitcoinAddresses.length > 0) {
+            bitcoinAddresses.forEach(addr => {
+              const hasMinted = hasAddressMinted(addr)
+              console.log(`   - Address ${addr.substring(0, 20)}... has minted: ${hasMinted}`)
+            })
+          }
+          
           return bitcoinAddresses.length === 0
         })() ? (
           <div className="text-center py-8">
@@ -502,22 +591,45 @@ export function DashboardContent() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {isVerified ? (
-                      <div className="flex items-center gap-1">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                        <Link 
-                          href="/mint"
-                          className="px-3 py-1 bg-primary text-primary-foreground rounded text-xs hover:bg-primary/90 transition-colors"
-                        >
-                          Mint
-                        </Link>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1">
-                        <AlertCircle className="h-4 w-4 text-yellow-600" />
-                        <span className="text-xs text-muted-foreground">Pending</span>
-                      </div>
-                    )}
+                    {(() => {
+                      const addressHasMinted = hasAddressMinted(addr)
+                      const canMint = isVerified && !addressHasMinted
+                      
+                      console.log(`🔍 MINT BUTTON LOGIC for ${addr.substring(0, 20)}...`)
+                      console.log(`   - isVerified: ${isVerified}`)
+                      console.log(`   - addressHasMinted: ${addressHasMinted}`)
+                      console.log(`   - canMint: ${canMint}`)
+                      
+                      if (addressHasMinted) {
+                        return (
+                          <div className="flex items-center gap-1">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                              Minted
+                            </span>
+                          </div>
+                        )
+                      } else if (canMint) {
+                        return (
+                          <div className="flex items-center gap-1">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <Link 
+                              href="/mint"
+                              className="px-3 py-1 bg-primary text-primary-foreground rounded text-xs hover:bg-primary/90 transition-colors"
+                            >
+                              Mint
+                            </Link>
+                          </div>
+                        )
+                      } else {
+                        return (
+                          <div className="flex items-center gap-1">
+                            <AlertCircle className="h-4 w-4 text-yellow-600" />
+                            <span className="text-xs text-muted-foreground">Pending</span>
+                          </div>
+                        )
+                      }
+                    })()}
                   </div>
                 </div>
               ))
@@ -579,18 +691,34 @@ export function DashboardContent() {
                 <div className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                     tx.type === 'mint' ? 'bg-green-500/10' : 
-                    tx.type === 'burn' ? 'bg-red-500/10' : 'bg-blue-500/10'
+                    tx.type === 'burn' ? 'bg-red-500/10' : 
+                    tx.type === 'wrap' ? 'bg-purple-500/10' :
+                    tx.type === 'unwrap' || tx.type === 'redeem' ? 'bg-orange-500/10' :
+                    tx.type === 'balance_sync' ? 'bg-blue-500/10' :
+                    tx.type === 'transfer' ? 'bg-cyan-500/10' :
+                    'bg-blue-500/10'
                   }`}>
                     {tx.type === 'mint' ? (
-                      <ArrowRight className={`h-4 w-4 ${tx.type === 'mint' ? 'text-green-600' : ''}`} />
+                      <Plus className="h-4 w-4 text-green-600" />
                     ) : tx.type === 'burn' ? (
                       <ArrowRight className="h-4 w-4 text-red-600 rotate-180" />
+                    ) : tx.type === 'wrap' ? (
+                      <Link2 className="h-4 w-4 text-purple-600" />
+                    ) : tx.type === 'unwrap' || tx.type === 'redeem' ? (
+                      <ArrowRight className="h-4 w-4 text-orange-600" />
+                    ) : tx.type === 'balance_sync' ? (
+                      <RefreshCw className="h-4 w-4 text-blue-600" />
+                    ) : tx.type === 'transfer' ? (
+                      <ArrowUpRight className="h-4 w-4 text-cyan-600" />
                     ) : (
                       <RefreshCw className="h-4 w-4 text-blue-600" />
                     )}
                   </div>
                   <div>
-                    <div className="font-medium capitalize">{tx.type}</div>
+                    <div className="font-medium">{getTransactionDescription(tx.type).title}</div>
+                    <div className="text-xs text-muted-foreground mb-1">
+                      {getTransactionDescription(tx.type).description}
+                    </div>
                     <div className="text-sm text-muted-foreground">
                       {formatTimestamp(tx.timestamp)}
                     </div>
@@ -598,7 +726,14 @@ export function DashboardContent() {
                 </div>
                 
                 <div className="text-right">
-                  <div className="font-medium">{parseFloat(tx.amount || '0').toFixed(8)} BTC</div>
+                  <div className="font-medium">
+                    {tx.type === 'mint' ? '+' : tx.type === 'burn' ? '-' : ''}
+                    {parseFloat(tx.amount || '0').toFixed(8)} 
+                    {tx.type === 'balance_sync' ? ' BTC' : 
+                     tx.type === 'mint' || tx.type === 'burn' ? ' rBTC' :
+                     tx.type === 'wrap' || tx.type === 'unwrap' || tx.type === 'transfer' ? ' wrBTC' :
+                     ' BTC'}
+                  </div>
                   <div className="flex items-center gap-2 text-sm">
                     {tx.hash && tx.hash.startsWith('0x') && tx.hash.length === 66 ? (
                       <a
