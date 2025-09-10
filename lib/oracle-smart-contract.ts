@@ -41,6 +41,16 @@ export async function registerUserViaOracleContract(
     console.log('👤 User:', userAddress)
     console.log('₿ Bitcoin Address:', bitcoinAddress)
     
+    // Check environment variables first
+    console.log('🔧 ORACLE CONTRACT: Environment check...')
+    console.log('🔧 ORACLE CONTRACT: Committee Private Key present:', !!COMMITTEE_PRIVATE_KEY)
+    console.log('🔧 ORACLE CONTRACT: Committee Address:', COMMITTEE_ADDRESS)
+    console.log('🔧 ORACLE CONTRACT: Oracle Aggregator Address:', CONTRACTS.ORACLE_AGGREGATOR)
+    
+    if (!COMMITTEE_PRIVATE_KEY || COMMITTEE_PRIVATE_KEY === '0x' || COMMITTEE_PRIVATE_KEY.length < 60) {
+      throw new Error('Invalid COMMITTEE_PRIVATE_KEY - check environment variables')
+    }
+    
     // Setup clients
     const committeeAccount = privateKeyToAccount(COMMITTEE_PRIVATE_KEY)
     const publicClient = createPublicClient({
@@ -121,32 +131,10 @@ export async function registerUserViaOracleContract(
       console.log('✅ ORACLE CONTRACT: Registration successful!')
       console.log('⏳ ORACLE CONTRACT: Oracle server will detect event and create encrypted user profile')
       
-      // Also call sync to initialize the user with current Bitcoin balance
-      if (currentBalanceInSats > 0) {
-        try {
-          console.log('🔄 ORACLE CONTRACT: Calling sync to initialize balance...')
-          const syncTx = await walletClient.writeContract({
-            address: CONTRACTS.ORACLE_AGGREGATOR,
-            abi: [{
-              name: 'sync',
-              type: 'function',
-              stateMutability: 'nonpayable',
-              inputs: [
-                { name: 'user', type: 'address' },
-                { name: 'newBalanceSats', type: 'uint64' },
-                { name: 'proof', type: 'bytes' }
-              ]
-            }],
-            functionName: 'sync',
-            args: [userAddress as `0x${string}`, BigInt(currentBalanceInSats), '0x' as `0x${string}`]
-          })
-          
-          await publicClient.waitForTransactionReceipt({ hash: syncTx })
-          console.log('✅ ORACLE CONTRACT: Balance sync completed')
-        } catch (syncError) {
-          console.log('⚠️ ORACLE CONTRACT: Sync failed but registration succeeded:', syncError)
-        }
-      }
+      // Note: sync() will be called later during mint operations when user has FeeVault balance
+      // For now, just registration is enough to create Oracle profile
+      console.log('💡 ORACLE CONTRACT: User registered successfully!')
+      console.log('💡 ORACLE CONTRACT: sync() will be called during first mint operation')
       
       return { success: true, txHash: registerTx }
     } else {

@@ -55,7 +55,18 @@ export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignat
       
       // Step 1: Register user via Oracle smart contract (THE RIGHT WAY)
       console.log('📞 VERIFICATION: Calling Oracle smart contract registerAndPrepay...')
-      const contractResult = await registerUserViaOracleContract(ethAddress, bitcoinAddress)
+      console.log('🔧 VERIFICATION: Smart contract module loading...')
+      
+      let contractResult
+      try {
+        contractResult = await registerUserViaOracleContract(ethAddress, bitcoinAddress)
+        console.log('📄 VERIFICATION: Smart contract call returned:', contractResult)
+      } catch (contractError: any) {
+        console.error('❌ VERIFICATION: Smart contract call failed:', contractError)
+        console.error('🔧 VERIFICATION: Error type:', typeof contractError)
+        console.error('🔧 VERIFICATION: Error message:', contractError?.message || 'Unknown error')
+        contractResult = { success: false, error: contractError?.message || 'Smart contract call failed' }
+      }
       
       if (contractResult.success) {
         console.log('✅ VERIFICATION: Smart contract registration successful!')
