@@ -151,8 +151,20 @@ export async function getUserTransactionHistory(
     if (allUsersData) {
       console.log('✅ Encrypted Oracle API users data received and decrypted')
       
-      // Find user data by Ethereum address (should work after proper decryption)
-      const userData = allUsersData[userAddress.toLowerCase()] || allUsersData[userAddress]
+      // Find user data by Ethereum address with case-insensitive lookup
+      let userData = allUsersData[userAddress.toLowerCase()] || allUsersData[userAddress]
+      
+      // If not found, try case-insensitive lookup through all keys
+      if (!userData) {
+        const targetAddress = userAddress.toLowerCase()
+        for (const [key, data] of Object.entries(allUsersData)) {
+          if (key.toLowerCase() === targetAddress) {
+            userData = data
+            console.log('✅ CASE-INSENSITIVE MATCH: Found user with different case:', key)
+            break
+          }
+        }
+      }
       
       console.log('🔍 UNIVERSAL LOOKUP: Looking for user:', userAddress)
       console.log('📋 UNIVERSAL LOOKUP: Available Oracle users:', Object.keys(allUsersData).length)
@@ -416,8 +428,20 @@ export async function getVerifiedAddressesFromOracle(
     if (allUsersData) {
       console.log('✅ Encrypted Oracle users data received and decrypted')
       
-      // Find this user's data (case-insensitive lookup)
-      const userData = allUsersData[userAddress.toLowerCase()] || allUsersData[userAddress]
+      // Find this user's data with case-insensitive lookup
+      let userData = allUsersData[userAddress.toLowerCase()] || allUsersData[userAddress]
+      
+      // If not found, try case-insensitive lookup through all keys
+      if (!userData) {
+        const targetAddress = userAddress.toLowerCase()
+        for (const [key, data] of Object.entries(allUsersData)) {
+          if (key.toLowerCase() === targetAddress) {
+            userData = data
+            console.log('✅ ADDRESS LOOKUP: Found user with different case:', key)
+            break
+          }
+        }
+      }
       console.log('🔍 DEBUG: User data found:', userData ? 'YES' : 'NO')
       console.log('🔍 DEBUG: User data:', userData)
       
