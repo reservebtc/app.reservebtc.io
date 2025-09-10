@@ -310,5 +310,8 @@ test-oracle-synchronization.js
 debug-oracle-decryption.js
 debug-oracle-*.js
 
+# Oracle user verification scripts
+debug-oracle-user-verification.js
+
 # Technical documentation - INTERNAL USE ONLY
 HASH_SYSTEM_TECHNICAL_DOCUMENTATION.md

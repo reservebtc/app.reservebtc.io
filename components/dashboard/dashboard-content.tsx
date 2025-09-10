@@ -104,6 +104,11 @@ export function DashboardContent() {
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
   const [showAllAddresses, setShowAllAddresses] = useState(false)
   const [isLoadingBalances, setIsLoadingBalances] = useState(false)
+  
+  // Fallback for newly verified addresses not yet in Oracle
+  const [fallbackAddresses, setFallbackAddresses] = useState<string[]>([])
+  const [fallbackBalances, setFallbackBalances] = useState<Record<string, number>>({})
+  const [fallbackTotal, setFallbackTotal] = useState<string>('0.00000000')
 
   // Read rBTC-SYNTH balance from contract
   const { data: rbtcBalanceData } = useReadContract({
@@ -180,6 +185,14 @@ export function DashboardContent() {
 
   // Contract balance updates are now handled by useUserDashboard hook
   // Legacy code removed - balances come from rBTCBalance and wrBTCBalance props
+  
+  // Load fallback data if user not found in Oracle
+  useEffect(() => {
+    if (!isLoading && !error && !isVerified && bitcoinAddresses.length === 0) {
+      console.log('🔄 FALLBACK: Oracle data not found, checking fallback...')
+      loadFallbackVerifiedAddresses()
+    }
+  }, [isLoading, error, isVerified, bitcoinAddresses.length, loadFallbackVerifiedAddresses])
 
   // Detect if address is mainnet or testnet
   const isTestnetAddress = (address: string): boolean => {
@@ -214,6 +227,44 @@ export function DashboardContent() {
   // Bitcoin balance loading is now handled by useUserDashboard hook
 
   // Total Bitcoin balance is now provided by useUserDashboard hook
+
+  // Check for recently verified addresses not yet in Oracle
+  const loadFallbackVerifiedAddresses = useCallback(async () => {
+    if (!address || bitcoinAddresses.length > 0 || isVerified) {
+      return // Skip if Oracle data already available
+    }
+
+    console.log('🔍 FALLBACK: Checking for recently verified addresses in localStorage...')
+    
+    try {
+      // Check localStorage for recent verification
+      const verificationKey = `verification_${address.toLowerCase()}`
+      const recentVerification = localStorage.getItem(verificationKey)
+      
+      if (recentVerification) {
+        const verificationData = JSON.parse(recentVerification)
+        console.log('🔍 FALLBACK: Found recent verification:', verificationData)
+        
+        if (verificationData.bitcoinAddress && verificationData.status === 'verified') {
+          const btcAddress = verificationData.bitcoinAddress
+          console.log('🔍 FALLBACK: Loading Bitcoin balance for:', btcAddress.substring(0, 20) + '...')
+          
+          setFallbackAddresses([btcAddress])
+          
+          // Get balance from mempool.space
+          const balance = await fetchBitcoinBalance(btcAddress)
+          console.log('💰 FALLBACK: Bitcoin balance loaded:', balance, 'BTC')
+          
+          setFallbackBalances({ [btcAddress]: balance })
+          setFallbackTotal(balance.toFixed(8))
+        }
+      } else {
+        console.log('🔍 FALLBACK: No recent verification found in localStorage')
+      }
+    } catch (error) {
+      console.error('❌ FALLBACK: Failed to load recent verification:', error)
+    }
+  }, [address, bitcoinAddresses, isVerified])
 
   // Copy to clipboard function
   const copyAddress = async (text: string) => {
@@ -406,19 +457,39 @@ export function DashboardContent() {
             <span className="text-xs bg-orange-500/10 text-orange-600 px-2 py-1 rounded">Reserve</span>
           </div>
           <div className="text-2xl font-bold">
-            {isLoading ? (
-              <span className="text-muted-foreground">Loading...</span>
-            ) : (
-              `${parseFloat(totalBalance).toFixed(8)} BTC`
-            )}
+            {(() => {
+              console.log('🔍 DASHBOARD: Bitcoin Balance Display')
+              const displayBalance = bitcoinAddresses.length > 0 ? totalBalance : fallbackTotal
+              const addressCount = bitcoinAddresses.length > 0 ? bitcoinAddresses.length : fallbackAddresses.length
+              console.log('   - Oracle balance:', totalBalance)
+              console.log('   - Fallback balance:', fallbackTotal)
+              console.log('   - Using balance:', displayBalance)
+              console.log('   - Address count:', addressCount)
+              
+              if (isLoading) {
+                return <span className="text-muted-foreground">Loading...</span>
+              }
+              
+              return `${parseFloat(displayBalance).toFixed(8)} BTC`
+            })()}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            From {bitcoinAddresses.length} verified address{bitcoinAddresses.length !== 1 ? 'es' : ''} 
-            {bitcoinAddresses.some(addr => isTestnetAddress(addr)) && 
-             bitcoinAddresses.some(addr => !isTestnetAddress(addr)) && 
-             ' (mainnet + testnet)'}
-            {bitcoinAddresses.every(addr => isTestnetAddress(addr)) && bitcoinAddresses.length > 0 && ' (testnet)'}
-            {bitcoinAddresses.every(addr => !isTestnetAddress(addr)) && bitcoinAddresses.length > 0 && ' (mainnet)'}
+            {(() => {
+              const displayAddresses = bitcoinAddresses.length > 0 ? bitcoinAddresses : fallbackAddresses
+              const addressCount = displayAddresses.length
+              const networkInfo = displayAddresses.some(addr => isTestnetAddress(addr)) && 
+                                  displayAddresses.some(addr => !isTestnetAddress(addr)) ? ' (mainnet + testnet)' :
+                                  displayAddresses.every(addr => isTestnetAddress(addr)) && displayAddresses.length > 0 ? ' (testnet)' :
+                                  displayAddresses.every(addr => !isTestnetAddress(addr)) && displayAddresses.length > 0 ? ' (mainnet)' : ''
+              
+              if (bitcoinAddresses.length > 0) {
+                return `From ${addressCount} verified address${addressCount !== 1 ? 'es' : ''}${networkInfo}`
+              } else if (fallbackAddresses.length > 0) {
+                return `From ${addressCount} recently verified address${addressCount !== 1 ? 'es' : ''}${networkInfo} (syncing to Oracle...)`
+              } else {
+                return `From ${addressCount} verified address${addressCount !== 1 ? 'es' : ''}`
+              }
+            })()}
           </p>
         </div>
 
