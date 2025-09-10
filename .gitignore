@@ -332,3 +332,18 @@ test-real-mint.js
 update-oracle-production.js
 oracle-production.js
 deploy-production-oracle.sh
+
+# Test scripts - do not commit  
+test-interface-oracle-integration.js
+fix-oracle-mock-sync.js
+oracle-production.js
+*.test.js
+
+# Oracle test and production files - NEVER COMMIT
+test-oracle-decryption.js
+test-interface-oracle-integration.js
+fix-oracle-mock-sync.js
+oracle-production.js
+**/oracle-production.js
+**/*encryption*.js
+**/*oracle*.test.js
