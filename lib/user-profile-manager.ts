@@ -158,47 +158,71 @@ export class UserProfileManager {
       this.syncInProgress.add(userAddress.toLowerCase())
       
       try {
-        // Get encrypted profile from Oracle /users endpoint
-        const oracleResponse = await fetch(`${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/users`)
+        // CRITICAL: Use encrypted Oracle endpoint instead of public endpoint
+        console.log('🔐 PROFILE: Fetching encrypted Oracle user data...')
+        console.log('🔍 PROFILE: Oracle URL:', `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`)
+        console.log('🔑 PROFILE: API Key present:', !!process.env.NEXT_PUBLIC_ORACLE_API_KEY)
+        console.log('🔑 PROFILE: Encryption key present:', !!process.env.NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY)
         
-        if (!oracleResponse.ok) {
-          throw new Error(`Oracle /users endpoint failed: ${oracleResponse.status}`)
+        // Use encrypted endpoint with API key authentication
+        const encryptedData = await getDecryptedOracleUsers()
+        
+        if (!encryptedData) {
+          throw new Error('Oracle encrypted endpoint returned no data - check environment variables')
         }
         
-        const oracleData = await oracleResponse.json()
-        console.log(`📦 PROFILE: Received Oracle data with ${Object.keys(oracleData.users || {}).length} users`)
+        console.log('✅ PROFILE: Oracle encrypted data decrypted successfully!')
+        console.log('📊 PROFILE: Total users found:', Object.keys(encryptedData).length)
+        console.log('👥 PROFILE: Available user addresses:', Object.keys(encryptedData))
         
-        // Find user by address hash
-        const userHash = this.createUserHash(userAddress)
-        let encryptedProfile: any = null
+        // Find user by real Ethereum address (case-insensitive)
+        console.log('🔍 PROFILE: Looking for user:', userAddress)
+        let userData = encryptedData[userAddress.toLowerCase()] || encryptedData[userAddress]
         
-        for (const [userKey, userData] of Object.entries(oracleData.users || {})) {
-          const typedUserData = userData as any
-          if (userKey === userHash || typedUserData.userHash === userHash) {
-            encryptedProfile = typedUserData.encryptedProfile
-            break
+        // If not found, try case-insensitive lookup through all keys
+        if (!userData) {
+          const targetAddress = userAddress.toLowerCase()
+          for (const [key, data] of Object.entries(encryptedData)) {
+            if (key.toLowerCase() === targetAddress) {
+              userData = data
+              console.log('✅ PROFILE: Found user with different case:', key)
+              break
+            }
           }
         }
         
-        if (!encryptedProfile || !encryptedProfile.encrypted) {
-          console.log(`❌ PROFILE: No encrypted profile found for ${userAddress.substring(0, 10)}...`)
+        if (!userData) {
+          console.log(`❌ PROFILE: No profile found for ${userAddress.substring(0, 10)}...`)
+          console.log('❌ PROFILE: Available addresses in Oracle:', Object.keys(encryptedData))
           return null
         }
         
-        console.log(`🔐 PROFILE: Found encrypted profile (${encryptedProfile.size} chars) for ${userAddress.substring(0, 10)}...`)
+        console.log('✅ PROFILE: User found in Oracle!')
+        console.log('📊 PROFILE: User data:', {
+          ethAddress: userData.ethAddress,
+          btcAddress: userData.btcAddress,
+          balance: userData.lastSyncedBalance,
+          txHash: userData.lastTxHash
+        })
         
-        // Decrypt profile
-        const decryptedProfile = await this.decryptProfile(encryptedProfile.encrypted, userAddress)
+        // Convert Oracle data to Universal User Profile format
+        console.log('🔄 PROFILE: Converting Oracle data to Universal Profile format...')
         
-        if (decryptedProfile) {
+        const universalProfile = await this.convertOracleDataToProfile(userData, userAddress)
+        
+        if (universalProfile) {
           // Cache the profile
-          this.profileCache.set(userAddress.toLowerCase(), decryptedProfile)
-          this.encryptedCache.set(userAddress.toLowerCase(), encryptedProfile.encrypted)
+          this.profileCache.set(userAddress.toLowerCase(), universalProfile)
           
           console.log(`✅ PROFILE: Successfully loaded and cached profile for ${userAddress.substring(0, 10)}...`)
-          return decryptedProfile
+          console.log('📊 PROFILE: Profile contains:')
+          console.log(`   - Bitcoin addresses: ${universalProfile.userIdentity.bitcoinAddresses.length}`)
+          console.log(`   - rBTC transactions: ${universalProfile.transactionHistory.rBTCTransactions.length}`)
+          console.log(`   - Oracle profile successfully created from decrypted data`)
+          
+          return universalProfile
         } else {
-          console.log(`❌ PROFILE: Failed to decrypt profile for ${userAddress.substring(0, 10)}...`)
+          console.log(`❌ PROFILE: Failed to convert Oracle data to profile for ${userAddress.substring(0, 10)}...`)
           return null
         }
         
@@ -374,6 +398,137 @@ export class UserProfileManager {
     if (!profile) return null
     
     return profile[dataType]
+  }
+
+  /**
+   * Convert decrypted Oracle data to Universal User Profile
+   */
+  private async convertOracleDataToProfile(oracleData: any, userAddress: string): Promise<UniversalUserProfile | null> {
+    try {
+      console.log('🔄 PROFILE: Converting Oracle data to Universal Profile...')
+      
+      const bitcoinAddresses = oracleData.btcAddresses || (oracleData.btcAddress ? [oracleData.btcAddress] : [])
+      const lastSyncedBalance = oracleData.lastSyncedBalance || 0
+      
+      // Create transaction from Oracle data
+      const transactions: any[] = []
+      if (oracleData.lastTxHash && lastSyncedBalance > 0) {
+        transactions.push({
+          transactionHash: oracleData.lastTxHash,
+          type: 'mint',
+          amount: (lastSyncedBalance / 100000000).toFixed(8),
+          timestamp: Date.now(),
+          status: 'success',
+          blockNumber: 0,
+          fromAddress: '0x0000000000000000000000000000000000000000',
+          toAddress: userAddress,
+          tokenAddress: '0x4BC51d94937f145C7D995E146C32EC3b9CeB3ACC',
+          gasUsed: 0,
+          gasPrice: '0',
+          fee: '0',
+          confirmations: 1
+        })
+      }
+      
+      const universalProfile: any = {
+        userIdentity: {
+          ethAddress: userAddress,
+          bitcoinAddresses: bitcoinAddresses,
+          userHash: this.createUserHash(userAddress),
+          profileCreatedAt: oracleData.registeredAt || new Date().toISOString(),
+          lastActivityAt: new Date(oracleData.lastSyncTime || Date.now()).toISOString(),
+          verificationType: 'oracle_verified',
+          profileStatus: 'active'
+        },
+        transactionHistory: {
+          rBTCTransactions: transactions,
+          rBTCStats: {
+            totalTransactions: transactions.length,
+            totalVolume: (lastSyncedBalance / 100000000).toFixed(8),
+            averageAmount: transactions.length > 0 ? (lastSyncedBalance / 100000000).toFixed(8) : '0',
+            lastTransactionDate: transactions.length > 0 ? transactions[0].timestamp : null,
+            successRate: transactions.length > 0 ? 100 : 0,
+            totalFees: '0',
+            largestTransaction: (lastSyncedBalance / 100000000).toFixed(8),
+            firstTransactionDate: transactions.length > 0 ? transactions[0].timestamp : null
+          },
+          wrBTCTransactions: [],
+          wrBTCStats: {
+            totalTransactions: 0,
+            totalVolume: '0',
+            averageAmount: '0',
+            lastTransactionDate: null,
+            successRate: 0,
+            totalFees: '0',
+            largestTransaction: '0',
+            firstTransactionDate: null
+          },
+          oracleTransactions: [{
+            transactionHash: oracleData.lastTxHash || 'oracle_registration',
+            amount: lastSyncedBalance,
+            timestamp: Date.now(),
+            type: 'balance_sync',
+            status: 'success',
+            fee: 0,
+            blockHeight: 0,
+            bitcoinAddress: bitcoinAddresses[0] || 'unknown',
+            ethereumAddress: userAddress,
+            syncMethod: 'automatic',
+            oracleVersion: '1.0'
+          }],
+          oracleStats: {
+            totalSyncs: 1,
+            lastSyncTimestamp: oracleData.lastSyncTime || Date.now(),
+            totalBalance: lastSyncedBalance,
+            averageSyncInterval: 86400000,
+            syncSuccessRate: 100,
+            lastSyncHash: oracleData.lastTxHash || 'oracle_registration',
+            totalBitcoinAddresses: bitcoinAddresses.length,
+            autoDetected: oracleData.autoDetected || false
+          },
+          feeTransactions: [],
+          feeStats: {
+            totalFeesCharged: 0,
+            averageFeePerTransaction: 0,
+            totalTransactionsCharged: 0,
+            lastFeeChargedAt: null,
+            totalFeeVaultDeposits: 0,
+            currentFeeVaultBalance: 0
+          }
+        },
+        allTransactionHashes: {
+          rBTCHashes: transactions.map(tx => tx.transactionHash),
+          wrBTCHashes: [],
+          oracleHashes: [oracleData.lastTxHash || 'oracle_registration'],
+          feeHashes: [],
+          lastTxHash: oracleData.lastTxHash || null,
+          allHashes: [oracleData.lastTxHash].filter(Boolean)
+        },
+        balances: {
+          rBTCBalance: (lastSyncedBalance / 100000000).toFixed(8),
+          wrBTCBalance: '0',
+          totalBitcoinBalance: (lastSyncedBalance / 100000000).toFixed(8),
+          feeVaultBalance: '0',
+          estimatedBitcoinValue: (lastSyncedBalance / 100000000).toFixed(8),
+          lastBalanceUpdate: oracleData.lastSyncTime || Date.now()
+        },
+        performance: {
+          dataCompletenessScore: 100,
+          profileLoadTime: Date.now(),
+          cacheHitRate: 0,
+          lastProfileUpdate: Date.now(),
+          totalDataSources: 1,
+          connectedDataSources: 1
+        }
+      }
+      
+      console.log('✅ PROFILE: Oracle data converted to Universal Profile successfully')
+      return universalProfile
+      
+    } catch (error) {
+      console.error('❌ PROFILE: Error converting Oracle data:', error)
+      return null
+    }
   }
 
   /**
