@@ -324,3 +324,11 @@ create-simple-mock-sync.js
 test-blockchain-state.js
 create-production-oracle.js
 setup-eternal-oracle.sh
+
+# Test scripts for understanding mint process - PRIVATE INTERNAL USE ONLY
+test-mint-process.js
+fix-oracle-server.js
+test-real-mint.js
+update-oracle-production.js
+oracle-production.js
+deploy-production-oracle.sh

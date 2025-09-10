@@ -16,6 +16,7 @@ import { getVerifiedBitcoinAddresses, saveVerifiedBitcoinAddress } from '@/lib/u
 import { requestOracleRegistration, checkOracleRegistration, waitForOracleRegistration } from '@/lib/oracle-integration'
 import { getTransactionHashForOracleUser } from '@/lib/transaction-hash-cache'
 import { getDecryptedOracleUsers, findOracleUserByCorrelation } from '@/lib/oracle-decryption'
+import { useMintProtection } from '@/lib/mint-protection'
 
 interface MintRBTCProps {
   onMintComplete?: (data: MintForm) => void
@@ -44,6 +45,16 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const [showAddressDropdown, setShowAddressDropdown] = useState(false)
   const { address, isConnected } = useAccount()
   const publicClient = usePublicClient()
+  
+  // Mint protection system
+  const {
+    checkCanMint,
+    recordMintAttempt,
+    verifyBitcoinBalance,
+    activateAutoSync,
+    hasActiveAutoSync,
+    getAutoSyncAddresses
+  } = useMintProtection()
 
   // Oracle hash resolution function
   const resolveRealTransactionHash = async (ethereumAddress: string): Promise<string | null> => {
@@ -871,8 +882,26 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       address
     })
     
-    // Always allow mint operations - no localStorage blocking
-    console.log('🚀 Processing mint request - localStorage check removed for proper functionality')
+    // SECURITY LAYER 1: Check if address can mint (one-time per address protection)
+    const mintCheck = checkCanMint(data.bitcoinAddress);
+    if (!mintCheck.canMint) {
+      setErrorMessage(mintCheck.reason || 'Cannot mint with this Bitcoin address');
+      setMintStatus('error');
+      return;
+    }
+    
+    // SECURITY LAYER 2: Verify Bitcoin balance before minting
+    console.log('🔒 Verifying Bitcoin balance before mint...');
+    const requestedSats = Math.floor(bitcoinBalance * 100000000);
+    const balanceCheck = await verifyBitcoinBalance(data.bitcoinAddress, requestedSats);
+    
+    if (!balanceCheck.isValid) {
+      setErrorMessage(balanceCheck.reason || 'Bitcoin balance verification failed');
+      setMintStatus('error');
+      return;
+    }
+    
+    console.log(`✅ Balance verified: ${balanceCheck.actualBalanceSats} sats available, minting ${requestedSats} sats`);
     
     // Check actual FeeVault balance from contract
     try {
@@ -1083,6 +1112,14 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       
       // Only set success if transaction was actually successful
       setMintStatus('success')
+      
+      // SECURITY LAYER 3: Record mint attempt and activate auto-sync
+      if (address) {
+        recordMintAttempt(data.bitcoinAddress, address, txHash);
+        activateAutoSync(data.bitcoinAddress);
+        console.log('🔒 Protection activated: Auto-sync started for', data.bitcoinAddress);
+      }
+      
       onMintComplete?.(data)
       
       // STEP 5.5: Try to resolve real transaction hash from Oracle
@@ -1207,6 +1244,60 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       </div>
 
       {mintStatus === 'idle' && (
+        <>
+          {/* Mint Protection Warning */}
+          {verifiedBitcoinAddress && (() => {
+            const mintCheck = checkCanMint(verifiedBitcoinAddress);
+            const activeAutoSyncAddresses = getAutoSyncAddresses();
+            
+            if (!mintCheck.canMint || activeAutoSyncAddresses.length > 0) {
+              return (
+                <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-6">
+                  <div className="flex items-start space-x-3">
+                    <div className="p-2 bg-orange-100 dark:bg-orange-800/50 rounded-full">
+                      <Shield className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <h3 className="font-semibold text-orange-800 dark:text-orange-200">Mint Protection Active</h3>
+                      
+                      {!mintCheck.canMint && (
+                        <p className="text-sm text-orange-700 dark:text-orange-300">
+                          {mintCheck.reason}
+                        </p>
+                      )}
+                      
+                      {activeAutoSyncAddresses.length > 0 && (
+                        <div className="text-sm text-orange-700 dark:text-orange-300 space-y-1">
+                          <p><strong>Auto-sync is active for:</strong></p>
+                          {activeAutoSyncAddresses.map((addr, idx) => (
+                            <p key={idx} className="font-mono text-xs bg-orange-100 dark:bg-orange-800 rounded px-2 py-1">
+                              {addr}
+                            </p>
+                          ))}
+                          <p className="text-xs mt-2">
+                            Auto-sync prevents manual minting to avoid double-spending. 
+                            You can add a new Bitcoin address to mint more tokens.
+                          </p>
+                        </div>
+                      )}
+                      
+                      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                          <strong>How to mint more tokens:</strong><br/>
+                          1. Add a new Bitcoin address with funds<br/>
+                          2. Verify the new address<br/>
+                          3. Mint tokens for the new address<br/>
+                          Each Bitcoin address can only be used once for minting.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
         <div className="bg-card border rounded-xl p-8 space-y-6">
           <form onSubmit={(e) => {
             e.preventDefault()
@@ -1606,7 +1697,17 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={!verifiedBitcoinAddress || bitcoinBalance === 0 || isMinting || isLoadingBalance || !acceptedTerms || isWritePending || isTxLoading}
+              disabled={
+                !verifiedBitcoinAddress || 
+                bitcoinBalance === 0 || 
+                isMinting || 
+                isLoadingBalance || 
+                !acceptedTerms || 
+                isWritePending || 
+                isTxLoading ||
+                !checkCanMint(verifiedBitcoinAddress).canMint ||
+                hasActiveAutoSync()
+              }
               className="w-full flex items-center justify-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-medium transition-all hover:scale-105 active:scale-95"
               onClick={() => {
                 console.log('Button clicked, checking conditions:', {
@@ -1733,6 +1834,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             </div>
           </form>
         </div>
+        </>
       )}
 
       {mintStatus === 'pending' && (

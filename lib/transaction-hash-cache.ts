@@ -151,18 +151,17 @@ class TransactionHashCache {
   }
 
   /**
-   * Search for mint transactions (Transfer from 0x0)
+   * Search for sync transactions in OracleAggregator contract
    */
   private async searchMintTransactions(fromBlock: number, toBlock: number) {
-    const contractAddress = '0x74E64267a4d19357dd03A0178b5edEC79936c643'; // rBTC-SYNTH
+    const contractAddress = '0x74E64267a4d19357dd03A0178b5edEC79936c643'; // OracleAggregator
     
     const response = await this.makeRpcRequest('eth_getLogs', [{
       address: contractAddress,
       fromBlock: `0x${fromBlock.toString(16)}`,
       toBlock: `0x${toBlock.toString(16)}`,
       topics: [
-        '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef', // Transfer event
-        '0x0000000000000000000000000000000000000000000000000000000000000000' // from = 0x0 (mint)
+        '0xbd74477ace0e09075451becb82bdae1c9a11698b13f8488ab67f55722444eb84' // Synced event from OracleAggregator
       ]
     }]);
 
@@ -175,13 +174,20 @@ class TransactionHashCache {
         const blockDetails = await this.makeRpcRequest('eth_getBlockByNumber', [log.blockNumber, false]);
         
         if (txDetails.result && blockDetails.result) {
-          const value = parseInt(log.data, 16); // Token amount
+          // Parse Synced event data: (address user, uint64 newBalanceSats, int64 deltaSats, uint256 feeWei, uint32 height, uint64 timestamp)
+          const userAddress = `0x${log.topics[1].slice(26)}`; // Extract user address from indexed topic
+          
+          // Parse data field to extract amounts
+          const data = log.data.slice(2); // Remove 0x prefix
+          const newBalanceSats = parseInt(data.slice(0, 16), 16); // First 8 bytes (uint64)
+          const deltaSats = parseInt(data.slice(16, 32), 16); // Next 8 bytes (int64)
+          
           transactions.push({
             hash: log.transactionHash,
-            amount: value,
+            amount: newBalanceSats,
             timestamp: parseInt(blockDetails.result.timestamp, 16),
             blockNumber: parseInt(log.blockNumber, 16),
-            to: `0x${log.topics[2].slice(26)}` // Extract recipient address
+            to: userAddress
           });
         }
       } catch (error) {
