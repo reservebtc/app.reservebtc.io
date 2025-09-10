@@ -58,8 +58,8 @@ export async function decryptOracleData(encryptedResponse: EncryptedOracleRespon
       return null;
     }
 
-    // Handle direct AES-256-CBC decryption
-    console.log('🔓 PRIVACY: Using AES-256-CBC decryption...');
+    // Handle direct AES-256-GCM decryption
+    console.log('🔓 PRIVACY: Using AES-256-GCM decryption...');
     console.log('🔍 PRIVACY: Algorithm:', encryptedResponse.algorithm);
     console.log('🔍 PRIVACY: IV length:', encryptedResponse.iv?.length);
     console.log('🔍 PRIVACY: Data length:', encryptedResponse.data?.length);
@@ -82,18 +82,27 @@ export async function decryptOracleData(encryptedResponse: EncryptedOracleRespon
         const ivBuffer = new Uint8Array(
           encryptedResponse.iv.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
         );
-        // For AES-GCM, combine encrypted data with authTag
+        // For AES-GCM, encrypted data and authTag must be combined correctly
         const encryptedDataBuffer = new Uint8Array(
           encryptedResponse.data.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
         );
-        const authTagBuffer = new Uint8Array(
-          encryptedResponse.authTag?.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []
-        );
         
-        // Combine encrypted data and auth tag for GCM
-        const encryptedBuffer = new Uint8Array(encryptedDataBuffer.length + authTagBuffer.length);
-        encryptedBuffer.set(encryptedDataBuffer);
-        encryptedBuffer.set(authTagBuffer, encryptedDataBuffer.length);
+        // For Web Crypto API, authTag must be appended to encrypted data
+        let encryptedBuffer: Uint8Array;
+        if (encryptedResponse.authTag) {
+          const authTagBuffer = new Uint8Array(
+            encryptedResponse.authTag.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
+          );
+          console.log('🔍 PRIVACY: AuthTag length:', authTagBuffer.length);
+          
+          // Append authTag to encrypted data for Web Crypto API
+          encryptedBuffer = new Uint8Array(encryptedDataBuffer.length + authTagBuffer.length);
+          encryptedBuffer.set(encryptedDataBuffer);
+          encryptedBuffer.set(authTagBuffer, encryptedDataBuffer.length);
+        } else {
+          console.warn('⚠️ PRIVACY: No authTag found - this may fail for AES-GCM');
+          encryptedBuffer = encryptedDataBuffer;
+        }
         
         const cryptoKey = await crypto.subtle.importKey(
           'raw',
@@ -103,10 +112,23 @@ export async function decryptOracleData(encryptedResponse: EncryptedOracleRespon
           ['decrypt']
         );
         
+        // Prepare GCM parameters
+        const gcmParams: AesGcmParams = { 
+          name: 'AES-GCM', 
+          iv: ivBuffer 
+        };
+        
+        // Add additionalData if present
+        if (encryptedResponse.additionalData) {
+          const additionalDataBuffer = new TextEncoder().encode(encryptedResponse.additionalData);
+          gcmParams.additionalData = additionalDataBuffer;
+          console.log('🔍 PRIVACY: Using additionalData:', encryptedResponse.additionalData);
+        }
+        
         const decryptedBuffer = await crypto.subtle.decrypt(
-          { name: 'AES-GCM', iv: ivBuffer },
+          gcmParams,
           cryptoKey,
-          encryptedBuffer
+          encryptedBuffer.buffer as ArrayBuffer
         );
         
         const decryptedText = new TextDecoder().decode(decryptedBuffer);
@@ -123,17 +145,27 @@ export async function decryptOracleData(encryptedResponse: EncryptedOracleRespon
         const iv = Buffer.from(encryptedResponse.iv, 'hex');
         const encryptedData = Buffer.from(encryptedResponse.data, 'hex');
         
-        const decipher = crypto.createDecipheriv('aes-256-cbc', keyBuffer, iv);
+        // Node.js version must also use GCM for Professional Oracle
+        const authTag = encryptedResponse.authTag ? Buffer.from(encryptedResponse.authTag, 'hex') : Buffer.alloc(0);
+        
+        const decipher = crypto.createDecipheriv('aes-256-gcm', keyBuffer, iv);
+        if (authTag.length > 0) {
+          decipher.setAuthTag(authTag);
+        }
+        if (encryptedResponse.additionalData) {
+          decipher.setAAD(Buffer.from(encryptedResponse.additionalData));
+        }
+        
         let decrypted = decipher.update(encryptedData);
         decrypted = Buffer.concat([decrypted, decipher.final()]);
         
         const userData = JSON.parse(decrypted.toString('utf8'));
         
-        console.log('✅ PRIVACY: Node.js crypto decryption successful!');
+        console.log('✅ PRIVACY: Node.js AES-GCM decryption successful!');
         return userData.users || [];
       }
     } catch (aesError) {
-      console.error('❌ PRIVACY: AES decryption failed:', aesError);
+      console.error('❌ PRIVACY: AES-GCM decryption failed:', aesError);
       return null;
     }
 
