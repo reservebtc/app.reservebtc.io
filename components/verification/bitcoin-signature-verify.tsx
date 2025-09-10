@@ -354,16 +354,10 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
         // Save verified address for navigation
         setVerifiedAddress(cleanAddress)
         
-        // Create Oracle profile
-        console.log('🎯 VERIFY: BIP-322 verification successful! Creating Oracle profile...')
-        
-        const profileCreated = await createOracleProfile(cleanAddress, cleanSignature)
-        
-        if (profileCreated) {
-          console.log('✅ VERIFY: Oracle profile created successfully!')
-        } else {
-          console.log('⚠️ VERIFY: Profile saved locally')
-        }
+        // Oracle auto-detection will handle user registration
+        console.log('🎯 VERIFY: BIP-322 verification successful!')
+        console.log('🔄 VERIFY: Oracle will auto-detect user from blockchain activity')
+        console.log('💡 VERIFY: User should now be able to use their verified Bitcoin address')
         
         if (onVerificationComplete) {
           onVerificationComplete({

@@ -192,7 +192,7 @@ export class UserProfileManager {
         
         // If not found, log available users
         if (!userData) {
-          console.log('⚠️ User not found. Available users:', encryptedData.map(u => u.ethAddress))
+          console.log('⚠️ User not found in Oracle database')
         }
         
         if (!userData) {

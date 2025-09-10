@@ -54,12 +54,11 @@ export async function saveVerifiedBitcoinAddress(
  * No localStorage dependencies - system uses automatic browser cleanup
  */
 export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<UserVerifiedAddress[]> {
-  console.log('📋 Getting verified addresses from Oracle database for:', ethAddress)
+  console.log('📋 Getting verified addresses for current user:', ethAddress.substring(0, 10) + '...')
   
-  // Get addresses directly from Oracle database (ONLY source of truth)
+  // Get addresses directly from centralized Oracle database (ONLY source of truth)
   try {
     const oracleData = await getVerifiedAddressesFromOracle(ethAddress)
-    console.log('🔍 DEBUG: Oracle data received:', oracleData)
     
     if (oracleData.length > 0) {
       console.log('✅ Retrieved addresses from Oracle database:', oracleData.length)
@@ -78,7 +77,7 @@ export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<U
       return []
     }
   } catch (error) {
-    console.error('❌ Oracle database unavailable:', error)
+    console.error('❌ Oracle database check failed:', error)
     return [] // Return empty array if Oracle is unavailable
   }
 }

@@ -157,8 +157,8 @@ export async function getUserTransactionHistory(
       )
       
       console.log('🔍 UNIVERSAL LOOKUP: Looking for user:', userAddress)
-      console.log('📋 UNIVERSAL LOOKUP: Available Oracle users:', allUsersData.length)
-      console.log('📊 UNIVERSAL LOOKUP: Sample Oracle users:', allUsersData.slice(0, 3).map(u => u.ethAddress))
+      console.log('📋 UNIVERSAL LOOKUP: Available Oracle users count:', allUsersData.length)
+      console.log('📊 UNIVERSAL LOOKUP: Searching for current user...')
       console.log('📊 UNIVERSAL LOOKUP: Found userData:', userData ? 'YES' : 'NO')
       
       if (!userData) {
@@ -166,10 +166,8 @@ export async function getUserTransactionHistory(
         console.error('❌ UNIVERSAL ERROR: Target address:', userAddress)
         console.error('❌ UNIVERSAL ERROR: Target address (lowercase):', userAddress.toLowerCase())
         console.error('❌ UNIVERSAL ERROR: This means decryption returned wrong data or user doesn\'t exist')
-        console.log('🔍 DEBUG: All Oracle users:');
-        allUsersData.forEach((user, index) => {
-          console.log('   👤 Oracle user #' + index + ':', user.ethAddress, '| Balance:', user.lastSyncedBalance);
-        });
+        console.log('🔍 DEBUG: Checking Oracle data for current user...');
+        console.log('   👤 Looking for user:', userAddress.substring(0, 10) + '...');
       }
 
       if (userData) {
@@ -425,7 +423,7 @@ export async function getVerifiedAddressesFromOracle(
       
       // If not found, log available users
       if (!userData) {
-        console.log('⚠️ User not found. Available users:', allUsersData.map(u => u.ethAddress))
+        console.log('⚠️ User not found in Oracle database')
       }
       console.log('🔍 DEBUG: User data found:', userData ? 'YES' : 'NO')
       console.log('🔍 DEBUG: User data:', userData)

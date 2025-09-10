@@ -235,7 +235,7 @@ export function findOracleUserByCorrelation(
   }
 
   console.log('🔍 Attempting user correlation for address:', ethereumAddress.substring(0, 10) + '...');
-  console.log('🔍 Available Oracle users:', oracleUsersData.length);
+  console.log('🔍 Oracle users data available, searching for current user...');
 
   const users = oracleUsersData;
   
