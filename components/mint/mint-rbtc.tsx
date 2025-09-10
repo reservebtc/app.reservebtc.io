@@ -12,7 +12,7 @@ import { DepositFeeVault } from './deposit-fee-vault'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CONTRACTS } from '@/app/lib/contracts'
-import { getVerifiedBitcoinAddresses, saveVerifiedBitcoinAddress } from '@/lib/user-data-storage'
+// Bitcoin addresses now loaded via Oracle Service only
 import { requestOracleRegistration, checkOracleRegistration, waitForOracleRegistration } from '@/lib/oracle-integration'
 import { getTransactionHashForOracleUser } from '@/lib/transaction-hash-cache'
 import { oracleService } from '@/lib/oracle-service'
@@ -429,8 +429,15 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         // NO CLEANUP HERE: Cleanup is handled by the first useEffect
         console.log('🔄 MINT: Loading data for user (cleanup handled separately):', address.toLowerCase())
         
-        const verifiedAddrs = await getVerifiedBitcoinAddresses(address)
-        console.log('📋 Loading verified addresses from centralized storage:', verifiedAddrs)
+        // Use Oracle Service to get user's verified Bitcoin addresses
+        const userData = await oracleService.getUserByAddress(address)
+        console.log('📋 Loading verified addresses from Oracle Service:', userData)
+        
+        const verifiedAddrs = userData && userData.btcAddress ? [{
+          address: userData.btcAddress,
+          verifiedAt: userData.registeredAt || new Date().toISOString(),
+          signature: 'oracle_verified'
+        }] : []
         
         if (verifiedAddrs.length > 0) {
           // Store all addresses for dropdown
@@ -610,10 +617,11 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       // Try to reload from centralized storage first
       const reloadAddress = async () => {
         try {
-          const verifiedAddrs = await getVerifiedBitcoinAddresses(address)
-          if (verifiedAddrs.length > 0) {
-            const firstAddress = verifiedAddrs[0].address
-            console.log('🔄 Reloading address from centralized storage:', firstAddress)
+          // Use Oracle Service to get user's Bitcoin address
+          const userData = await oracleService.getUserByAddress(address)
+          if (userData && userData.btcAddress) {
+            const firstAddress = userData.btcAddress
+            console.log('🔄 Reloading address from Oracle Service:', firstAddress)
             setVerifiedBitcoinAddress(firstAddress)
             setValue('bitcoinAddress', firstAddress, { shouldValidate: true })
           }
@@ -944,13 +952,18 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     try {
       console.log('🚀 Starting automatic mint process...')
       
-      // STEP 1: Save verified Bitcoin address to centralized storage
-      console.log('📋 Step 1: Saving verified address to user card...')
+      // STEP 1: Verify user is registered in Professional Oracle
+      console.log('📋 Step 1: Checking user in Professional Oracle...')
       try {
-        await saveVerifiedBitcoinAddress(address!, data.bitcoinAddress, 'auto_mint_signature')
-        console.log('✅ User card created/updated with Bitcoin address')
+        const userData = await oracleService.getUserByAddress(address!)
+        if (userData && userData.btcAddress) {
+          console.log('✅ User verified in Professional Oracle with address:', userData.btcAddress)
+        } else {
+          throw new Error('User not found in Professional Oracle - verification required')
+        }
       } catch (error) {
-        console.warn('⚠️ Failed to save address to centralized storage:', error)
+        console.error('❌ User not verified in Oracle:', error)
+        throw new Error('Please complete Bitcoin address verification first')
       }
       
       // STEP 2: Check FeeVault balance again (it pays for Oracle operations)

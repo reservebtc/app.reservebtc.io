@@ -16,17 +16,33 @@ interface EncryptedOracleResponse {
 }
 
 interface UserData {
-  btcAddressHash: string; // Actual field name from Oracle
-  lastSyncedBalance: number;
-  lastSyncTime: number;
-  registeredAt: string;
-  transactionCount: number; // Actual field name from Oracle
-  autoDetected: boolean;
+  // Professional Oracle Server fields (from createUserProfile)
+  userId?: string;
+  ethAddress: string;
+  bitcoinAddress?: string; // Main Bitcoin address field from Professional Oracle
+  signature?: string;
+  source?: string;
+  createdAt?: string;
+  lastActivityAt?: string;
+  verification?: {
+    status: string;
+    verifiedAt?: string;
+    signature?: string;
+  };
+  statistics?: {
+    totalTransactions?: number;
+    lastSyncBalance?: string;
+  };
   
-  // Legacy fields for backward compatibility
+  // Legacy Oracle fields for backward compatibility
+  btcAddressHash?: string;
+  lastSyncedBalance?: number;
+  lastSyncTime?: number;
+  registeredAt?: string;
+  transactionCount?: number;
+  autoDetected?: boolean;
   btcAddress?: string;
-  btcAddresses?: string[]; // Support for multiple Bitcoin addresses
-  ethAddress?: string;
+  btcAddresses?: string[];
   transactionHashes?: any[];
   lastTxHash?: string;
   addedTime?: number;

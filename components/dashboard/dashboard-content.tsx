@@ -97,6 +97,73 @@ export function DashboardContent() {
   // Local state for UI interactions
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
   const [showAllAddresses, setShowAllAddresses] = useState(false)
+  
+  // Direct Oracle Service integration for debugging
+  const [directOracleAddresses, setDirectOracleAddresses] = useState<{address: string, verifiedAt: string}[]>([])
+  
+  useEffect(() => {
+    async function loadDirectOracleData() {
+      if (address) {
+        try {
+          console.log('🔍 DASHBOARD DEBUG: Fetching Oracle data for address:', address.substring(0, 10) + '...')
+          
+          // Get raw decrypted users first to see the structure
+          const allDecryptedUsers = await oracleService.getDecryptedUsers()
+          console.log('🔍 DASHBOARD DEBUG: All decrypted users:', allDecryptedUsers)
+          
+          // Now get the specific user data
+          const userData = await oracleService.getUserByAddress(address)
+          console.log('🔍 DASHBOARD DEBUG: Direct Oracle user data:', userData)
+          console.log('🔍 DASHBOARD DEBUG: User data properties:', userData ? Object.keys(userData) : 'null')
+          
+          if (userData) {
+            console.log('🔍 DASHBOARD DEBUG: Detailed user data:')
+            console.log('  - ethAddress:', userData.ethAddress)
+            console.log('  - bitcoinAddress (Professional Oracle):', userData.bitcoinAddress)
+            console.log('  - btcAddress (Legacy):', userData.btcAddress)
+            console.log('  - btcAddressHash:', userData.btcAddressHash)
+            console.log('  - btcAddresses:', userData.btcAddresses)
+            console.log('  - registeredAt:', userData.registeredAt)
+            console.log('  - createdAt:', userData.createdAt)
+            console.log('  - lastSyncedBalance:', userData.lastSyncedBalance)
+            console.log('  - transactionCount:', userData.transactionCount)
+            console.log('  - transactionHashes:', userData.transactionHashes)
+            console.log('  - autoDetected:', userData.autoDetected)
+            console.log('  - verification:', userData.verification)
+            console.log('  - statistics:', userData.statistics)
+            
+            // Check for Bitcoin addresses in any field (prioritize Professional Oracle field)
+            const bitcoinAddr = userData.bitcoinAddress || userData.btcAddress
+            const verifiedAt = userData.createdAt || userData.registeredAt || new Date().toISOString()
+            
+            if (bitcoinAddr) {
+              setDirectOracleAddresses([{
+                address: bitcoinAddr,
+                verifiedAt: verifiedAt
+              }])
+              console.log('✅ DASHBOARD DEBUG: Found Bitcoin address from Oracle:', bitcoinAddr)
+              console.log('  - Source field:', userData.bitcoinAddress ? 'bitcoinAddress' : 'btcAddress')
+            } else if (userData.btcAddresses && userData.btcAddresses.length > 0) {
+              const addresses = userData.btcAddresses.map(addr => ({
+                address: addr,
+                verifiedAt: verifiedAt
+              }))
+              setDirectOracleAddresses(addresses)
+              console.log('✅ DASHBOARD DEBUG: Found Bitcoin addresses array from Oracle:', userData.btcAddresses)
+            } else {
+              console.log('❌ DASHBOARD DEBUG: No Bitcoin address found in Oracle data')
+              console.log('❌ DASHBOARD DEBUG: Available fields:', Object.keys(userData))
+            }
+          } else {
+            console.log('❌ DASHBOARD DEBUG: No user data returned from Oracle')
+          }
+        } catch (error) {
+          console.error('❌ DASHBOARD DEBUG: Failed to load Oracle data:', error)
+        }
+      }
+    }
+    loadDirectOracleData()
+  }, [address])
   const [isLoadingBalances, setIsLoadingBalances] = useState(false)
   
   // Fallback for newly verified addresses not yet in Oracle
@@ -600,26 +667,40 @@ export function DashboardContent() {
 
         {/* Warning for limited data - removed legacy Oracle direct access */}
 
-        {bitcoinAddresses.length === 0 ? (
-          <div className="text-center py-8">
-            <Bitcoin className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <h3 className="font-medium mb-2">No Bitcoin Addresses</h3>
-            <p className="text-muted-foreground text-sm mb-4">
-              Add and verify your Bitcoin addresses to start using ReserveBTC
-            </p>
-            <Link 
-              href="/verify"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              Verify Address
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {bitcoinAddresses
-              .slice(0, showAllAddresses ? undefined : 3)
-              .map((addr, index) => (
+        {(() => {
+          // Combine addresses from hook and direct Oracle debugging
+          const allAddresses = [...bitcoinAddresses, ...directOracleAddresses.map(d => d.address)]
+          const uniqueAddresses = Array.from(new Set(allAddresses)).filter(Boolean)
+          
+          console.log('🔍 DASHBOARD DEBUG: Address display logic:')
+          console.log('  - bitcoinAddresses from hook:', bitcoinAddresses)
+          console.log('  - directOracleAddresses:', directOracleAddresses.map(d => d.address))
+          console.log('  - uniqueAddresses combined:', uniqueAddresses)
+          
+          if (uniqueAddresses.length === 0) {
+            return (
+              <div className="text-center py-8">
+                <Bitcoin className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <h3 className="font-medium mb-2">No Bitcoin Addresses</h3>
+                <p className="text-muted-foreground text-sm mb-4">
+                  Add and verify your Bitcoin addresses to start using ReserveBTC
+                </p>
+                <Link 
+                  href="/verify"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  Verify Address
+                </Link>
+              </div>
+            )
+          }
+          
+          return (
+            <div className="space-y-3">
+              {uniqueAddresses
+                .slice(0, showAllAddresses ? undefined : 3)
+                .map((addr, index) => (
                 <div key={addr} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-green-500" />
@@ -683,26 +764,27 @@ export function DashboardContent() {
               ))
             }
             
-            {bitcoinAddresses.length > 3 && (
-              <button
-                onClick={() => setShowAllAddresses(!showAllAddresses)}
-                className="w-full flex items-center justify-center gap-2 p-3 text-sm text-muted-foreground hover:bg-muted/50 rounded-lg transition-colors"
-              >
-                {showAllAddresses ? (
-                  <>
-                    <ChevronUp className="h-4 w-4" />
-                    Show Less
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-4 w-4" />
-                    Show {bitcoinAddresses.length - 3} More
-                  </>
-                )}
-              </button>
-            )}
-          </div>
-        )}
+              {uniqueAddresses.length > 3 && (
+                <button
+                  onClick={() => setShowAllAddresses(!showAllAddresses)}
+                  className="w-full flex items-center justify-center gap-2 p-3 text-sm text-muted-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                >
+                  {showAllAddresses ? (
+                    <>
+                      <ChevronUp className="h-4 w-4" />
+                      Show Less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4" />
+                      Show {uniqueAddresses.length - 3} More
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          )
+        })()}
       </div>
 
       {/* Transaction History */}

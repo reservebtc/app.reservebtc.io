@@ -465,8 +465,14 @@ export class UserProfileManager {
       console.log('   - lastTxHash:', oracleData.lastTxHash)
       console.log('   - transactionHashes:', oracleData.transactionHashes ? oracleData.transactionHashes.length : 'None')
       console.log('   - transactionCount:', oracleData.transactionCount)
+      console.log('   - bitcoinAddress (Professional Oracle):', oracleData.bitcoinAddress)
+      console.log('   - btcAddress (Legacy):', oracleData.btcAddress)
+      console.log('   - btcAddresses (Array):', oracleData.btcAddresses)
       
-      const bitcoinAddresses = oracleData.btcAddresses || (oracleData.btcAddress ? [oracleData.btcAddress] : [])
+      // Priority: bitcoinAddress (Professional Oracle) > btcAddress (Legacy) > btcAddresses (Array)
+      const bitcoinAddresses = oracleData.btcAddresses || 
+                               (oracleData.bitcoinAddress ? [oracleData.bitcoinAddress] : 
+                               (oracleData.btcAddress ? [oracleData.btcAddress] : []))
       const lastSyncedBalance = oracleData.lastSyncedBalance || 0
       
       // Create transactions from Oracle data
