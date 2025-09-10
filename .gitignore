@@ -208,6 +208,8 @@ test-mint-burn-functionality.js
 debug-oracle-error.js
 check-oracle-committee.js
 test-oracle-user-creation.js
+test-real-user-registration.js
+check-oracle-users.js
 check-committee-mismatch.js
 create-correct-feevault.js
 fix-oracle-feevault.sh

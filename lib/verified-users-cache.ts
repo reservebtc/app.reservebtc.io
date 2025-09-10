@@ -54,22 +54,14 @@ export async function saveVerifiedUserToCache(
         console.log('✅ VERIFIED CACHE: Saved to Oracle verification store')
         return
       } else {
-        console.log('⚠️ VERIFIED CACHE: Oracle store unavailable, using localStorage')
+        console.log('⚠️ VERIFIED CACHE: Oracle store unavailable - verification completed but not cached')
       }
     } catch (oracleError) {
-      console.log('⚠️ VERIFIED CACHE: Oracle store unavailable, using localStorage')
+      console.log('⚠️ VERIFIED CACHE: Oracle store unavailable - verification completed but not cached')
     }
     
-    // Fallback: store in localStorage for immediate UI update
-    // Note: This is temporary until user performs first blockchain transaction
-    const cacheKey = 'verified_users_cache'
-    const existingCache = localStorage.getItem(cacheKey)
-    const cache: Record<string, VerifiedUser> = existingCache ? JSON.parse(existingCache) : {}
-    
-    cache[ethAddress.toLowerCase()] = verifiedUser
-    localStorage.setItem(cacheKey, JSON.stringify(cache))
-    
-    console.log('✅ VERIFIED CACHE: User verification cached for dashboard display')
+    // NO FALLBACK TO localStorage - CENTRALIZED DATABASE ONLY
+    console.log('⚠️ VERIFIED CACHE: Verification completed, waiting for Oracle server sync')
     
   } catch (error) {
     console.error('❌ VERIFIED CACHE: Failed to save verified user:', error)
@@ -81,44 +73,17 @@ export async function saveVerifiedUserToCache(
  * Get verified user from cache
  */
 export function getVerifiedUserFromCache(ethAddress: string): VerifiedUser | null {
-  try {
-    const cacheKey = 'verified_users_cache'
-    const existingCache = localStorage.getItem(cacheKey)
-    
-    if (!existingCache) {
-      return null
-    }
-    
-    const cache: Record<string, VerifiedUser> = JSON.parse(existingCache)
-    return cache[ethAddress.toLowerCase()] || null
-    
-  } catch (error) {
-    console.error('❌ VERIFIED CACHE: Failed to get verified user from cache:', error)
-    return null
-  }
+  // NO localStorage - CENTRALIZED DATABASE ONLY
+  console.log('ℹ️ VERIFIED CACHE: Cache lookup disabled - using centralized Oracle database only')
+  return null
 }
 
 /**
  * Remove user from cache (called when they appear in Oracle database)
  */
 export function removeUserFromCache(ethAddress: string): void {
-  try {
-    const cacheKey = 'verified_users_cache'
-    const existingCache = localStorage.getItem(cacheKey)
-    
-    if (!existingCache) {
-      return
-    }
-    
-    const cache: Record<string, VerifiedUser> = JSON.parse(existingCache)
-    delete cache[ethAddress.toLowerCase()]
-    localStorage.setItem(cacheKey, JSON.stringify(cache))
-    
-    console.log('✅ VERIFIED CACHE: User moved to Oracle database, removed from cache')
-    
-  } catch (error) {
-    console.error('❌ VERIFIED CACHE: Failed to remove user from cache:', error)
-  }
+  // NO localStorage - CENTRALIZED DATABASE ONLY
+  console.log('ℹ️ VERIFIED CACHE: Cache removal disabled - using centralized Oracle database only')
 }
 
 /**
@@ -148,26 +113,9 @@ export async function getCombinedUserProfile(ethAddress: string) {
     console.log('⚠️ COMBINED PROFILE: Oracle check failed:', error)
   }
   
-  // If not in Oracle, check verification cache
-  const cachedUser = getVerifiedUserFromCache(ethAddress)
-  if (cachedUser) {
-    console.log('✅ COMBINED PROFILE: User found in verification cache')
-    return {
-      source: 'cache' as const,
-      user: {
-        ethAddress: cachedUser.ethAddress,
-        btcAddress: cachedUser.bitcoinAddress,
-        registeredAt: new Date(cachedUser.verifiedAt).toISOString(),
-        lastSyncedBalance: 0,
-        transactionCount: 0,
-        lastSyncTime: cachedUser.verifiedAt,
-        autoDetected: false,
-        verificationSignature: cachedUser.signature
-      },
-      status: 'verified_pending' as const
-    }
-  }
+  // NO localStorage cache - CENTRALIZED DATABASE ONLY
+  console.log('ℹ️ COMBINED PROFILE: Cache lookup disabled - using centralized Oracle database only')
   
-  console.log('❌ COMBINED PROFILE: User not found in Oracle or cache')
+  console.log('❌ COMBINED PROFILE: User not found in Oracle database')
   return null
 }
