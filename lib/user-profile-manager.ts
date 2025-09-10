@@ -160,7 +160,7 @@ export class UserProfileManager {
       try {
         // CRITICAL: Use encrypted Oracle endpoint instead of public endpoint
         console.log('🔐 PROFILE: Fetching encrypted Oracle user data...')
-        console.log('🔍 PROFILE: Oracle URL:', `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`)
+        console.log('🔍 PROFILE: Oracle URL:', `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/users`)
         console.log('🔑 PROFILE: API Key present:', !!process.env.NEXT_PUBLIC_ORACLE_API_KEY)
         console.log('🔑 PROFILE: Encryption key present:', !!process.env.NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY)
         

@@ -93,17 +93,19 @@ export async function requestOracleRegistration(data: OracleRegistrationRequest)
  */
 export async function checkOracleRegistration(userAddress: string): Promise<OracleUser | null> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`, {
-      headers: {
-        'X-API-Key': process.env.NEXT_PUBLIC_ORACLE_API_KEY || ''
-      }
-    });
-    if (!response.ok) {
-      throw new Error(`Oracle API failed: ${response.status}`);
+    // Import the decryption function
+    const { getDecryptedOracleUsers } = await import('./oracle-decryption');
+    
+    // Get decrypted Oracle users
+    const decryptedData = await getDecryptedOracleUsers();
+    if (!decryptedData || !decryptedData.users) {
+      throw new Error('No decrypted Oracle data available');
     }
     
-    const users = await response.json();
-    const user = users[userAddress.toLowerCase()] || users[userAddress];
+    // Find user in decrypted data
+    const user = decryptedData.users.find((u: any) => 
+      u.ethAddress.toLowerCase() === userAddress.toLowerCase()
+    );
     
     if (user) {
       console.log('✅ User found in Oracle:', user);

@@ -173,12 +173,11 @@ export async function getDecryptedOracleUsers(): Promise<Record<string, UserData
     console.log('🔍 Connecting to Oracle server...');
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`,
+      `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/users`,
       {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': process.env.NEXT_PUBLIC_ORACLE_API_KEY || '',
           'User-Agent': 'ReserveBTC-Frontend/1.0'
         }
       }
