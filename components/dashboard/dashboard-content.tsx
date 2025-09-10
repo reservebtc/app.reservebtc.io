@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAccount, useReadContract } from 'wagmi'
 import { formatUnits } from 'viem'
 import { useRouter } from 'next/navigation'
@@ -186,14 +186,6 @@ export function DashboardContent() {
   // Contract balance updates are now handled by useUserDashboard hook
   // Legacy code removed - balances come from rBTCBalance and wrBTCBalance props
   
-  // Load fallback data if user not found in Oracle
-  useEffect(() => {
-    if (!isLoading && !error && !isVerified && bitcoinAddresses.length === 0) {
-      console.log('🔄 FALLBACK: Oracle data not found, checking fallback...')
-      loadFallbackVerifiedAddresses()
-    }
-  }, [isLoading, error, isVerified, bitcoinAddresses.length, loadFallbackVerifiedAddresses])
-
   // Detect if address is mainnet or testnet
   const isTestnetAddress = (address: string): boolean => {
     return address.startsWith('tb1') || address.startsWith('m') || address.startsWith('n') || address.startsWith('2')
@@ -223,10 +215,6 @@ export function DashboardContent() {
       return 0
     }
   }
-
-  // Bitcoin balance loading is now handled by useUserDashboard hook
-
-  // Total Bitcoin balance is now provided by useUserDashboard hook
 
   // Check for recently verified addresses not yet in Oracle
   const loadFallbackVerifiedAddresses = useCallback(async () => {
@@ -265,6 +253,14 @@ export function DashboardContent() {
       console.error('❌ FALLBACK: Failed to load recent verification:', error)
     }
   }, [address, bitcoinAddresses, isVerified])
+
+  // Load fallback data if user not found in Oracle
+  useEffect(() => {
+    if (!isLoading && !error && !isVerified && bitcoinAddresses.length === 0) {
+      console.log('🔄 FALLBACK: Oracle data not found, checking fallback...')
+      loadFallbackVerifiedAddresses()
+    }
+  }, [isLoading, error, isVerified, bitcoinAddresses.length, loadFallbackVerifiedAddresses])
 
   // Copy to clipboard function
   const copyAddress = async (text: string) => {
