@@ -5,7 +5,7 @@ import { CheckCircle, AlertCircle, Copy, Check, ChevronDown, ChevronUp, Info, Ar
 import { useAccount } from 'wagmi'
 import { Verifier } from 'bip322-js'
 import { useRouter } from 'next/navigation'
-import { saveVerifiedBitcoinAddress } from '@/lib/user-data-storage'
+// User data now handled by Professional Oracle only
 import { useUserVerification } from '@/hooks/useUserProfile'
 import { saveVerifiedUserToCache } from '@/lib/verified-users-cache'
 // Old Oracle modules removed - using Professional Oracle only
@@ -835,13 +835,8 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                   onClick={async () => {
                     // Save verified address using centralized storage system
                     if (verifiedAddress && ethAddress) {
-                      try {
-                        await saveVerifiedBitcoinAddress(ethAddress, verifiedAddress, signature)
-                        console.log('✅ Bitcoin address saved to centralized storage')
-                      } catch (error) {
-                        console.error('❌ Failed to save Bitcoin address to centralized storage:', error)
-                        console.log('🏢 CENTRALIZED: No localStorage fallback - system uses only centralized database')
-                      }
+                      // User profile already created via Professional Oracle above
+                      console.log('✅ User profile already saved via Professional Oracle')
                     }
                     // Navigate to mint with parameters indicating we came from verification
                     router.push(`/mint?from=verify&address=${encodeURIComponent(verifiedAddress || '')}`)

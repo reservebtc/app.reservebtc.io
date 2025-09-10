@@ -15,7 +15,7 @@ import { CONTRACTS } from '@/app/lib/contracts'
 import { getVerifiedBitcoinAddresses, saveVerifiedBitcoinAddress } from '@/lib/user-data-storage'
 import { requestOracleRegistration, checkOracleRegistration, waitForOracleRegistration } from '@/lib/oracle-integration'
 import { getTransactionHashForOracleUser } from '@/lib/transaction-hash-cache'
-import { getDecryptedOracleUsers, findOracleUserByCorrelation } from '@/lib/oracle-decryption'
+import { oracleService } from '@/lib/oracle-service'
 import { useMintProtection } from '@/lib/mint-protection'
 
 interface MintRBTCProps {
@@ -61,22 +61,15 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     try {
       console.log('🔍 Resolving real transaction hash for:', ethereumAddress)
       
-      // Get Oracle users data
-      const oracleUsersData = await getDecryptedOracleUsers()
-      if (!oracleUsersData) {
-        console.log('❌ No Oracle users data available')
-        return null
-      }
-
-      // Find user by correlation
-      const userData = findOracleUserByCorrelation(oracleUsersData, ethereumAddress)
+      // Find user by correlation using Oracle Service
+      const userData = await oracleService.findUserByCorrelation(ethereumAddress)
       if (!userData) {
         console.log('❌ User not found in Oracle data')
         return null
       }
 
       // Get transaction hash using cache system
-      const userIndex = oracleUsersData?.findIndex(user => user === userData) || 0
+      const userIndex = 0 // Professional Oracle doesn't use array indexes
       const realHash = await getTransactionHashForOracleUser(
         userIndex.toString(),
         userData,
@@ -723,23 +716,12 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       }
 
       try {
-        console.log('🔍 Fetching transaction hash from Oracle user data...')
-        const { getOracleUsersData, findOracleUserByCorrelation } = await import('@/lib/oracle-decryption')
+        console.log('🔍 Fetching user data from Oracle Service...')
         
-        const oracleUsersData = await getOracleUsersData()
-        if (!oracleUsersData) {
-          throw new Error('Failed to fetch Oracle users data')
-        }
+        // Use correlation strategy to find the user using Oracle Service
+        const userData = await oracleService.findUserByCorrelation(address)
 
-        // Use correlation strategy to find the user (since Oracle uses hashed keys)
-        const userData = findOracleUserByCorrelation(
-          oracleUsersData,
-          address,
-          undefined, // No blockchain balance available at this point
-          Date.now() // Use current time for recent mint correlation
-        )
-
-        if (userData && userData.transactionCount > 0) {
+        if (userData && (userData.transactionCount || 0) > 0) {
           console.log('✅ Found correlated Oracle user with', userData.transactionCount, 'transactions')
           console.log('💰 Oracle user balance:', userData.lastSyncedBalance, 'sats')
           
@@ -748,7 +730,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           console.log('ℹ️ Oracle user confirmed with transaction activity')
           
           // Check if we should update auto-discovery timing based on Oracle activity
-          if (userData.transactionCount >= 1) {
+          if ((userData.transactionCount || 0) >= 1) {
             console.log('⚡ Oracle shows transaction activity - mint may be processed')
           }
         } else {

@@ -26,7 +26,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { CONTRACTS } from '@/app/lib/contracts'
-import { getDecryptedOracleUsers } from '@/lib/oracle-decryption'
+import { oracleService } from '@/lib/oracle-service'
 
 interface VerifiedAddress {
   address: string

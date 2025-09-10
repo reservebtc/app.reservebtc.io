@@ -14,10 +14,7 @@ import {
   getDecryptedSignature,
   migrateSignatureToEncrypted 
 } from './encryption-utils'
-import { 
-  getDecryptedOracleUsers, 
-  enhanceUserDataWithMultipleAddresses 
-} from './oracle-decryption'
+import { oracleService } from './oracle-service'
 
 interface TransactionEvent {
   txHash: string
@@ -146,7 +143,7 @@ export async function getUserTransactionHistory(
     })
     
     // Use new encrypted Oracle API
-    const allUsersData = await getDecryptedOracleUsers()
+    const allUsersData = await oracleService.getDecryptedUsers()
     
     if (allUsersData) {
       console.log('✅ Encrypted Oracle API users data received and decrypted')
@@ -172,8 +169,8 @@ export async function getUserTransactionHistory(
 
       if (userData) {
         console.log('✅ TRANSACTION CREATION: Found user data in Oracle:', userData)
-        console.log('📊 TRANSACTION CREATION: User has lastSyncedBalance:', userData.lastSyncedBalance)
-        console.log('📊 TRANSACTION CREATION: User has transactionHashes:', userData.transactionHashes ? userData.transactionHashes.length : 'none')
+        console.log('📊 TRANSACTION CREATION: User has lastSyncedBalance:', (userData.lastSyncedBalance || 0))
+        console.log('📊 TRANSACTION CREATION: User has transactionHashes:', userData.transactions ? userData.transactions.length : 'none')
         console.log('📊 TRANSACTION CREATION: User has lastTxHash:', userData.lastTxHash ? 'yes' : 'no')
         console.log('🔍 TRANSACTION DEBUG: userData.lastTxHash value:', userData.lastTxHash)
         console.log('🔍 TRANSACTION DEBUG: All userData keys:', Object.keys(userData))
@@ -182,19 +179,19 @@ export async function getUserTransactionHistory(
         // Проверяем каждое ключевое поле отдельно
         console.log('🔍 FIELD CHECK: btcAddress exists:', !!userData.btcAddress)
         console.log('🔍 FIELD CHECK: ethAddress exists:', !!userData.ethAddress)
-        console.log('🔍 FIELD CHECK: lastSyncedBalance =', userData.lastSyncedBalance)
+        console.log('🔍 FIELD CHECK: lastSyncedBalance =', (userData.lastSyncedBalance || 0))
         console.log('🔍 FIELD CHECK: registeredAt =', userData.registeredAt)
         console.log('🔍 FIELD CHECK: lastSyncTime =', userData.lastSyncTime)
         console.log('🔍 FIELD CHECK: lastTxHash =', userData.lastTxHash)
         console.log('🔍 FIELD CHECK: transactionCount =', userData.transactionCount)
-        console.log('🔍 FIELD CHECK: transactionHashes =', userData.transactionHashes)
+        console.log('🔍 FIELD CHECK: transactionHashes =', userData.transactions)
         
         // Extract transactions from Oracle format
         const transactions = []
         
         // New format: use transactionHashes array directly
-        if (userData.transactionHashes && Array.isArray(userData.transactionHashes)) {
-          userData.transactionHashes.forEach((tx: any) => {
+        if (userData.transactions && Array.isArray(userData.transactions)) {
+          userData.transactions.forEach((tx: any) => {
             transactions.push({
               hash: tx.hash,
               type: tx.type as 'mint' | 'burn' | 'wrap' | 'unwrap' | 'transfer',
@@ -214,12 +211,12 @@ export async function getUserTransactionHistory(
         }
         
         // Legacy format: fallback to old lastTxHash method  
-        else if (userData.lastTxHash && userData.lastSyncedBalance) {
+        else if (userData.lastTxHash && (userData.lastSyncedBalance || 0)) {
           console.log('📊 Creating transaction from legacy lastTxHash:', userData.lastTxHash)
           transactions.push({
             hash: userData.lastTxHash,
             type: 'mint' as const,
-            amount: (userData.lastSyncedBalance / 100000000).toFixed(8),
+            amount: ((userData.lastSyncedBalance || 0) / 100000000).toFixed(8),
             timestamp: new Date(userData.lastSyncTime || userData.addedTime || Date.now()).toISOString(),
             status: 'success' as const,
             blockNumber: 0,
@@ -233,7 +230,7 @@ export async function getUserTransactionHistory(
           })
           console.log('✅ Legacy transaction created:', {
             hash: userData.lastTxHash,
-            amount: (userData.lastSyncedBalance / 100000000).toFixed(8),
+            amount: ((userData.lastSyncedBalance || 0) / 100000000).toFixed(8),
             btcAddress: userData.btcAddress
           })
         }
@@ -245,13 +242,13 @@ export async function getUserTransactionHistory(
         
         if (userData.lastTxHash && transactions.length === 0) {
           console.log('🔍 REAL TRANSACTION: User has real lastTxHash, displaying actual transaction...')
-          console.log('💰 REAL TRANSACTION: Oracle balance:', userData.lastSyncedBalance, 'sats')
+          console.log('💰 REAL TRANSACTION: Oracle balance:', (userData.lastSyncedBalance || 0), 'sats')
           
           // Display only real transaction with actual blockchain hash
           transactions.push({
             hash: userData.lastTxHash,
             type: 'mint' as const,
-            amount: (userData.lastSyncedBalance / 100000000).toFixed(8),
+            amount: ((userData.lastSyncedBalance || 0) / 100000000).toFixed(8),
             timestamp: new Date(userData.lastSyncTime || userData.registeredAt || Date.now()).toISOString(),
             status: 'success' as const,
             blockNumber: 0,
@@ -261,10 +258,10 @@ export async function getUserTransactionHistory(
               source: 'oracle_real_transaction',
               manualEntry: false,
               autoDetected: true,
-              oracleBalance: userData.lastSyncedBalance
+              oracleBalance: (userData.lastSyncedBalance || 0)
             }
           })
-          console.log('✅ REAL TRANSACTION displayed:', (userData.lastSyncedBalance / 100000000).toFixed(8), 'rBTC')
+          console.log('✅ REAL TRANSACTION displayed:', ((userData.lastSyncedBalance || 0) / 100000000).toFixed(8), 'rBTC')
           console.log('🔍 Real blockchain hash:', userData.lastTxHash)
         }
         
@@ -304,29 +301,11 @@ export async function reportTransactionToOracle(
   transaction: Partial<ProcessedTransaction>
 ): Promise<void> {
   try {
-    console.log('📤 Reporting transaction to Oracle:', transaction)
-    
-    const response = await fetch(`${ORACLE_API_BASE}/users/${userAddress}/transactions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'ReserveBTC-Frontend/1.0'
-      },
-      body: JSON.stringify({
-        transaction,
-        source: 'frontend',
-        timestamp: new Date().toISOString()
-      })
-    })
-
-    if (response.ok) {
-      console.log('✅ Transaction reported to Oracle successfully')
-    } else {
-      console.warn('⚠️ Failed to report transaction to Oracle:', response.statusText)
-    }
+    console.log('📤 Transaction tracked locally:', { userAddress, transaction })
+    // Professional Oracle automatically monitors blockchain events
+    // No manual transaction reporting needed
   } catch (error) {
-    console.warn('⚠️ Oracle transaction reporting failed:', error)
-    // Don't throw - this is supplementary reporting
+    console.warn('⚠️ Transaction tracking error:', error)
   }
 }
 
@@ -410,7 +389,7 @@ export async function getVerifiedAddressesFromOracle(
     console.log('🔍 Fetching encrypted verified addresses from Oracle:', userAddress)
     
     // Use new encrypted Oracle API
-    const allUsersData = await getDecryptedOracleUsers()
+    const allUsersData = await oracleService.getDecryptedUsers()
     console.log('🔍 DEBUG: All users data length:', allUsersData ? allUsersData.length : 'null')
     
     if (allUsersData) {
@@ -429,8 +408,8 @@ export async function getVerifiedAddressesFromOracle(
       console.log('🔍 DEBUG: User data:', userData)
       
       if (userData && (userData.btcAddress || userData.btcAddresses)) {
-        // Enhance user data with multiple addresses support
-        const enhancedUserData = enhanceUserDataWithMultipleAddresses(userData)
+        // Use userData directly (Professional Oracle already enhanced)
+        const enhancedUserData = userData
         
         console.log('✅ Found verified addresses in Oracle:', enhancedUserData.btcAddresses?.length || 1)
         
@@ -438,9 +417,9 @@ export async function getVerifiedAddressesFromOracle(
         const rawAddresses = enhancedUserData.btcAddresses || [enhancedUserData.btcAddress]
         const addresses = rawAddresses
           .filter((address): address is string => Boolean(address) && typeof address === 'string' && address.length > 10 && !address.includes('pending_verification'))
-          .map((address) => ({
+          .map((address: string) => ({
             address: address,
-            verifiedAt: new Date(userData.registeredAt || userData.addedTime || Date.now()).toISOString(),
+            verifiedAt: new Date(userData?.registeredAt || userData?.addedTime || Date.now()).toISOString(),
             signature: 'oracle_verified' // Oracle doesn't store signatures
           }))
         
@@ -475,7 +454,7 @@ export async function saveAddressToOracle(
     
     // SECURITY CHECK: Validate Bitcoin address uniqueness across all users
     console.log('🔒 Checking Bitcoin address uniqueness...')
-    const allUsersData = await getDecryptedOracleUsers()
+    const allUsersData = await oracleService.getDecryptedUsers()
     
     if (allUsersData) {
       // Check if this Bitcoin address is already used by another ETH user

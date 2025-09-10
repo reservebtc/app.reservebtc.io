@@ -91,10 +91,10 @@ export function removeUserFromCache(ethAddress: string): void {
  */
 export async function getCombinedUserProfile(ethAddress: string) {
   // First try to get from Oracle (official source)
-  const { getDecryptedOracleUsers } = await import('./oracle-decryption')
+  const { oracleService } = await import('./oracle-service')
   
   try {
-    const oracleUsers = await getDecryptedOracleUsers()
+    const oracleUsers = await oracleService.getDecryptedUsers()
     const oracleUser = oracleUsers?.find(user => 
       user.ethAddress?.toLowerCase() === ethAddress.toLowerCase()
     )

@@ -10,7 +10,7 @@
  * - Automatic data placement in correct UI locations
  */
 
-import { getDecryptedOracleUsers } from './oracle-decryption'
+import { oracleService } from './oracle-service'
 import { encryptSensitiveData, decryptSensitiveData } from './encryption-utils'
 import crypto from 'crypto'
 
@@ -165,7 +165,7 @@ export class UserProfileManager {
         console.log('🔑 PROFILE: Encryption key present:', !!process.env.NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY)
         
         // Use encrypted endpoint with API key authentication
-        const encryptedData = await getDecryptedOracleUsers()
+        const encryptedData = await oracleService.getDecryptedUsers()
         
         if (!encryptedData) {
           throw new Error('Oracle encrypted endpoint returned no data - check environment variables')
@@ -208,7 +208,7 @@ export class UserProfileManager {
           console.log('🔄 PROFILE: Attempting fresh Oracle data fetch...')
           try {
             await new Promise(resolve => setTimeout(resolve, 2000)) // Wait 2 seconds
-            const freshEncryptedData = await getDecryptedOracleUsers()
+            const freshEncryptedData = await oracleService.getDecryptedUsers()
             
             if (freshEncryptedData) {
               console.log('🔄 PROFILE: Fresh Oracle data received')
@@ -412,7 +412,7 @@ export class UserProfileManager {
     // Clear any cached Oracle data by forcing a fresh request
     // This helps when a user just verified but isn't showing up yet
     try {
-      const freshData = await getDecryptedOracleUsers()
+      const freshData = await oracleService.getDecryptedUsers()
       console.log('🔄 PROFILE: Fresh Oracle data fetched')
       console.log('📊 PROFILE: Fresh user count:', freshData ? Object.keys(freshData).length : 0)
       // PRIVACY: Don't log actual addresses, only count
