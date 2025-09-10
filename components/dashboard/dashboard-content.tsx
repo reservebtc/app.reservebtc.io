@@ -79,10 +79,26 @@ export function DashboardContent() {
     mostActiveContract,
     averageTransactionValue,
     dataCompletenessScore,
+    fullProfile,
     isLoading,
     error,
     refreshProfile
   } = useUserDashboard()
+
+  // Log useUserDashboard hook results
+  console.log('🔍 DASHBOARD: useUserDashboard hook results:')
+  console.log('   - totalBalance:', totalBalance)
+  console.log('   - rBTCBalance:', rBTCBalance) 
+  console.log('   - wrBTCBalance:', wrBTCBalance)
+  console.log('   - bitcoinAddresses:', bitcoinAddresses)
+  console.log('   - bitcoinAddresses length:', bitcoinAddresses?.length)
+  console.log('   - recentTransactions:', recentTransactions)
+  console.log('   - recentTransactions length:', recentTransactions?.length)
+  console.log('   - isVerified:', isVerified)
+  console.log('   - isLoading:', isLoading)
+  console.log('   - error:', error)
+  console.log('   - address:', address)
+  console.log('   - useUserDashboard hook is active, monitoring profile loading...')
   
   // Local state for UI interactions
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
@@ -339,7 +355,13 @@ export function DashboardContent() {
             <span className="text-xs bg-blue-500/10 text-blue-600 px-2 py-1 rounded">Soulbound</span>
           </div>
           <div className="text-2xl font-bold">
-            {rBTCBalance}
+            {(() => {
+              console.log('🔍 DASHBOARD: rBTC-SYNTH Balance Display')
+              console.log('   - rBTCBalance prop:', rBTCBalance)
+              console.log('   - Type of rBTCBalance:', typeof rBTCBalance)
+              console.log('   - Data source: useUserDashboard hook')
+              return rBTCBalance
+            })()}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Non-transferable token
@@ -354,11 +376,29 @@ export function DashboardContent() {
               <span className="font-medium">Oracle Status</span>
             </div>
             <span className="text-xs bg-green-500/10 text-green-600 px-2 py-1 rounded">
-              {isVerified ? 'Synced' : 'No Data'}
+              {(() => {
+                console.log('🔍 DASHBOARD: Oracle Status Display')
+                console.log('   - isVerified:', isVerified)
+                console.log('   - Data from useUserDashboard hook')
+                console.log('   - Address:', address)
+                console.log('   - Displaying:', isVerified ? 'Synced' : 'No Data')
+                return isVerified ? 'Synced' : 'No Data'
+              })()}
             </span>
           </div>
           <div className="text-2xl font-bold">
-            {totalBalance}
+            {(() => {
+              console.log('🔍 DASHBOARD: Oracle Synchronized Balance Display')
+              console.log('   - totalBalance prop:', totalBalance)
+              console.log('   - Type of totalBalance:', typeof totalBalance)
+              console.log('   - Profile available:', !!fullProfile)
+              if (fullProfile) {
+                console.log('   - Profile userStatistics:', fullProfile.userStatistics)
+                console.log('   - Profile transactionHistory:', fullProfile.transactionHistory)
+                console.log('   - Profile walletInformation:', fullProfile.walletInformation)
+              }
+              return totalBalance
+            })()}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Oracle synchronized balance
@@ -375,7 +415,13 @@ export function DashboardContent() {
             <span className="text-xs bg-purple-500/10 text-purple-600 px-2 py-1 rounded">Transferable</span>
           </div>
           <div className="text-2xl font-bold">
-            {wrBTCBalance}
+            {(() => {
+              console.log('🔍 DASHBOARD: wrBTC Balance Display')
+              console.log('   - wrBTCBalance prop:', wrBTCBalance)
+              console.log('   - Type of wrBTCBalance:', typeof wrBTCBalance)
+              console.log('   - Data from useUserDashboard hook')
+              return wrBTCBalance
+            })()}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             <Link 
@@ -406,7 +452,13 @@ export function DashboardContent() {
 
         {/* Warning for limited data - removed legacy Oracle direct access */}
 
-        {bitcoinAddresses.length === 0 ? (
+        {(() => {
+          console.log('🔍 DASHBOARD: Bitcoin Addresses Section')
+          console.log('   - bitcoinAddresses prop:', bitcoinAddresses)
+          console.log('   - Length:', bitcoinAddresses.length)
+          console.log('   - Data from useUserDashboard hook')
+          return bitcoinAddresses.length === 0
+        })() ? (
           <div className="text-center py-8">
             <Bitcoin className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-medium mb-2">No Bitcoin Addresses</h3>
@@ -505,7 +557,14 @@ export function DashboardContent() {
           </div>
         </div>
 
-        {recentTransactions.length === 0 ? (
+        {(() => {
+          console.log('🔍 DASHBOARD: Transaction History Section')
+          console.log('   - recentTransactions prop:', recentTransactions)
+          console.log('   - Length:', recentTransactions.length)
+          console.log('   - Profile available:', !!fullProfile)
+          console.log('   - Data from useUserDashboard hook')
+          return recentTransactions.length === 0
+        })() ? (
           <div className="text-center py-8">
             <History className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-medium mb-2">No Transactions</h3>
