@@ -8,9 +8,11 @@ interface EncryptedOracleResponse {
   encrypted: boolean;
   data: string;
   iv: string;
+  authTag?: string;
   algorithm: string;
   timestamp: string;
   note?: string;
+  additionalData?: string;
 }
 
 interface UserData {
@@ -80,20 +82,29 @@ export async function decryptOracleData(encryptedResponse: EncryptedOracleRespon
         const ivBuffer = new Uint8Array(
           encryptedResponse.iv.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
         );
-        const encryptedBuffer = new Uint8Array(
+        // For AES-GCM, combine encrypted data with authTag
+        const encryptedDataBuffer = new Uint8Array(
           encryptedResponse.data.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
         );
+        const authTagBuffer = new Uint8Array(
+          encryptedResponse.authTag?.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []
+        );
+        
+        // Combine encrypted data and auth tag for GCM
+        const encryptedBuffer = new Uint8Array(encryptedDataBuffer.length + authTagBuffer.length);
+        encryptedBuffer.set(encryptedDataBuffer);
+        encryptedBuffer.set(authTagBuffer, encryptedDataBuffer.length);
         
         const cryptoKey = await crypto.subtle.importKey(
           'raw',
           keyBuffer,
-          { name: 'AES-CBC' },
+          { name: 'AES-GCM' },
           false,
           ['decrypt']
         );
         
         const decryptedBuffer = await crypto.subtle.decrypt(
-          { name: 'AES-CBC', iv: ivBuffer },
+          { name: 'AES-GCM', iv: ivBuffer },
           cryptoKey,
           encryptedBuffer
         );

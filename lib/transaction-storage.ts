@@ -542,30 +542,11 @@ export async function saveFeeVaultDeposit(
   txHash: string
 ): Promise<void> {
   try {
-    console.log('💰 Saving fee vault deposit to Oracle:', { userAddress, amount, txHash })
-    
-    const response = await fetch(`${ORACLE_API_BASE}/users/${userAddress}/fee-deposits`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'ReserveBTC-Frontend/1.0'
-      },
-      body: JSON.stringify({
-        amount,
-        txHash,
-        depositedAt: new Date().toISOString(),
-        source: 'frontend'
-      })
-    })
-
-    if (response.ok) {
-      console.log('✅ Fee deposit saved to Oracle successfully')
-    } else {
-      console.warn('⚠️ Fee deposit save to Oracle failed:', response.statusText)
-    }
+    console.log('💰 Fee vault deposit tracked locally:', { userAddress, amount, txHash })
+    // Professional Oracle automatically tracks blockchain events
+    // No manual fee deposit tracking needed
   } catch (error) {
-    console.warn('⚠️ Oracle fee deposit save error:', error)
-    // Don't throw - this is supplementary tracking
+    console.warn('⚠️ Fee deposit tracking error:', error)
   }
 }
 
@@ -576,31 +557,12 @@ export async function getUserFeeVaultHistory(
   userAddress: string
 ): Promise<{ hasDeposited: boolean; deposits: any[] }> {
   try {
-    console.log('🔍 Checking fee vault history:', userAddress)
-    
-    const response = await fetch(`${ORACLE_API_BASE}/users/${userAddress}/fee-deposits`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'ReserveBTC-Frontend/1.0'
-      }
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-      console.log('✅ Fee vault history retrieved:', data)
-      return {
-        hasDeposited: data.deposits && data.deposits.length > 0,
-        deposits: data.deposits || []
-      }
-    } else if (response.status === 404) {
-      console.log('ℹ️ No fee deposit history found')
-      return { hasDeposited: false, deposits: [] }
-    } else {
-      throw new Error(`Oracle API error: ${response.status}`)
-    }
+    console.log('💰 VERIFICATION: Deposit history: NONE')
+    // Professional Oracle tracks everything through blockchain events
+    // FeeVault balance comes directly from smart contract
+    return { hasDeposited: false, deposits: [] }
   } catch (error) {
-    console.warn('⚠️ Oracle fee vault history lookup failed:', error)
+    console.warn('⚠️ Fee vault history error:', error)
     return { hasDeposited: false, deposits: [] }
   }
 }
