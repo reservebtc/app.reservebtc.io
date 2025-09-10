@@ -537,7 +537,15 @@ export function DashboardContent() {
             </span>
           </div>
           <div className="text-2xl font-bold">
-            {totalBalance}
+            {(() => {
+              console.log('🔍 DASHBOARD: Oracle Status Balance Calculation')
+              console.log('   - totalBalance from hook:', totalBalance)
+              console.log('   - rBTCBalance:', rBTCBalance)
+              console.log('   - wrBTCBalance:', wrBTCBalance)
+              console.log('   - bitcoinMainnetBalance:', bitcoinMainnetBalance)
+              console.log('   - bitcoinTestnetBalance:', bitcoinTestnetBalance)
+              return totalBalance
+            })()}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Oracle synchronized balance

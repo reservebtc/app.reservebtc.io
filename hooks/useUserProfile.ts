@@ -265,7 +265,7 @@ export function useUserProfile(): UserProfileHookState {
       totalBitcoinBalance += balance
     })
     
-    const totalBalance = rBTCBalance + wrBTCBalance
+    const totalBalance = rBTCBalance + wrBTCBalance + totalBitcoinBalance
 
     // Get recent transactions (last 10 from all types)
     const allTransactions = [
