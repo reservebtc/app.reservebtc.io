@@ -306,5 +306,9 @@ check-oracle-test-address.js
 # Oracle synchronization test script
 test-oracle-synchronization.js
 
+# Oracle decryption debug scripts
+debug-oracle-decryption.js
+debug-oracle-*.js
+
 # Technical documentation - INTERNAL USE ONLY
 HASH_SYSTEM_TECHNICAL_DOCUMENTATION.md

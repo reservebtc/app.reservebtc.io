@@ -233,20 +233,20 @@ export async function getDecryptedOracleUsers(): Promise<Record<string, UserData
     );
 
     if (!response.ok) {
-      console.error('❌ UNIVERSAL ERROR: Encrypted endpoint failed:', response.status, response.statusText);
-      console.error('❌ UNIVERSAL ERROR: Response details:', await response.text().catch(() => 'Could not read response'));
-      console.error('❌ UNIVERSAL ERROR: Request URL:', `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`);
-      console.error('❌ UNIVERSAL ERROR: API Key present:', !!process.env.NEXT_PUBLIC_ORACLE_API_KEY);
-      console.error('❌ UNIVERSAL ERROR: Encryption key present:', !!process.env.NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY);
-      console.log('🔄 FALLBACK: Trying public /users endpoint...');
-      const publicData = await getOracleUsersData();
-      if (publicData) {
-        console.log('✅ FALLBACK SUCCESS: Public endpoint returned', Object.keys(publicData).length, 'users');
-        console.log('⚠️ WARNING: Using PUBLIC DATA with hashed addresses - no real transactions available!');
-      } else {
-        console.error('❌ UNIVERSAL ERROR: Both encrypted and public endpoints failed!');
-      }
-      return publicData;
+      console.error('❌ DASHBOARD ERROR: Encrypted Oracle endpoint failed:', response.status, response.statusText);
+      console.error('❌ DASHBOARD ERROR: Response details:', await response.text().catch(() => 'Could not read response'));
+      console.error('❌ DASHBOARD ERROR: Request URL:', `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`);
+      console.error('❌ DASHBOARD ERROR: API Key present:', !!process.env.NEXT_PUBLIC_ORACLE_API_KEY);
+      console.error('❌ DASHBOARD ERROR: API Key value (first 10 chars):', process.env.NEXT_PUBLIC_ORACLE_API_KEY?.substring(0, 10) + '...');
+      console.error('❌ DASHBOARD ERROR: Encryption key present:', !!process.env.NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY);
+      console.error('❌ DASHBOARD ERROR: This means user profile cannot load - encrypted data is REQUIRED');
+      console.error('❌ DASHBOARD ERROR: Check Vercel environment variables configuration');
+      
+      // CRITICAL: Do not fallback to public endpoint - we need real addresses
+      console.error('🚨 DASHBOARD CRITICAL: Cannot use public endpoint fallback - it returns hashed addresses');
+      console.error('🚨 DASHBOARD CRITICAL: User dashboard will show empty state until encrypted endpoint works');
+      
+      throw new Error(`Oracle encrypted endpoint failed: ${response.status} - Check API key configuration`);
     }
 
     const encryptedResponse: EncryptedOracleResponse = await response.json();
@@ -259,23 +259,40 @@ export async function getDecryptedOracleUsers(): Promise<Record<string, UserData
     }
 
     const decryptedData = await decryptOracleData(encryptedResponse);
-    console.log('🔍 DEBUG: Decrypted data keys:', decryptedData ? Object.keys(decryptedData).length : 'null');
+    
     if (decryptedData) {
-      console.log('🔍 DEBUG: Sample user keys:', Object.keys(decryptedData).slice(0, 3));
+      console.log('✅ DASHBOARD SUCCESS: Oracle data decrypted successfully!');
+      console.log('📊 DASHBOARD SUCCESS: Total users found:', Object.keys(decryptedData).length);
+      console.log('👥 DASHBOARD SUCCESS: User addresses in Oracle:');
+      
+      Object.keys(decryptedData).forEach((address, index) => {
+        const user = decryptedData[address];
+        console.log(`   ${index + 1}. ${address}`);
+        console.log(`      BTC: ${user.btcAddress || 'N/A'}`);
+        console.log(`      Balance: ${user.lastSyncedBalance || 0} sats (${((user.lastSyncedBalance || 0) / 100000000).toFixed(8)} BTC)`);
+        console.log(`      Last TX: ${user.lastTxHash || 'N/A'}`);
+        console.log(`      Registered: ${user.registeredAt || 'N/A'}`);
+      });
+      
+      console.log('📋 DASHBOARD SUCCESS: Oracle decryption complete - user lookup can proceed');
+    } else {
+      console.error('❌ DASHBOARD ERROR: Decryption returned null data');
     }
+    
     return decryptedData;
 
   } catch (error) {
-    console.error('❌ UNIVERSAL ERROR: Failed to fetch/decrypt Oracle data:', error);
-    console.error('❌ UNIVERSAL ERROR: Error details:', error instanceof Error ? error.message : String(error));
-    console.log('🔄 FINAL FALLBACK: Attempting public endpoint as last resort...');
-    const fallbackData = await getOracleUsersData();
-    if (fallbackData) {
-      console.log('✅ FINAL FALLBACK SUCCESS: Public endpoint saved the day with', Object.keys(fallbackData).length, 'users');
-    } else {
-      console.error('❌ UNIVERSAL ERROR: Complete system failure - no Oracle data available!');
-    }
-    return fallbackData;
+    console.error('❌ DASHBOARD CRITICAL: Failed to fetch/decrypt Oracle data:', error);
+    console.error('❌ DASHBOARD CRITICAL: Error details:', error instanceof Error ? error.message : String(error));
+    console.error('🚨 DASHBOARD CRITICAL: No fallback available - encrypted endpoint is REQUIRED');
+    console.error('🚨 DASHBOARD CRITICAL: User will see empty dashboard until this is fixed');
+    console.error('🚨 DASHBOARD CRITICAL: Check these Vercel environment variables:');
+    console.error('   - NEXT_PUBLIC_ORACLE_API_KEY should be: internal-api-key-reservebtc-site-2025');
+    console.error('   - NEXT_PUBLIC_ORACLE_BASE_URL should be: https://oracle.reservebtc.io');
+    console.error('   - NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY should be: 3fc8e1758b839...');
+    
+    // Do not return fallback data - throw error to show user what's wrong
+    throw new Error('Oracle encrypted endpoint required for user dashboard - check environment variables');
   }
 }
 
