@@ -263,17 +263,7 @@ export async function getDecryptedOracleUsers(): Promise<Record<string, UserData
     if (decryptedData) {
       console.log('✅ DASHBOARD SUCCESS: Oracle data decrypted successfully!');
       console.log('📊 DASHBOARD SUCCESS: Total users found:', Object.keys(decryptedData).length);
-      console.log('👥 DASHBOARD SUCCESS: User addresses in Oracle:');
-      
-      Object.keys(decryptedData).forEach((address, index) => {
-        const user = decryptedData[address];
-        console.log(`   ${index + 1}. ${address}`);
-        console.log(`      BTC: ${user.btcAddress || 'N/A'}`);
-        console.log(`      Balance: ${user.lastSyncedBalance || 0} sats (${((user.lastSyncedBalance || 0) / 100000000).toFixed(8)} BTC)`);
-        console.log(`      Last TX: ${user.lastTxHash || 'N/A'}`);
-        console.log(`      Registered: ${user.registeredAt || 'N/A'}`);
-      });
-      
+      console.log('🔐 PRIVACY: User data decrypted (details protected)');
       console.log('📋 DASHBOARD SUCCESS: Oracle decryption complete - user lookup can proceed');
     } else {
       console.error('❌ DASHBOARD ERROR: Decryption returned null data');
@@ -310,7 +300,7 @@ export function findOracleUserByCorrelation(
     return null;
   }
 
-  console.log('🔍 Attempting user correlation for address:', ethereumAddress);
+  console.log('🔍 Attempting user correlation for address:', ethereumAddress.substring(0, 10) + '...');
   console.log('🔍 Available Oracle users:', Object.keys(oracleUsersData).length);
 
   const users = Object.entries(oracleUsersData);
@@ -422,7 +412,7 @@ export function enhanceUserDataWithMultipleAddresses(userData: UserData): UserDa
             (address.startsWith('bc1') || address.startsWith('tb1') || address.startsWith('1') || address.startsWith('3'))) {
           
           if (userData.btcAddresses && !userData.btcAddresses.includes(address)) {
-            console.log('📍 Found additional Bitcoin address in transactions:', address);
+            console.log('📍 Found additional Bitcoin address in transactions');
             userData.btcAddresses!.push(address);
           } else {
             console.log(`    Address already exists or btcAddresses not initialized`);
@@ -445,12 +435,7 @@ export function enhanceUserDataWithMultipleAddresses(userData: UserData): UserDa
   }
 
   console.log('✅ Enhanced user data with addresses:', userData.btcAddresses?.length || 0);
-  if (userData.btcAddresses && userData.btcAddresses.length > 0) {
-    console.log('📋 Final addresses list:');
-    userData.btcAddresses.forEach((addr, i) => {
-      console.log(`  ${i + 1}. ${addr}`);
-    });
-  }
+  // PRIVACY: Don't log actual Bitcoin addresses - only count for security
   return userData;
 }
 

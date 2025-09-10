@@ -173,10 +173,19 @@ export class UserProfileManager {
         
         console.log('✅ PROFILE: Oracle encrypted data decrypted successfully!')
         console.log('📊 PROFILE: Total users found:', Object.keys(encryptedData).length)
-        console.log('👥 PROFILE: Available user addresses:', Object.keys(encryptedData))
+        
+        // PRIVACY: Only log information about current user lookup - never expose other users
+        console.log('🔍 PROFILE: Looking for current user:', userAddress.substring(0, 10) + '...')
+        console.log('🔍 PROFILE: Looking for current user (lowercase):', userAddress.toLowerCase().substring(0, 10) + '...')
+        
+        // Check if current user exists without exposing other addresses
+        const currentUserExists = Object.keys(encryptedData).some(addr => 
+          addr.toLowerCase() === userAddress.toLowerCase()
+        )
+        console.log('🔍 PROFILE: Current user found in Oracle:', currentUserExists)
         
         // Find user by real Ethereum address (case-insensitive)
-        console.log('🔍 PROFILE: Looking for user:', userAddress)
+        console.log('🔍 PROFILE: Starting user lookup process...')
         let userData = encryptedData[userAddress.toLowerCase()] || encryptedData[userAddress]
         
         // If not found, try case-insensitive lookup through all keys
@@ -192,9 +201,42 @@ export class UserProfileManager {
         }
         
         if (!userData) {
-          console.log(`❌ PROFILE: No profile found for ${userAddress.substring(0, 10)}...`)
-          console.log('❌ PROFILE: Available addresses in Oracle:', Object.keys(encryptedData))
-          return null
+          console.log(`❌ PROFILE: USER NOT FOUND IN ORACLE!`)
+          console.log(`❌ PROFILE: Searched for address: ${userAddress.substring(0, 10)}...`)
+          console.log('❌ PROFILE: Total users in Oracle:', Object.keys(encryptedData).length)
+          console.log('❌ PROFILE: This means either:')
+          console.log('❌ PROFILE:   1. Address was not successfully verified on /verify page')
+          console.log('❌ PROFILE:   2. Verification succeeded but Oracle sync failed')
+          console.log('❌ PROFILE:   3. There is a delay in Oracle synchronization')
+          
+          // Try one more time with fresh Oracle data (in case of sync delay)
+          console.log('🔄 PROFILE: Attempting fresh Oracle data fetch...')
+          try {
+            await new Promise(resolve => setTimeout(resolve, 2000)) // Wait 2 seconds
+            const freshEncryptedData = await getDecryptedOracleUsers()
+            
+            if (freshEncryptedData) {
+              console.log('🔄 PROFILE: Fresh Oracle data received')
+              console.log('📊 PROFILE: Fresh user count:', Object.keys(freshEncryptedData).length)
+              
+              // Check if current user exists in fresh data without exposing other addresses
+              const targetAddress = userAddress.toLowerCase()
+              for (const [key, data] of Object.entries(freshEncryptedData)) {
+                if (key.toLowerCase() === targetAddress) {
+                  userData = data
+                  console.log('✅ PROFILE: Found user in fresh Oracle data!')
+                  break
+                }
+              }
+            }
+          } catch (freshError) {
+            console.error('❌ PROFILE: Fresh Oracle fetch failed:', freshError)
+          }
+          
+          if (!userData) {
+            console.log('❌ PROFILE: RECOMMENDATION: Check verification process and Oracle sync')
+            return null
+          }
         }
         
         console.log('✅ PROFILE: User found in Oracle!')
@@ -365,6 +407,23 @@ export class UserProfileManager {
     console.log(`✅ VALIDATE: Profile normalized with ${normalizedProfile.userStatistics.totalTransactionCount} transactions`)
     
     return normalizedProfile
+  }
+
+  /**
+   * Force refresh Oracle cache and re-fetch encrypted data
+   */
+  async forceRefreshOracleData(): Promise<void> {
+    console.log('🔄 PROFILE: Force refreshing Oracle cache...')
+    // Clear any cached Oracle data by forcing a fresh request
+    // This helps when a user just verified but isn't showing up yet
+    try {
+      const freshData = await getDecryptedOracleUsers()
+      console.log('🔄 PROFILE: Fresh Oracle data fetched')
+      console.log('📊 PROFILE: Fresh user count:', freshData ? Object.keys(freshData).length : 0)
+      // PRIVACY: Don't log actual addresses, only count
+    } catch (error) {
+      console.error('❌ PROFILE: Failed to refresh Oracle data:', error)
+    }
   }
 
   /**
