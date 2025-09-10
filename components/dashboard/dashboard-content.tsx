@@ -519,7 +519,7 @@ export function DashboardContent() {
             <h2 className="text-xl font-semibold">Bitcoin Addresses</h2>
           </div>
           <Link 
-            href="/verify-address" 
+            href="/verify" 
             className="flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm"
           >
             <Plus className="h-4 w-4" />
@@ -555,7 +555,7 @@ export function DashboardContent() {
               Add and verify your Bitcoin addresses to start using ReserveBTC
             </p>
             <Link 
-              href="/verify-address"
+              href="/verify"
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             >
               <Plus className="h-4 w-4" />
@@ -770,9 +770,9 @@ export function DashboardContent() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Link 
-          href="/verify-address"
+          href="/verify"
           className="flex items-center justify-center gap-3 p-4 bg-card border rounded-xl hover:bg-accent transition-colors"
         >
           <Shield className="h-5 w-5 text-primary" />
@@ -794,16 +794,6 @@ export function DashboardContent() {
           <Link2 className="h-5 w-5 text-primary" />
           <span className="font-medium">Wrap rBTC</span>
         </Link>
-
-        <a
-          href={`https://www.megaexplorer.xyz/address/${address}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-3 p-4 bg-card border rounded-xl hover:bg-accent transition-colors"
-        >
-          <ExternalLink className="h-5 w-5 text-primary" />
-          <span className="font-medium">View on Explorer</span>
-        </a>
       </div>
 
       {/* Token Contract Info */}
