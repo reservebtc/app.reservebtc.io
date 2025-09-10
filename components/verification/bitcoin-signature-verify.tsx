@@ -107,23 +107,9 @@ export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignat
       
       // Handle known issues gracefully
       if (error.message?.includes('404') || error.message?.includes('Cannot POST')) {
-        console.warn('⚠️ VERIFICATION: Oracle endpoint not available - using local verification')
-        
-        // Save verification locally for fallback
-        const verificationData = {
-          userAddress: ethAddress,
-          bitcoinAddress,
-          signature,
-          verificationType: 'manual_bip322',
-          status: 'verified',
-          timestamp: Date.now(),
-          note: 'Verified locally'
-        }
-        
-        localStorage.setItem(`verification_${ethAddress?.toLowerCase()}`, JSON.stringify(verificationData))
-        console.log('💾 VERIFICATION: Saved locally')
-        
-        return true
+        console.warn('⚠️ VERIFICATION: Oracle endpoint not available')
+        console.log('🏢 VERIFICATION: Centralized system only - no localStorage fallback')
+        return false
       }
       
       console.error(`   Error: ${error.message || 'Unknown error'}`)
@@ -354,10 +340,20 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
         // Save verified address for navigation
         setVerifiedAddress(cleanAddress)
         
-        // Oracle auto-detection will handle user registration
+        // Create Oracle profile for the verified user
         console.log('🎯 VERIFY: BIP-322 verification successful!')
-        console.log('🔄 VERIFY: Oracle will auto-detect user from blockchain activity')
-        console.log('💡 VERIFY: User should now be able to use their verified Bitcoin address')
+        console.log('🔄 VERIFY: Creating Oracle profile for user...')
+        
+        try {
+          const profileCreated = await createOracleProfile(cleanAddress, cleanSignature)
+          if (profileCreated) {
+            console.log('✅ VERIFY: Oracle profile created successfully')
+          } else {
+            console.log('⚠️ VERIFY: Oracle profile creation failed, user can still proceed')
+          }
+        } catch (error) {
+          console.log('⚠️ VERIFY: Oracle profile creation failed:', error)
+        }
         
         if (onVerificationComplete) {
           onVerificationComplete({
@@ -849,9 +845,8 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                         await saveVerifiedBitcoinAddress(ethAddress, verifiedAddress, signature)
                         console.log('✅ Bitcoin address saved to centralized storage')
                       } catch (error) {
-                        console.error('❌ Failed to save Bitcoin address:', error)
-                        // Fallback to localStorage for immediate functionality
-                        localStorage.setItem('verifiedBitcoinAddress', verifiedAddress)
+                        console.error('❌ Failed to save Bitcoin address to centralized storage:', error)
+                        console.log('🏢 CENTRALIZED: No localStorage fallback - system uses only centralized database')
                       }
                     }
                     // Navigate to mint with parameters indicating we came from verification
