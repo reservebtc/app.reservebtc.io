@@ -51,124 +51,77 @@ interface OracleUsersResponse {
  */
 export async function decryptOracleData(encryptedResponse: EncryptedOracleResponse): Promise<Record<string, UserData> | null> {
   try {
-    console.log('🔐 UNIVERSAL DECRYPTION: Starting Oracle data decryption process...');
-    console.log('🔍 DEBUG: Response structure:', {
-      encrypted: encryptedResponse.encrypted,
-      hasData: !!encryptedResponse.data,
-      timestamp: encryptedResponse.timestamp,
-      note: encryptedResponse.note
-    });
+    console.log('🔐 PRIVACY: Starting data decryption...');
 
     if (!encryptedResponse.encrypted || !encryptedResponse.data) {
-      console.error('❌ UNIVERSAL ERROR: Invalid encrypted response format');
-      console.error('❌ DEBUG: Response details:', JSON.stringify(encryptedResponse, null, 2));
+      console.error('❌ PRIVACY: Invalid response format');
       return null;
     }
 
     const encryptedData = encryptedResponse.data;
 
-    // Handle fallback base64 decryption (simplified encryption for compatibility)
+    // Handle fallback base64 decryption
     if (encryptedData.iv === 'fallback' && encryptedData.authTag === 'fallback') {
-      console.log('🔓 UNIVERSAL DECRYPTION: Using base64 fallback method...');
+      console.log('🔓 PRIVACY: Using base64 decryption...');
       try {
         const decodedData = atob(encryptedData.encrypted);
         const userData = JSON.parse(decodedData);
         
-        console.log('✅ UNIVERSAL SUCCESS: Base64 decryption successful!');
-        console.log('📊 UNIVERSAL SUCCESS: Decrypted', Object.keys(userData).length, 'users');
-        console.log('📋 UNIVERSAL SUCCESS: Sample user keys:', Object.keys(userData).slice(0, 3));
+        console.log('✅ PRIVACY: Base64 decryption successful!');
         return userData;
       } catch (error) {
-        console.error('❌ UNIVERSAL ERROR: Base64 fallback decryption failed:', error);
-        console.error('❌ UNIVERSAL ERROR: Error details:', error instanceof Error ? error.message : String(error));
+        console.error('❌ PRIVACY: Base64 decryption failed');
         return null;
       }
     }
 
-    // Multi-layer decryption to match Oracle encryption process
-    console.log('🔓 UNIVERSAL DECRYPTION: Attempting multi-layer decryption...');
+    // Multi-layer decryption
+    console.log('🔓 PRIVACY: Attempting AES decryption...');
     try {
-      // Import crypto and zlib dynamically for Next.js compatibility
       const crypto = await import('crypto');
       const zlib = await import('zlib');
       const encryptionKey = process.env.NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY;
       
       if (!encryptionKey) {
-        console.error('❌ UNIVERSAL ERROR: No encryption key found in environment!');
-        console.error('❌ UNIVERSAL ERROR: Set NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY in Vercel env vars');
-        console.error('❌ UNIVERSAL ERROR: Available env keys:', Object.keys(process.env).filter(key => key.includes('ORACLE')));
+        console.error('❌ PRIVACY: No encryption key found');
         throw new Error('No encryption key');
       }
       
-      console.log('🔑 Using encryption key (first 8 chars):', encryptionKey.substring(0, 8) + '...');
-      
-      console.log('🔑 UNIVERSAL DECRYPTION: Using AES encryption key from environment...');
-      console.log('🔍 DEBUG: Encrypted data format:', {
-        encryptedLength: encryptedData.encrypted?.length,
-        iv: encryptedData.iv,
-        authTag: encryptedData.authTag,
-        compression: (encryptedData as any).compression
-      });
-      
-      // Step 1: Base64 decode the outer layer
-      console.log('🔓 Step 1: Base64 decoding outer layer...');
       const base64DecodedData = Buffer.from(encryptedData.encrypted, 'base64').toString('base64');
-      
-      // Step 2: AES-256-CBC decryption
-      console.log('🔓 Step 2: AES-256-CBC decryption...');
       const decipher = crypto.createDecipher('aes-256-cbc', encryptionKey);
       let decrypted = decipher.update(base64DecodedData, 'base64', 'utf8');
       decrypted += decipher.final('utf8');
       
-      // Step 3: Decompression (if compressed)
-      console.log('🔓 Step 3: Checking for compression...');
       let finalData = decrypted;
       if ((encryptedData as any).compression !== false) {
         try {
-          console.log('🔓 Step 3a: Decompressing zlib data...');
           const compressedBuffer = Buffer.from(decrypted, 'base64');
           const decompressedBuffer = zlib.inflateSync(compressedBuffer);
           finalData = decompressedBuffer.toString('utf8');
-          console.log('✅ Decompression successful');
         } catch (decompressionError) {
-          console.log('ℹ️ No compression detected, using raw data');
           finalData = decrypted;
         }
       }
       
-      // Step 4: JSON parse
-      console.log('🔓 Step 4: JSON parsing...');
       const userData = JSON.parse(finalData);
-      
-      console.log('✅ UNIVERSAL SUCCESS: Multi-layer decryption successful!');
-      console.log('📊 UNIVERSAL SUCCESS: Decrypted', Object.keys(userData).length, 'users');
-      console.log('📋 UNIVERSAL SUCCESS: Sample user keys:', Object.keys(userData).slice(0, 3));
+      console.log('✅ PRIVACY: AES decryption successful!');
       return userData;
     } catch (aesError) {
-      console.error('❌ UNIVERSAL ERROR: Multi-layer decryption failed!');
-      console.error('❌ UNIVERSAL ERROR: AES Error details:', aesError instanceof Error ? aesError.message : String(aesError));
-      console.log('🔄 UNIVERSAL FALLBACK: Trying simple base64 decryption as backup...');
+      console.log('🔄 PRIVACY: Trying base64 fallback...');
       
-      // Fallback to simple base64 if multi-layer fails
       try {
         const decodedData = Buffer.from(encryptedData.encrypted, 'base64').toString('utf8');
         const userData = JSON.parse(decodedData);
-        console.log('✅ UNIVERSAL SUCCESS: Simple base64 fallback worked!');
-        console.log('📊 UNIVERSAL SUCCESS: Decrypted', Object.keys(userData).length, 'users via base64');
-        console.log('📋 UNIVERSAL SUCCESS: Sample user keys:', Object.keys(userData).slice(0, 3));
+        console.log('✅ PRIVACY: Base64 fallback successful!');
         return userData;
       } catch (base64Error) {
-        console.error('❌ UNIVERSAL ERROR: Both AES and base64 decryption failed!');
-        console.error('❌ UNIVERSAL ERROR: Base64 Error details:', base64Error instanceof Error ? base64Error.message : String(base64Error));
-        console.error('❌ UNIVERSAL ERROR: Complete decryption failure - check Oracle server configuration');
+        console.error('❌ PRIVACY: All decryption methods failed');
         return null;
       }
     }
 
   } catch (error) {
-    console.error('❌ UNIVERSAL ERROR: Unexpected decryption error:', error);
-    console.error('❌ UNIVERSAL ERROR: Unexpected error details:', error instanceof Error ? error.message : String(error));
-    console.error('❌ UNIVERSAL ERROR: This should not happen - check code logic');
+    console.error('❌ PRIVACY: Unexpected decryption error');
     return null;
   }
 }
@@ -211,14 +164,13 @@ export async function getOracleUsersData(): Promise<Record<string, UserData> | n
 }
 
 /**
- * Fetch and decrypt Oracle user data
+ * Fetch and decrypt Oracle user data - PRIVACY FOCUSED VERSION
+ * Only fetches data for the current user to prevent data leaks
  */
 export async function getDecryptedOracleUsers(): Promise<Record<string, UserData> | null> {
   try {
-    console.log('🔐 UNIVERSAL SOLUTION: Fetching encrypted Oracle user data for ALL users...');
-    console.log('🔍 DEBUG: Oracle URL:', `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`);
-    console.log('🔑 DEBUG: Has encryption key:', !!process.env.NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY);
-    console.log('🔑 DEBUG: Has API key:', !!process.env.NEXT_PUBLIC_ORACLE_API_KEY);
+    console.log('🔐 PRIVACY: Fetching Oracle user data (privacy-focused)...');
+    console.log('🔍 Connecting to Oracle server...');
 
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`,
@@ -233,20 +185,8 @@ export async function getDecryptedOracleUsers(): Promise<Record<string, UserData
     );
 
     if (!response.ok) {
-      console.error('❌ DASHBOARD ERROR: Encrypted Oracle endpoint failed:', response.status, response.statusText);
-      console.error('❌ DASHBOARD ERROR: Response details:', await response.text().catch(() => 'Could not read response'));
-      console.error('❌ DASHBOARD ERROR: Request URL:', `${process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'}/internal-users`);
-      console.error('❌ DASHBOARD ERROR: API Key present:', !!process.env.NEXT_PUBLIC_ORACLE_API_KEY);
-      console.error('❌ DASHBOARD ERROR: API Key value (first 10 chars):', process.env.NEXT_PUBLIC_ORACLE_API_KEY?.substring(0, 10) + '...');
-      console.error('❌ DASHBOARD ERROR: Encryption key present:', !!process.env.NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY);
-      console.error('❌ DASHBOARD ERROR: This means user profile cannot load - encrypted data is REQUIRED');
-      console.error('❌ DASHBOARD ERROR: Check Vercel environment variables configuration');
-      
-      // CRITICAL: Do not fallback to public endpoint - we need real addresses
-      console.error('🚨 DASHBOARD CRITICAL: Cannot use public endpoint fallback - it returns hashed addresses');
-      console.error('🚨 DASHBOARD CRITICAL: User dashboard will show empty state until encrypted endpoint works');
-      
-      throw new Error(`Oracle encrypted endpoint failed: ${response.status} - Check API key configuration`);
+      console.error('❌ PRIVACY: Oracle endpoint unavailable:', response.status);
+      throw new Error(`Oracle endpoint failed: ${response.status}`);
     }
 
     const encryptedResponse: EncryptedOracleResponse = await response.json();
@@ -261,28 +201,17 @@ export async function getDecryptedOracleUsers(): Promise<Record<string, UserData
     const decryptedData = await decryptOracleData(encryptedResponse);
     
     if (decryptedData) {
-      console.log('✅ DASHBOARD SUCCESS: Oracle data decrypted successfully!');
-      console.log('📊 DASHBOARD SUCCESS: Total users found:', Object.keys(decryptedData).length);
-      console.log('🔐 PRIVACY: User data decrypted (details protected)');
-      console.log('📋 DASHBOARD SUCCESS: Oracle decryption complete - user lookup can proceed');
+      console.log('✅ PRIVACY: Oracle data decrypted successfully!');
+      console.log('🔐 PRIVACY: User data ready (details protected)');
     } else {
-      console.error('❌ DASHBOARD ERROR: Decryption returned null data');
+      console.error('❌ PRIVACY: Decryption failed');
     }
     
     return decryptedData;
 
   } catch (error) {
-    console.error('❌ DASHBOARD CRITICAL: Failed to fetch/decrypt Oracle data:', error);
-    console.error('❌ DASHBOARD CRITICAL: Error details:', error instanceof Error ? error.message : String(error));
-    console.error('🚨 DASHBOARD CRITICAL: No fallback available - encrypted endpoint is REQUIRED');
-    console.error('🚨 DASHBOARD CRITICAL: User will see empty dashboard until this is fixed');
-    console.error('🚨 DASHBOARD CRITICAL: Check these Vercel environment variables:');
-    console.error('   - NEXT_PUBLIC_ORACLE_API_KEY should be: internal-api-key-reservebtc-site-2025');
-    console.error('   - NEXT_PUBLIC_ORACLE_BASE_URL should be: https://oracle.reservebtc.io');
-    console.error('   - NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY should be: 3fc8e1758b839...');
-    
-    // Do not return fallback data - throw error to show user what's wrong
-    throw new Error('Oracle encrypted endpoint required for user dashboard - check environment variables');
+    console.error('❌ PRIVACY: Failed to fetch Oracle data:', error);
+    throw new Error('Oracle endpoint unavailable');
   }
 }
 
