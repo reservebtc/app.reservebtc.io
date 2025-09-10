@@ -176,15 +176,15 @@ export function useUserProfile(): UserProfileHookState {
     }
 
     // Format balances for UI display
-    const rBTCBalance = parseFloat(profile.transactionHistory.rBTCStats.currentBalance || '0') / 100000000 // Convert satoshis to BTC
-    const wrBTCBalance = parseFloat(profile.transactionHistory.wrBTCStats.currentBalance || '0') / 100000000
+    const rBTCBalance = parseFloat(profile.transactionHistory?.rBTCStats?.currentBalance || '0') / 100000000 // Convert satoshis to BTC
+    const wrBTCBalance = parseFloat(profile.transactionHistory?.wrBTCStats?.currentBalance || '0') / 100000000
     const totalBalance = rBTCBalance + wrBTCBalance
 
     // Get recent transactions (last 10 from all types)
     const allTransactions = [
-      ...profile.transactionHistory.rBTCTransactions.map(tx => ({ ...tx, source: 'rBTC' })),
-      ...profile.transactionHistory.wrBTCTransactions.map(tx => ({ ...tx, source: 'wrBTC' })),
-      ...profile.transactionHistory.oracleTransactions.map(tx => ({ ...tx, source: 'oracle' }))
+      ...(profile.transactionHistory?.rBTCTransactions || []).map(tx => ({ ...tx, source: 'rBTC' })),
+      ...(profile.transactionHistory?.wrBTCTransactions || []).map(tx => ({ ...tx, source: 'wrBTC' })),
+      ...(profile.transactionHistory?.oracleTransactions || []).map(tx => ({ ...tx, source: 'oracle' }))
     ].sort((a, b) => b.timestamp - a.timestamp).slice(0, 10)
 
     return {
@@ -200,14 +200,14 @@ export function useUserProfile(): UserProfileHookState {
       totalBalance: totalBalance.toFixed(8),
       
       recentTransactions: allTransactions,
-      rBTCTransactions: profile.transactionHistory.rBTCTransactions,
-      wrBTCTransactions: profile.transactionHistory.wrBTCTransactions,
-      oracleTransactions: profile.transactionHistory.oracleTransactions,
+      rBTCTransactions: profile.transactionHistory?.rBTCTransactions || [],
+      wrBTCTransactions: profile.transactionHistory?.wrBTCTransactions || [],
+      oracleTransactions: profile.transactionHistory?.oracleTransactions || [],
       
-      isVerified: profile.userIdentity.verificationType !== 'unknown' && profile.walletInformation.bitcoin.addresses.length > 0,
-      hasTransactions: profile.userStatistics.totalTransactionCount > 0,
-      isActive: profile.userIdentity.profileStatus === 'active',
-      dataCompletenessScore: profile.systemMetadata.dataCompletenessScore
+      isVerified: profile.userIdentity?.verificationType !== 'unknown' && (profile.walletInformation?.bitcoin?.addresses?.length || 0) > 0,
+      hasTransactions: (profile.userStatistics?.totalTransactionCount || 0) > 0,
+      isActive: profile.userIdentity?.profileStatus === 'active',
+      dataCompletenessScore: profile.systemMetadata?.dataCompletenessScore || 0
     }
   }, [profile])
 
@@ -235,8 +235,8 @@ export function useUserVerification() {
   const { userIdentity, walletInformation, isVerified, isLoading, error, refreshProfile } = useUserProfile()
   
   return {
-    bitcoinAddresses: walletInformation?.bitcoin.addresses || [],
-    primaryBitcoinAddress: walletInformation?.bitcoin.primaryAddress,
+    bitcoinAddresses: walletInformation?.bitcoin?.addresses || [],
+    primaryBitcoinAddress: walletInformation?.bitcoin?.primaryAddress,
     ethAddress: userIdentity?.ethAddress,
     isVerified,
     verificationType: userIdentity?.verificationType,
@@ -347,7 +347,7 @@ export function useUserDashboard() {
     
     // User info
     ethAddress: userIdentity?.ethAddress,
-    bitcoinAddresses: walletInformation?.bitcoin.addresses || [],
+    bitcoinAddresses: walletInformation?.bitcoin?.addresses || [],
     isVerified,
     hasTransactions,
     profileCreatedAt: userIdentity?.profileCreatedAt,
