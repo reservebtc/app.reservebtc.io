@@ -316,3 +316,11 @@ debug-oracle-create-profile.js
 
 # Technical documentation - INTERNAL USE ONLY
 HASH_SYSTEM_TECHNICAL_DOCUMENTATION.md
+clean-oracle-db.js
+fix-hash-function.js
+fix-oracle-wallet-client.js
+fix-oracle-client-structure.js
+create-simple-mock-sync.js
+test-blockchain-state.js
+create-production-oracle.js
+setup-eternal-oracle.sh
