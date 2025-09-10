@@ -1220,8 +1220,10 @@ export function DashboardContent() {
         // Check Oracle users list to get actual user data using encrypted API
         const oracleUsersData = await getDecryptedOracleUsers()
         if (oracleUsersData) {
-          // Oracle returns object with addresses as keys, not array
-          const userInOracle = oracleUsersData[address.toLowerCase()] || oracleUsersData[address]
+          // Oracle returns array of users
+          const userInOracle = oracleUsersData.find(user => 
+            user.ethAddress?.toLowerCase() === address.toLowerCase()
+          )
           
           if (userInOracle) {
             console.log('📡 Oracle user data:', userInOracle)

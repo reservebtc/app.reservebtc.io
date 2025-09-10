@@ -186,18 +186,13 @@ export class UserProfileManager {
         
         // Find user by real Ethereum address (case-insensitive)
         console.log('🔍 PROFILE: Starting user lookup process...')
-        let userData = encryptedData[userAddress.toLowerCase()] || encryptedData[userAddress]
+        let userData = encryptedData.find(user => 
+          user.ethAddress?.toLowerCase() === userAddress.toLowerCase()
+        )
         
-        // If not found, try case-insensitive lookup through all keys
+        // If not found, log available users
         if (!userData) {
-          const targetAddress = userAddress.toLowerCase()
-          for (const [key, data] of Object.entries(encryptedData)) {
-            if (key.toLowerCase() === targetAddress) {
-              userData = data
-              console.log('✅ PROFILE: Found user with different case:', key)
-              break
-            }
-          }
+          console.log('⚠️ User not found. Available users:', encryptedData.map(u => u.ethAddress))
         }
         
         if (!userData) {

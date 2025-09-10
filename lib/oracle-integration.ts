@@ -96,20 +96,25 @@ export async function checkOracleRegistration(userAddress: string): Promise<Orac
     // Import the decryption function
     const { getDecryptedOracleUsers } = await import('./oracle-decryption');
     
-    // Get decrypted Oracle users
+    // Get decrypted Oracle users data
     const decryptedData = await getDecryptedOracleUsers();
-    if (!decryptedData || !decryptedData.users) {
+    if (!decryptedData) {
       throw new Error('No decrypted Oracle data available');
     }
     
-    // Find user in decrypted data
-    const user = decryptedData.users.find((u: any) => 
-      u.ethAddress.toLowerCase() === userAddress.toLowerCase()
+    // Find user in decrypted data users array
+    const user = decryptedData.find((u: any) => 
+      u.ethAddress?.toLowerCase() === userAddress.toLowerCase()
     );
     
     if (user) {
       console.log('✅ User found in Oracle:', user);
-      return user;
+      return {
+        btcAddress: user.btcAddress || '',
+        ethAddress: user.ethAddress || '',
+        lastSyncedBalance: user.lastSyncedBalance || 0,
+        registeredAt: user.registeredAt || ''
+      };
     }
     
     return null;

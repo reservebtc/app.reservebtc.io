@@ -40,16 +40,17 @@ interface UserData {
 }
 
 interface OracleUsersResponse {
-  users: Record<string, UserData>;
+  users: UserData[];
   timestamp: string;
   totalUsers: number;
   note: string;
+  mode: string;
 }
 
 /**
  * Decrypt Oracle API response data
  */
-export async function decryptOracleData(encryptedResponse: EncryptedOracleResponse): Promise<Record<string, UserData> | null> {
+export async function decryptOracleData(encryptedResponse: EncryptedOracleResponse): Promise<UserData[] | null> {
   try {
     console.log('🔐 PRIVACY: Starting data decryption...');
 
@@ -68,7 +69,7 @@ export async function decryptOracleData(encryptedResponse: EncryptedOracleRespon
         const userData = JSON.parse(decodedData);
         
         console.log('✅ PRIVACY: Base64 decryption successful!');
-        return userData;
+        return userData.users || userData;
       } catch (error) {
         console.error('❌ PRIVACY: Base64 decryption failed');
         return null;
@@ -105,7 +106,7 @@ export async function decryptOracleData(encryptedResponse: EncryptedOracleRespon
       
       const userData = JSON.parse(finalData);
       console.log('✅ PRIVACY: AES decryption successful!');
-      return userData;
+      return userData.users || userData;
     } catch (aesError) {
       console.log('🔄 PRIVACY: Trying base64 fallback...');
       
@@ -113,7 +114,7 @@ export async function decryptOracleData(encryptedResponse: EncryptedOracleRespon
         const decodedData = Buffer.from(encryptedData.encrypted, 'base64').toString('utf8');
         const userData = JSON.parse(decodedData);
         console.log('✅ PRIVACY: Base64 fallback successful!');
-        return userData;
+        return userData.users || userData;
       } catch (base64Error) {
         console.error('❌ PRIVACY: All decryption methods failed');
         return null;
@@ -129,7 +130,7 @@ export async function decryptOracleData(encryptedResponse: EncryptedOracleRespon
 /**
  * Get Oracle users data from public endpoint
  */
-export async function getOracleUsersData(): Promise<Record<string, UserData> | null> {
+export async function getOracleUsersData(): Promise<UserData[] | null> {
   try {
     console.log('📡 Fetching Oracle users data from /users endpoint...');
     
@@ -150,7 +151,7 @@ export async function getOracleUsersData(): Promise<Record<string, UserData> | n
     console.log('🔍 DEBUG: Oracle response received, total users:', oracleResponse.totalUsers);
     
     if (oracleResponse.users) {
-      console.log('🔍 DEBUG: Users data received:', Object.keys(oracleResponse.users).length, 'users');
+      console.log('🔍 DEBUG: Users data received:', oracleResponse.users.length, 'users');
       return oracleResponse.users;
     } else {
       console.log('❌ No users data found in Oracle response');
@@ -167,7 +168,7 @@ export async function getOracleUsersData(): Promise<Record<string, UserData> | n
  * Fetch and decrypt Oracle user data - PRIVACY FOCUSED VERSION
  * Only fetches data for the current user to prevent data leaks
  */
-export async function getDecryptedOracleUsers(): Promise<Record<string, UserData> | null> {
+export async function getDecryptedOracleUsers(): Promise<UserData[] | null> {
   try {
     console.log('🔐 PRIVACY: Fetching Oracle user data (privacy-focused)...');
     console.log('🔍 Connecting to Oracle server...');
@@ -194,7 +195,7 @@ export async function getDecryptedOracleUsers(): Promise<Record<string, UserData
     if (!encryptedResponse.encrypted) {
       // If response is not encrypted, return as is (backward compatibility)
       console.log('ℹ️ Oracle response is not encrypted, using direct data');
-      return encryptedResponse as any;
+      return (encryptedResponse as any).users || [];
     }
 
     const decryptedData = await decryptOracleData(encryptedResponse);
@@ -218,27 +219,27 @@ export async function getDecryptedOracleUsers(): Promise<Record<string, UserData
  * Find user in Oracle data by correlation (since keys are hashed)
  */
 export function findOracleUserByCorrelation(
-  oracleUsersData: Record<string, UserData>,
+  oracleUsersData: UserData[],
   ethereumAddress: string,
   blockchainBalance?: bigint,
   recentMintTimestamp?: number
 ): UserData | null {
-  if (!oracleUsersData || Object.keys(oracleUsersData).length === 0) {
+  if (!oracleUsersData || oracleUsersData.length === 0) {
     console.log('❌ No Oracle users data available for correlation');
     return null;
   }
 
   console.log('🔍 Attempting user correlation for address:', ethereumAddress.substring(0, 10) + '...');
-  console.log('🔍 Available Oracle users:', Object.keys(oracleUsersData).length);
+  console.log('🔍 Available Oracle users:', oracleUsersData.length);
 
-  const users = Object.entries(oracleUsersData);
+  const users = oracleUsersData;
   
   // Strategy 1: If we have blockchain balance, find matching Oracle balance
   if (blockchainBalance !== undefined) {
     const blockchainBalanceSats = Number(blockchainBalance);
     console.log('🔍 Looking for balance match:', blockchainBalanceSats, 'sats');
     
-    const balanceMatches = users.filter(([_, userData]) => {
+    const balanceMatches = users.filter(userData => {
       const match = userData.lastSyncedBalance === blockchainBalanceSats;
       if (match) {
         console.log('✅ Found balance match:', userData.lastSyncedBalance, 'sats');
@@ -248,7 +249,7 @@ export function findOracleUserByCorrelation(
     
     if (balanceMatches.length === 1) {
       console.log('✅ Unique balance match found');
-      return balanceMatches[0][1];
+      return balanceMatches[0];
     } else if (balanceMatches.length > 1) {
       console.log('⚠️ Multiple balance matches, need additional criteria');
       // Continue with additional strategies
@@ -262,7 +263,7 @@ export function findOracleUserByCorrelation(
     let bestUserData: UserData | null = null;
     let bestTimeDiff = Infinity;
     
-    for (const [_, userData] of users) {
+    for (const userData of users) {
       const registrationTime = new Date(userData.registeredAt).getTime();
       const timeDiff = Math.abs(registrationTime - recentMintTimestamp);
       
@@ -280,21 +281,21 @@ export function findOracleUserByCorrelation(
   }
 
   // Strategy 3: Return user with non-zero balance and recent activity (fallback for active users)
-  const activeUsers = users.filter(([_, userData]) => 
+  const activeUsers = users.filter(userData => 
     userData.lastSyncedBalance > 0 && userData.transactionCount > 0
   );
   
   if (activeUsers.length === 1) {
     console.log('✅ Single active user found as fallback');
-    return activeUsers[0][1];
+    return activeUsers[0];
   }
 
   // Strategy 4: Return most recently active user (last resort)
-  const sortedByActivity = users.sort(([_, a], [__, b]) => b.lastSyncTime - a.lastSyncTime);
+  const sortedByActivity = users.sort((a, b) => b.lastSyncTime - a.lastSyncTime);
   
   if (sortedByActivity.length > 0) {
     console.log('⚠️ Using most recently active user as last resort');
-    return sortedByActivity[0][1];
+    return sortedByActivity[0];
   }
 
   console.log('❌ No suitable user correlation found');

@@ -76,8 +76,9 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       }
 
       // Get transaction hash using cache system
+      const userIndex = oracleUsersData?.findIndex(user => user === userData) || 0
       const realHash = await getTransactionHashForOracleUser(
-        Object.keys(oracleUsersData).find(key => oracleUsersData[key] === userData) || '',
+        userIndex.toString(),
         userData,
         ethereumAddress
       )
