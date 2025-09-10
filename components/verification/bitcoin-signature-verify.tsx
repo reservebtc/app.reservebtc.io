@@ -10,7 +10,7 @@ import { useUserVerification } from '@/hooks/useUserProfile'
 import { saveVerifiedUserToCache } from '@/lib/verified-users-cache'
 // Old Oracle modules removed - using Professional Oracle only
 // Smart contract integration removed - using Professional Oracle only
-import { VerificationFeeVault } from './verification-fee-vault'
+import { VerificationFeeVault } from '@/components/verification/verification-fee-vault'
 
 interface BitcoinSignatureVerifyProps {
   onVerificationComplete?: (data: { address: string; signature: string; verified: boolean }) => void
