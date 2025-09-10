@@ -465,20 +465,71 @@ export class UserProfileManager {
   private async convertOracleDataToProfile(oracleData: any, userAddress: string): Promise<UniversalUserProfile | null> {
     try {
       console.log('🔄 PROFILE: Converting Oracle data to Universal Profile...')
+      console.log('🔍 PROFILE: Oracle user data details:')
+      console.log('   - lastSyncedBalance:', oracleData.lastSyncedBalance)
+      console.log('   - lastTxHash:', oracleData.lastTxHash)
+      console.log('   - transactionHashes:', oracleData.transactionHashes ? oracleData.transactionHashes.length : 'None')
+      console.log('   - transactionCount:', oracleData.transactionCount)
       
       const bitcoinAddresses = oracleData.btcAddresses || (oracleData.btcAddress ? [oracleData.btcAddress] : [])
       const lastSyncedBalance = oracleData.lastSyncedBalance || 0
       
-      // Create transaction from Oracle data
+      // Create transactions from Oracle data
       const transactions: any[] = []
-      if (oracleData.lastTxHash && lastSyncedBalance > 0) {
+      
+      // Always add balance_sync transaction if user exists in Oracle
+      transactions.push({
+        hash: 'oracle_registration_' + userAddress.slice(-8),
+        transactionHash: 'oracle_registration_' + userAddress.slice(-8),
+        type: 'balance_sync',
+        amount: '0.00000000',
+        timestamp: new Date(oracleData.registeredAt || Date.now()).getTime(),
+        status: 'success',
+        blockNumber: 0,
+        fromAddress: '0x0000000000000000000000000000000000000000',
+        toAddress: userAddress,
+        tokenAddress: '0x4BC51d94937f145C7D995E146C32EC3b9CeB3ACC',
+        gasUsed: 0,
+        gasPrice: '0',
+        fee: '0',
+        confirmations: 1
+      })
+      
+      // Add real transactions from Oracle transactionHashes array
+      if (oracleData.transactionHashes && Array.isArray(oracleData.transactionHashes)) {
+        console.log('🔍 PROFILE: Processing', oracleData.transactionHashes.length, 'transactions from Oracle')
+        oracleData.transactionHashes.forEach((tx: any, index: number) => {
+          console.log(`   - Transaction ${index + 1}: type=${tx.type}, amount=${tx.amount}, hash=${tx.hash}`)
+          transactions.push({
+            hash: tx.hash || tx.transactionHash || `oracle_tx_${index}`,
+            transactionHash: tx.hash || tx.transactionHash || `oracle_tx_${index}`,
+            type: tx.type || 'unknown',
+            amount: tx.amount ? parseFloat(tx.amount.toString()).toFixed(8) : '0.00000000',
+            timestamp: tx.timestamp || Date.now(),
+            status: tx.status || 'success',
+            blockNumber: tx.blockNumber || 0,
+            fromAddress: tx.fromAddress || '0x0000000000000000000000000000000000000000',
+            toAddress: tx.toAddress || userAddress,
+            tokenAddress: tx.tokenAddress || '0x4BC51d94937f145C7D995E146C32EC3b9CeB3ACC',
+            gasUsed: tx.gasUsed || 0,
+            gasPrice: tx.gasPrice || '0',
+            fee: tx.fee || '0',
+            confirmations: tx.confirmations || 1
+          })
+        })
+      }
+      
+      // Add mint transaction from lastTxHash if exists and not already in transactionHashes
+      if (oracleData.lastTxHash && !transactions.some(tx => tx.hash === oracleData.lastTxHash)) {
+        const mintAmount = lastSyncedBalance > 0 ? lastSyncedBalance : 0
+        console.log('🔍 PROFILE: Adding lastTxHash mint transaction:', oracleData.lastTxHash)
         transactions.push({
-          hash: oracleData.lastTxHash, // Dashboard expects 'hash', not 'transactionHash'
-          transactionHash: oracleData.lastTxHash, // Keep for compatibility
+          hash: oracleData.lastTxHash,
+          transactionHash: oracleData.lastTxHash,
           type: 'mint',
-          amount: (lastSyncedBalance / 100000000).toFixed(8),
+          amount: (mintAmount / 100000000).toFixed(8),
           timestamp: Date.now(),
-          status: 'success',
+          status: lastSyncedBalance > 0 ? 'success' : 'pending',
           blockNumber: 0,
           fromAddress: '0x0000000000000000000000000000000000000000',
           toAddress: userAddress,
@@ -486,7 +537,7 @@ export class UserProfileManager {
           gasUsed: 0,
           gasPrice: '0',
           fee: '0',
-          confirmations: 1
+          confirmations: lastSyncedBalance > 0 ? 1 : 0
         })
       }
       

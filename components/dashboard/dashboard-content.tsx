@@ -445,6 +445,7 @@ export function DashboardContent() {
           <div className="text-2xl font-bold">
             {(() => {
               console.log('🔍 DASHBOARD: Bitcoin Mainnet Balance Display')
+              console.log('   - bitcoinMainnetBalance from hook:', bitcoinMainnetBalance)
               if (isLoading) {
                 return <span className="text-muted-foreground">Loading...</span>
               }
@@ -484,6 +485,7 @@ export function DashboardContent() {
           <div className="text-2xl font-bold">
             {(() => {
               console.log('🔍 DASHBOARD: Bitcoin Testnet Balance Display')
+              console.log('   - bitcoinTestnetBalance from hook:', bitcoinTestnetBalance)
               if (isLoading) {
                 return <span className="text-muted-foreground">Loading...</span>
               }
@@ -518,7 +520,12 @@ export function DashboardContent() {
             <span className="text-xs bg-blue-500/10 text-blue-600 px-2 py-1 rounded">Soulbound</span>
           </div>
           <div className="text-2xl font-bold">
-{rBTCBalance}
+            {(() => {
+              console.log('🔍 DASHBOARD: rBTC-SYNTH Balance Display')
+              console.log('   - rBTCBalance from hook:', rBTCBalance)
+              console.log('   - rBTCBalance type:', typeof rBTCBalance)
+              return rBTCBalance
+            })()}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Non-transferable token
