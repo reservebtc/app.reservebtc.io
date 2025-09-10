@@ -65,6 +65,8 @@ export function DashboardContent() {
     totalBalance,
     rBTCBalance,
     wrBTCBalance,
+    bitcoinMainnetBalance,
+    bitcoinTestnetBalance,
     recentTransactions,
     totalTransactionCount,
     lastTransactionHash,
@@ -85,20 +87,12 @@ export function DashboardContent() {
     refreshProfile
   } = useUserDashboard()
 
-  // Log useUserDashboard hook results
-  console.log('🔍 DASHBOARD: useUserDashboard hook results:')
-  console.log('   - totalBalance:', totalBalance)
-  console.log('   - rBTCBalance:', rBTCBalance) 
-  console.log('   - wrBTCBalance:', wrBTCBalance)
-  console.log('   - bitcoinAddresses:', bitcoinAddresses)
-  console.log('   - bitcoinAddresses length:', bitcoinAddresses?.length)
-  console.log('   - recentTransactions:', recentTransactions)
-  console.log('   - recentTransactions length:', recentTransactions?.length)
-  console.log('   - isVerified:', isVerified)
-  console.log('   - isLoading:', isLoading)
-  console.log('   - error:', error)
-  console.log('   - address:', address)
-  console.log('   - useUserDashboard hook is active, monitoring profile loading...')
+  // Privacy-focused logging for current user only
+  console.log('🔍 DASHBOARD: Profile loaded for current user')
+  console.log('   - Current user has', bitcoinAddresses?.length || 0, 'verified addresses')
+  console.log('   - Current user has', recentTransactions?.length || 0, 'transactions')
+  console.log('   - Current user verification status:', isVerified)
+  console.log('   - Profile loading status:', isLoading ? 'loading' : 'complete')
   
   // Local state for UI interactions
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
@@ -145,13 +139,13 @@ export function DashboardContent() {
     const currentUserKey = 'dashboard_current_user'
     const lastUser = localStorage.getItem(currentUserKey)
     
-    console.log('🔍 Checking MetaMask user change:', { lastUser, currentUser: address.toLowerCase() })
+    console.log('🔍 PRIVACY: Checking for account change')
     
     if (lastUser && lastUser !== address.toLowerCase()) {
-      console.log('🚨 MetaMask account changed! Clearing old data...')
+      console.log('🚨 PRIVACY: MetaMask account changed, clearing previous user data')
       
       // Clear all states - handled by new hook system
-      console.log('🧹 User changed - profile will be refreshed automatically')
+      console.log('🧹 PRIVACY: User changed - profile will be refreshed automatically')
       
       // Clear localStorage data for old user
       const keysToRemove = []
@@ -169,11 +163,11 @@ export function DashboardContent() {
       }
       
       keysToRemove.forEach(key => {
-        console.log('🧹 Removing old user data:', key)
+        console.log('🧹 PRIVACY: Clearing old user cache entry')
         localStorage.removeItem(key)
       })
       
-      console.log(`✅ Cleared ${keysToRemove.length} old user keys`)
+      console.log(`✅ PRIVACY: Cleared ${keysToRemove.length} cache entries for previous user`)
     }
     
     // Set current user
@@ -197,7 +191,7 @@ export function DashboardContent() {
       const isTestnet = isTestnetAddress(address)
       const baseUrl = isTestnet ? 'https://mempool.space/testnet/api' : 'https://mempool.space/api'
       
-      console.log(`🔍 Fetching ${isTestnet ? 'testnet' : 'mainnet'} balance for:`, address)
+      console.log(`🔍 PRIVACY: Fetching ${isTestnet ? 'testnet' : 'mainnet'} balance for current user`)
       
       const response = await fetch(`${baseUrl}/address/${address}`)
       if (!response.ok) {
@@ -207,11 +201,11 @@ export function DashboardContent() {
       const data = await response.json()
       const balanceBTC = (data.chain_stats.funded_txo_sum - data.chain_stats.spent_txo_sum) / 100000000
       
-      console.log(`💰 ${address}: ${balanceBTC} BTC (${isTestnet ? 'testnet' : 'mainnet'})`)
+      console.log(`💰 PRIVACY: Fetched ${isTestnet ? 'testnet' : 'mainnet'} balance for current user: ${balanceBTC} BTC`)
       return balanceBTC
       
     } catch (error) {
-      console.warn(`⚠️ Failed to fetch balance for ${address}:`, error)
+      console.warn(`⚠️ PRIVACY: Failed to fetch balance for current user:`, error)
       return 0
     }
   }
@@ -222,7 +216,7 @@ export function DashboardContent() {
       return // Skip if Oracle data already available
     }
 
-    console.log('🔍 FALLBACK: Checking for recently verified addresses in localStorage...')
+    console.log('🔍 PRIVACY: Checking for recently verified addresses in localStorage for current user')
     
     try {
       // Check localStorage for recent verification
@@ -231,33 +225,33 @@ export function DashboardContent() {
       
       if (recentVerification) {
         const verificationData = JSON.parse(recentVerification)
-        console.log('🔍 FALLBACK: Found recent verification:', verificationData)
+        console.log('🔍 PRIVACY: Found recent verification for current user')
         
         if (verificationData.bitcoinAddress && verificationData.status === 'verified') {
           const btcAddress = verificationData.bitcoinAddress
-          console.log('🔍 FALLBACK: Loading Bitcoin balance for:', btcAddress.substring(0, 20) + '...')
+          console.log('🔍 PRIVACY: Loading Bitcoin balance from mempool.space for current user')
           
           setFallbackAddresses([btcAddress])
           
           // Get balance from mempool.space
           const balance = await fetchBitcoinBalance(btcAddress)
-          console.log('💰 FALLBACK: Bitcoin balance loaded:', balance, 'BTC')
+          console.log('💰 PRIVACY: Bitcoin balance loaded for current user:', balance, 'BTC')
           
           setFallbackBalances({ [btcAddress]: balance })
           setFallbackTotal(balance.toFixed(8))
         }
       } else {
-        console.log('🔍 FALLBACK: No recent verification found in localStorage')
+        console.log('🔍 PRIVACY: No recent verification found for current user')
       }
     } catch (error) {
-      console.error('❌ FALLBACK: Failed to load recent verification:', error)
+      console.error('❌ PRIVACY: Failed to load recent verification for current user:', error)
     }
   }, [address, bitcoinAddresses, isVerified])
 
   // Load fallback data if user not found in Oracle
   useEffect(() => {
     if (!isLoading && !error && !isVerified && bitcoinAddresses.length === 0) {
-      console.log('🔄 FALLBACK: Oracle data not found, checking fallback...')
+      console.log('🔄 PRIVACY: Oracle data not found for current user, checking fallback')
       loadFallbackVerifiedAddresses()
     }
   }, [isLoading, error, isVerified, bitcoinAddresses.length, loadFallbackVerifiedAddresses])
@@ -276,7 +270,7 @@ export function DashboardContent() {
   // Check if Bitcoin address already minted tokens
   const hasAddressMinted = (bitcoinAddress: string): boolean => {
     if (!recentTransactions || recentTransactions.length === 0) {
-      console.log(`🔍 No transactions found for mint check`)
+      console.log(`🔍 PRIVACY: No transactions found for current user`)
       return false
     }
 
@@ -286,14 +280,10 @@ export function DashboardContent() {
        (tx.source === 'rBTC' && parseFloat(tx.amount || '0') > 0))
     )
 
-    console.log(`🔍 MINT CHECK for ${bitcoinAddress.substring(0, 20)}...`)
-    console.log(`   - Total transactions:`, recentTransactions.length)
-    console.log(`   - Mint transactions found:`, mintTransactions.length)
-    console.log(`   - Has minted:`, mintTransactions.length > 0)
-    
-    if (mintTransactions.length > 0) {
-      console.log(`   - Mint transaction details:`, mintTransactions[0])
-    }
+    console.log(`🔍 PRIVACY: Checking mint status for current user address`)
+    console.log(`   - Current user total transactions:`, recentTransactions.length)
+    console.log(`   - Current user mint transactions found:`, mintTransactions.length)
+    console.log(`   - Current user has minted:`, mintTransactions.length > 0)
 
     return mintTransactions.length > 0
   }
@@ -439,51 +429,80 @@ export function DashboardContent() {
       </div>
 
       {/* Balance Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Bitcoin Balance */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6">
+        {/* Bitcoin Balance - Mainnet */}
         <div className="bg-card border rounded-xl p-6">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Bitcoin className="h-5 w-5 text-orange-500" />
-              <span className="font-medium">Bitcoin</span>
+              <span className="font-medium">Bitcoin Mainnet</span>
               {isLoadingBalances && (
                 <RefreshCw className="h-3 w-3 text-muted-foreground animate-spin" />
               )}
             </div>
-            <span className="text-xs bg-orange-500/10 text-orange-600 px-2 py-1 rounded">Reserve</span>
+            <span className="text-xs bg-orange-500/10 text-orange-600 px-2 py-1 rounded">Mainnet</span>
           </div>
           <div className="text-2xl font-bold">
             {(() => {
-              console.log('🔍 DASHBOARD: Bitcoin Balance Display')
-              const displayBalance = bitcoinAddresses.length > 0 ? totalBalance : fallbackTotal
-              const addressCount = bitcoinAddresses.length > 0 ? bitcoinAddresses.length : fallbackAddresses.length
-              console.log('   - Oracle balance:', totalBalance)
-              console.log('   - Fallback balance:', fallbackTotal)
-              console.log('   - Using balance:', displayBalance)
-              console.log('   - Address count:', addressCount)
-              
+              console.log('🔍 DASHBOARD: Bitcoin Mainnet Balance Display')
               if (isLoading) {
                 return <span className="text-muted-foreground">Loading...</span>
               }
               
-              return `${parseFloat(displayBalance).toFixed(8)} BTC`
+              return `${bitcoinMainnetBalance} BTC`
             })()}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             {(() => {
               const displayAddresses = bitcoinAddresses.length > 0 ? bitcoinAddresses : fallbackAddresses
-              const addressCount = displayAddresses.length
-              const networkInfo = displayAddresses.some(addr => isTestnetAddress(addr)) && 
-                                  displayAddresses.some(addr => !isTestnetAddress(addr)) ? ' (mainnet + testnet)' :
-                                  displayAddresses.every(addr => isTestnetAddress(addr)) && displayAddresses.length > 0 ? ' (testnet)' :
-                                  displayAddresses.every(addr => !isTestnetAddress(addr)) && displayAddresses.length > 0 ? ' (mainnet)' : ''
+              const mainnetAddresses = displayAddresses.filter(addr => !isTestnetAddress(addr))
+              const addressCount = mainnetAddresses.length
               
               if (bitcoinAddresses.length > 0) {
-                return `From ${addressCount} verified address${addressCount !== 1 ? 'es' : ''}${networkInfo}`
+                return `From ${addressCount} mainnet address${addressCount !== 1 ? 'es' : ''}`
               } else if (fallbackAddresses.length > 0) {
-                return `From ${addressCount} recently verified address${addressCount !== 1 ? 'es' : ''}${networkInfo} (syncing to Oracle...)`
+                return `From ${addressCount} recently verified mainnet address${addressCount !== 1 ? 'es' : ''} (syncing...)`
               } else {
-                return `From ${addressCount} verified address${addressCount !== 1 ? 'es' : ''}`
+                return `From ${addressCount} mainnet address${addressCount !== 1 ? 'es' : ''}`
+              }
+            })()}
+          </p>
+        </div>
+
+        {/* Bitcoin Balance - Testnet */}
+        <div className="bg-card border rounded-xl p-6">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Bitcoin className="h-5 w-5 text-yellow-500" />
+              <span className="font-medium">Bitcoin Testnet</span>
+              {isLoadingBalances && (
+                <RefreshCw className="h-3 w-3 text-muted-foreground animate-spin" />
+              )}
+            </div>
+            <span className="text-xs bg-yellow-500/10 text-yellow-600 px-2 py-1 rounded">Testnet</span>
+          </div>
+          <div className="text-2xl font-bold">
+            {(() => {
+              console.log('🔍 DASHBOARD: Bitcoin Testnet Balance Display')
+              if (isLoading) {
+                return <span className="text-muted-foreground">Loading...</span>
+              }
+              
+              return `${bitcoinTestnetBalance} BTC`
+            })()}
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            {(() => {
+              const displayAddresses = bitcoinAddresses.length > 0 ? bitcoinAddresses : fallbackAddresses
+              const testnetAddresses = displayAddresses.filter(addr => isTestnetAddress(addr))
+              const addressCount = testnetAddresses.length
+              
+              if (bitcoinAddresses.length > 0) {
+                return `From ${addressCount} testnet address${addressCount !== 1 ? 'es' : ''}`
+              } else if (fallbackAddresses.length > 0) {
+                return `From ${addressCount} recently verified testnet address${addressCount !== 1 ? 'es' : ''} (syncing...)`
+              } else {
+                return `From ${addressCount} testnet address${addressCount !== 1 ? 'es' : ''}`
               }
             })()}
           </p>
@@ -499,13 +518,7 @@ export function DashboardContent() {
             <span className="text-xs bg-blue-500/10 text-blue-600 px-2 py-1 rounded">Soulbound</span>
           </div>
           <div className="text-2xl font-bold">
-            {(() => {
-              console.log('🔍 DASHBOARD: rBTC-SYNTH Balance Display')
-              console.log('   - rBTCBalance prop:', rBTCBalance)
-              console.log('   - Type of rBTCBalance:', typeof rBTCBalance)
-              console.log('   - Data source: useUserDashboard hook')
-              return rBTCBalance
-            })()}
+{rBTCBalance}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Non-transferable token
@@ -520,29 +533,11 @@ export function DashboardContent() {
               <span className="font-medium">Oracle Status</span>
             </div>
             <span className="text-xs bg-green-500/10 text-green-600 px-2 py-1 rounded">
-              {(() => {
-                console.log('🔍 DASHBOARD: Oracle Status Display')
-                console.log('   - isVerified:', isVerified)
-                console.log('   - Data from useUserDashboard hook')
-                console.log('   - Address:', address)
-                console.log('   - Displaying:', isVerified ? 'Synced' : 'No Data')
-                return isVerified ? 'Synced' : 'No Data'
-              })()}
+              {isVerified ? 'Synced' : 'No Data'}
             </span>
           </div>
           <div className="text-2xl font-bold">
-            {(() => {
-              console.log('🔍 DASHBOARD: Oracle Synchronized Balance Display')
-              console.log('   - totalBalance prop:', totalBalance)
-              console.log('   - Type of totalBalance:', typeof totalBalance)
-              console.log('   - Profile available:', !!fullProfile)
-              if (fullProfile) {
-                console.log('   - Profile userStatistics:', fullProfile.userStatistics)
-                console.log('   - Profile transactionHistory:', fullProfile.transactionHistory)
-                console.log('   - Profile walletInformation:', fullProfile.walletInformation)
-              }
-              return totalBalance
-            })()}
+            {totalBalance}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Oracle synchronized balance
@@ -559,13 +554,7 @@ export function DashboardContent() {
             <span className="text-xs bg-purple-500/10 text-purple-600 px-2 py-1 rounded">Transferable</span>
           </div>
           <div className="text-2xl font-bold">
-            {(() => {
-              console.log('🔍 DASHBOARD: wrBTC Balance Display')
-              console.log('   - wrBTCBalance prop:', wrBTCBalance)
-              console.log('   - Type of wrBTCBalance:', typeof wrBTCBalance)
-              console.log('   - Data from useUserDashboard hook')
-              return wrBTCBalance
-            })()}
+            {wrBTCBalance}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             <Link 
@@ -596,25 +585,7 @@ export function DashboardContent() {
 
         {/* Warning for limited data - removed legacy Oracle direct access */}
 
-        {(() => {
-          console.log('🔍 DASHBOARD: Bitcoin Addresses Section')
-          console.log('   - bitcoinAddresses prop:', bitcoinAddresses)
-          console.log('   - Length:', bitcoinAddresses.length)
-          console.log('   - isVerified:', isVerified)
-          console.log('   - hasTransactions:', hasTransactions)
-          console.log('   - recentTransactions length:', recentTransactions?.length || 0)
-          console.log('   - Data from useUserDashboard hook')
-          
-          // Check mint status for each address
-          if (bitcoinAddresses.length > 0) {
-            bitcoinAddresses.forEach(addr => {
-              const hasMinted = hasAddressMinted(addr)
-              console.log(`   - Address ${addr.substring(0, 20)}... has minted: ${hasMinted}`)
-            })
-          }
-          
-          return bitcoinAddresses.length === 0
-        })() ? (
+        {bitcoinAddresses.length === 0 ? (
           <div className="text-center py-8">
             <Bitcoin className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-medium mb-2">No Bitcoin Addresses</h3>
@@ -661,11 +632,6 @@ export function DashboardContent() {
                     {(() => {
                       const addressHasMinted = hasAddressMinted(addr)
                       const canMint = isVerified && !addressHasMinted
-                      
-                      console.log(`🔍 MINT BUTTON LOGIC for ${addr.substring(0, 20)}...`)
-                      console.log(`   - isVerified: ${isVerified}`)
-                      console.log(`   - addressHasMinted: ${addressHasMinted}`)
-                      console.log(`   - canMint: ${canMint}`)
                       
                       if (addressHasMinted) {
                         return (
@@ -736,14 +702,7 @@ export function DashboardContent() {
           </div>
         </div>
 
-        {(() => {
-          console.log('🔍 DASHBOARD: Transaction History Section')
-          console.log('   - recentTransactions prop:', recentTransactions)
-          console.log('   - Length:', recentTransactions.length)
-          console.log('   - Profile available:', !!fullProfile)
-          console.log('   - Data from useUserDashboard hook')
-          return recentTransactions.length === 0
-        })() ? (
+{recentTransactions.length === 0 ? (
           <div className="text-center py-8">
             <History className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-medium mb-2">No Transactions</h3>
