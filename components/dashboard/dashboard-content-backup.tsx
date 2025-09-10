@@ -634,7 +634,7 @@ export function DashboardContent() {
           
           // Note: Oracle /users endpoint doesn't provide transaction arrays
           // Transaction details would need separate API calls if available
-          if (oracleUserData.transactionCount > 0) {
+          if ((oracleUserData.transactionCount || 0) > 0) {
             console.log(`📊 Oracle shows ${oracleUserData.transactionCount} transactions for this user`)
           }
 

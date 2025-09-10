@@ -3,28 +3,7 @@
  * Handles all Oracle API calls and data decryption in one place
  */
 
-import { decryptOracleData } from './oracle-decryption'
-
-interface UserData {
-  ethAddress?: string
-  btcAddress?: string
-  btcAddressHash?: string
-  lastSyncedBalance?: number
-  lastSyncTime?: number
-  registeredAt?: string
-  transactionCount?: number
-  autoDetected?: boolean
-  btcAddresses?: string[]
-  lastTxHash?: string
-  addedTime?: number
-  transactions?: Array<{
-    type: string
-    amount: number
-    transactionHash?: string
-    timestamp?: number
-  }>
-  transactionHashes?: any[]
-}
+import { decryptOracleData, UserData } from './oracle-decryption'
 
 interface EncryptedOracleResponse {
   encrypted: boolean

@@ -15,7 +15,7 @@ interface EncryptedOracleResponse {
   additionalData?: string;
 }
 
-interface UserData {
+export interface UserData {
   // Professional Oracle Server fields (from createUserProfile)
   userId?: string;
   ethAddress: string;
@@ -328,7 +328,10 @@ export function findOracleUserByCorrelation(
     let bestTimeDiff = Infinity;
     
     for (const userData of users) {
-      const registrationTime = new Date(userData.registeredAt).getTime();
+      const registrationDate = userData.registeredAt || userData.createdAt;
+      if (!registrationDate) continue;
+      
+      const registrationTime = new Date(registrationDate).getTime();
       const timeDiff = Math.abs(registrationTime - recentMintTimestamp);
       
       // Consider matches within 5 minutes (300000ms) as potential correlations
@@ -346,7 +349,7 @@ export function findOracleUserByCorrelation(
 
   // Strategy 3: Return user with non-zero balance and recent activity (fallback for active users)
   const activeUsers = users.filter(userData => 
-    userData.lastSyncedBalance > 0 && userData.transactionCount > 0
+    (userData.lastSyncedBalance || 0) > 0 && (userData.transactionCount || 0) > 0
   );
   
   if (activeUsers.length === 1) {
@@ -355,7 +358,7 @@ export function findOracleUserByCorrelation(
   }
 
   // Strategy 4: Return most recently active user (last resort)
-  const sortedByActivity = users.sort((a, b) => b.lastSyncTime - a.lastSyncTime);
+  const sortedByActivity = users.sort((a, b) => (b.lastSyncTime || 0) - (a.lastSyncTime || 0));
   
   if (sortedByActivity.length > 0) {
     console.log('⚠️ Using most recently active user as last resort');

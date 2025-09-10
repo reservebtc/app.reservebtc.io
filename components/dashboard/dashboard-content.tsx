@@ -27,6 +27,7 @@ import {
 import Link from 'next/link'
 import { CONTRACTS } from '@/app/lib/contracts'
 import { oracleService } from '@/lib/oracle-service'
+import type { UserData } from '@/lib/oracle-decryption'
 
 interface VerifiedAddress {
   address: string
