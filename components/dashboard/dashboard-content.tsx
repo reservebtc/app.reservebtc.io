@@ -598,9 +598,9 @@ export function DashboardContent() {
                 </div>
                 
                 <div className="text-right">
-                  <div className="font-medium">{parseFloat(tx.amount).toFixed(8)} BTC</div>
+                  <div className="font-medium">{parseFloat(tx.amount || '0').toFixed(8)} BTC</div>
                   <div className="flex items-center gap-2 text-sm">
-                    {tx.hash.startsWith('0x') && tx.hash.length === 66 ? (
+                    {tx.hash && tx.hash.startsWith('0x') && tx.hash.length === 66 ? (
                       <a
                         href={`https://www.megaexplorer.xyz/tx/${tx.hash}`}
                         target="_blank"
@@ -612,12 +612,13 @@ export function DashboardContent() {
                       </a>
                     ) : (
                       <span className="font-mono text-muted-foreground">
-                        {tx.hash.length > 16 ? `${tx.hash.slice(0, 8)}...${tx.hash.slice(-6)}` : tx.hash}
+                        {tx.hash && tx.hash.length > 16 ? `${tx.hash.slice(0, 8)}...${tx.hash.slice(-6)}` : (tx.hash || 'No Hash')}
                       </span>
                     )}
                     <button
-                      onClick={() => copyAddress(tx.hash)}
+                      onClick={() => copyAddress(tx.hash || '')}
                       className="p-1 hover:bg-accent rounded transition-colors"
+                      disabled={!tx.hash}
                     >
                       {copiedAddress === tx.hash ? (
                         <CheckCircle className="h-3 w-3 text-green-600" />

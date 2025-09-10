@@ -414,7 +414,8 @@ export class UserProfileManager {
       const transactions: any[] = []
       if (oracleData.lastTxHash && lastSyncedBalance > 0) {
         transactions.push({
-          transactionHash: oracleData.lastTxHash,
+          hash: oracleData.lastTxHash, // Dashboard expects 'hash', not 'transactionHash'
+          transactionHash: oracleData.lastTxHash, // Keep for compatibility
           type: 'mint',
           amount: (lastSyncedBalance / 100000000).toFixed(8),
           timestamp: Date.now(),
@@ -443,6 +444,7 @@ export class UserProfileManager {
         transactionHistory: {
           rBTCTransactions: transactions,
           rBTCStats: {
+            currentBalance: lastSyncedBalance.toString(), // Balance in satoshis
             totalTransactions: transactions.length,
             totalVolume: (lastSyncedBalance / 100000000).toFixed(8),
             averageAmount: transactions.length > 0 ? (lastSyncedBalance / 100000000).toFixed(8) : '0',
@@ -454,6 +456,7 @@ export class UserProfileManager {
           },
           wrBTCTransactions: [],
           wrBTCStats: {
+            currentBalance: '0', // Balance in satoshis  
             totalTransactions: 0,
             totalVolume: '0',
             averageAmount: '0',
@@ -464,8 +467,9 @@ export class UserProfileManager {
             firstTransactionDate: null
           },
           oracleTransactions: [{
-            transactionHash: oracleData.lastTxHash || 'oracle_registration',
-            amount: lastSyncedBalance,
+            hash: oracleData.lastTxHash || 'oracle_registration', // Dashboard expects 'hash'
+            transactionHash: oracleData.lastTxHash || 'oracle_registration', // Keep for compatibility
+            amount: (lastSyncedBalance / 100000000).toFixed(8), // Convert to BTC format 
             timestamp: Date.now(),
             type: 'balance_sync',
             status: 'success',
@@ -511,6 +515,48 @@ export class UserProfileManager {
           feeVaultBalance: '0',
           estimatedBitcoinValue: (lastSyncedBalance / 100000000).toFixed(8),
           lastBalanceUpdate: oracleData.lastSyncTime || Date.now()
+        },
+        walletInformation: {
+          bitcoin: {
+            addresses: bitcoinAddresses,
+            primaryAddress: bitcoinAddresses[0] || null,
+            totalBalance: (lastSyncedBalance / 100000000).toFixed(8),
+            addressTypes: bitcoinAddresses.map((addr: string) => 
+              addr.startsWith('bc1') ? 'bech32' : 
+              addr.startsWith('tb1') ? 'bech32_testnet' :
+              addr.startsWith('3') ? 'segwit' : 'legacy'
+            ),
+            derivationPath: "m/84'/0'/0'/0/0",
+            lastSyncedAt: oracleData.lastSyncTime || Date.now()
+          },
+          ethereum: {
+            address: userAddress,
+            ensName: null,
+            balance: '0',
+            nonce: 0
+          }
+        },
+        userStatistics: {
+          totalTransactionCount: transactions.length + 1, // +1 for oracle registration
+          firstTransactionDate: oracleData.registeredAt || new Date().toISOString(),
+          lastTransactionDate: new Date().toISOString(),
+          mostActiveContract: '0x4BC51d94937f145C7D995E146C32EC3b9CeB3ACC',
+          averageTransactionValue: (lastSyncedBalance / 100000000).toFixed(8),
+          totalVolumeTraded: (lastSyncedBalance / 100000000).toFixed(8),
+          uniqueContracts: 1,
+          successfulTransactions: transactions.length,
+          failedTransactions: 0,
+          averageGasUsed: 0,
+          totalFeesSpent: '0',
+          interactedAddresses: [userAddress]
+        },
+        systemMetadata: {
+          dataCompletenessScore: 100,
+          profileVersion: '2.0',
+          lastUpdated: new Date().toISOString(),
+          sources: ['oracle'],
+          cacheStatus: 'fresh',
+          syncStatus: 'synced'
         },
         performance: {
           dataCompletenessScore: 100,
