@@ -261,14 +261,51 @@ class OracleService {
   }
 
   /**
-   * Create user profile via Professional Oracle
+   * Create user profile via Professional Oracle - ОБНОВЛЕНО для массивов адресов
    */
   async createUserProfile(ethAddress: string, bitcoinAddress?: string, signature?: string): Promise<{ success: boolean; userId?: string; error?: string }> {
     try {
+      console.log('🔧 ORACLE SERVICE: Creating profile with ARRAY support...')
+      console.log(`   ETH: ${ethAddress}`)
+      console.log(`   BTC: ${bitcoinAddress}`)
+      
       const { registerUserViaOracleVerification } = await import('./professional-oracle-integration')
-      return await registerUserViaOracleVerification(ethAddress, bitcoinAddress, signature, 'website')
+      const result = await registerUserViaOracleVerification(ethAddress, bitcoinAddress, signature, 'website')
+      
+      if (result.success) {
+        // Очистим кэш после успешного создания профиля
+        this.clearCache()
+        console.log('✅ ORACLE SERVICE: Profile created, cache cleared for fresh data')
+      }
+      
+      return result
     } catch (error) {
       console.error('❌ ORACLE SERVICE: Failed to create user profile:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  }
+
+  /**
+   * НОВАЯ ФУНКЦИЯ: Добавить дополнительный Bitcoin адрес к пользователю
+   */
+  async addBitcoinAddressToExistingUser(ethAddress: string, newBitcoinAddress: string, signature?: string): Promise<{ success: boolean; totalAddresses?: number; error?: string }> {
+    try {
+      console.log('🔗 ORACLE SERVICE: Adding additional Bitcoin address...')
+      console.log(`   ETH: ${ethAddress}`)
+      console.log(`   New BTC: ${newBitcoinAddress}`)
+      
+      const { addBitcoinAddressToUser } = await import('./professional-oracle-integration')
+      const result = await addBitcoinAddressToUser(ethAddress, newBitcoinAddress, signature)
+      
+      if (result.success) {
+        // Очистим кэш после успешного добавления адреса
+        this.clearCache()
+        console.log('✅ ORACLE SERVICE: Bitcoin address added, cache cleared for fresh data')
+      }
+      
+      return result
+    } catch (error) {
+      console.error('❌ ORACLE SERVICE: Failed to add Bitcoin address:', error)
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }
@@ -293,11 +330,25 @@ class OracleService {
         }
       }
       
-      // Проверяем есть ли уже такой Bitcoin адрес у другого пользователя
-      const addressUsedByOther = users.find(user => 
-        user.btcAddress === bitcoinAddress && 
-        user.ethAddress.toLowerCase() !== ethereumAddress.toLowerCase()
-      )
+      // ИСПРАВЛЕНИЕ: Проверяем есть ли уже такой Bitcoin адрес у другого пользователя
+      // Учитываем все возможные поля Bitcoin адресов (массивы и одиночные)
+      const addressUsedByOther = users.find(user => {
+        if (user.ethAddress?.toLowerCase() === ethereumAddress.toLowerCase()) {
+          return false // Skip current user
+        }
+        
+        // Check all possible Bitcoin address fields
+        const userDataAny = user as any
+        const userAddresses = [
+          user.btcAddress,
+          user.bitcoinAddress,
+          ...(user.btcAddresses || []),
+          ...(userDataAny.bitcoinAddresses || []),
+          ...(userDataAny.bitcoin_addresses || [])
+        ].filter(Boolean)
+        
+        return userAddresses.includes(bitcoinAddress)
+      })
       
       if (addressUsedByOther) {
         return {
@@ -307,11 +358,25 @@ class OracleService {
         }
       }
       
-      // Проверяем уже ли верифицирован текущий пользователь с этим адресом
-      const currentUserVerified = users.find(user =>
-        user.ethAddress.toLowerCase() === ethereumAddress.toLowerCase() &&
-        user.btcAddress === bitcoinAddress
-      )
+      // ИСПРАВЛЕНИЕ: Проверяем уже ли верифицирован текущий пользователь с этим адресом
+      // Учитываем все возможные поля Bitcoin адресов
+      const currentUserVerified = users.find(user => {
+        if (user.ethAddress?.toLowerCase() !== ethereumAddress.toLowerCase()) {
+          return false
+        }
+        
+        // Check all possible Bitcoin address fields for current user
+        const userDataAny = user as any
+        const userAddresses = [
+          user.btcAddress,
+          user.bitcoinAddress,
+          ...(user.btcAddresses || []),
+          ...(userDataAny.bitcoinAddresses || []),
+          ...(userDataAny.bitcoin_addresses || [])
+        ].filter(Boolean)
+        
+        return userAddresses.includes(bitcoinAddress)
+      })
       
       if (currentUserVerified) {
         return {

@@ -22,7 +22,8 @@ const ENCRYPTION_KEY = Buffer.from('3fc8e1758b839719ebebe4853c9ee20f7ff2d91ca0e5
 export interface UserProfile {
   userId: string;
   ethAddress: string;
-  bitcoinAddress?: string;
+  bitcoinAddress?: string; // LEGACY: для совместимости
+  bitcoinAddresses?: string[]; // ИСПРАВЛЕНИЕ: поддержка массива адресов
   signature?: string;
   source: string;
   createdAt: string;
@@ -173,6 +174,10 @@ function isValidBitcoinAddress(address: string): boolean {
   return address.length >= 26 && address.length <= 62 && /^[a-zA-Z0-9]+$/.test(address)
 }
 
+/**
+ * ИСПРАВЛЕНИЕ: Поддержка массива Bitcoin адресов
+ * Добавляет новый адрес к существующему пользователю или создает нового
+ */
 export async function registerUserViaOracleVerification(
   ethAddress: string,
   bitcoinAddress?: string,
@@ -180,7 +185,7 @@ export async function registerUserViaOracleVerification(
   verificationType: string = 'website'
 ): Promise<{ success: boolean; userId?: string; error?: string }> {
   try {
-    console.log('🏢 ORACLE REGISTRATION: Creating user profile...');
+    console.log('🏢 ORACLE REGISTRATION: Creating/updating user profile...');
     console.log(`   ETH: ${ethAddress}`);
     console.log(`   BTC: ${bitcoinAddress || 'pending'}`);
     
@@ -193,14 +198,16 @@ export async function registerUserViaOracleVerification(
       };
     }
     
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Отправляем массив адресов вместо одного
     const payload = {
       ethAddress,
-      bitcoinAddress,
+      bitcoinAddresses: bitcoinAddress ? [bitcoinAddress] : [], // массив
       signature,
       status: 'verified',
-      verificationType
+      verificationType,
+      operation: 'add_address' // указываем что добавляем адрес
     };
-    console.log('🔍 ORACLE REQUEST PAYLOAD:', JSON.stringify(payload, null, 2));
+    console.log('🔍 ORACLE REQUEST PAYLOAD (FIXED FOR ARRAYS):', JSON.stringify(payload, null, 2));
     
     const response = await makeOracleRequest('/store-verification', {
       method: 'POST',
@@ -210,16 +217,17 @@ export async function registerUserViaOracleVerification(
     const result = await response.json();
     
     if (result.success) {
-      console.log('✅ ORACLE REGISTRATION: User profile created successfully');
+      console.log('✅ ORACLE REGISTRATION: User profile created/updated successfully');
       console.log(`   User ID: ${result.userId}`);
       console.log(`   Total users: ${result.totalUsers}`);
+      console.log(`   Bitcoin addresses count: ${result.bitcoinAddressesCount || 1}`);
       
       return {
         success: true,
         userId: result.userId
       };
     } else {
-      console.error('❌ ORACLE REGISTRATION: Failed to create user profile');
+      console.error('❌ ORACLE REGISTRATION: Failed to create/update user profile');
       return {
         success: false,
         error: result.error || 'Unknown error'
@@ -256,13 +264,74 @@ export async function getOracleStatus(): Promise<OracleStatus | null> {
 }
 
 /**
- * Get all users from Oracle (encrypted)
+ * НОВАЯ ФУНКЦИЯ: Добавить дополнительный Bitcoin адрес к существующему пользователю
+ */
+export async function addBitcoinAddressToUser(
+  ethAddress: string,
+  newBitcoinAddress: string,
+  signature?: string
+): Promise<{ success: boolean; totalAddresses?: number; error?: string }> {
+  try {
+    console.log('🔗 ORACLE ADD ADDRESS: Adding Bitcoin address to existing user...');
+    console.log(`   ETH: ${ethAddress}`);
+    console.log(`   New BTC: ${newBitcoinAddress}`);
+    
+    // Валидация адреса
+    if (!isValidBitcoinAddress(newBitcoinAddress)) {
+      return {
+        success: false,
+        error: `Invalid Bitcoin address format: ${newBitcoinAddress}`
+      };
+    }
+    
+    const payload = {
+      ethAddress,
+      newBitcoinAddress,
+      signature,
+      operation: 'add_additional_address'
+    };
+    console.log('🔍 ADD ADDRESS PAYLOAD:', JSON.stringify(payload, null, 2));
+    
+    const response = await makeOracleRequest('/add-bitcoin-address', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      console.log('✅ ORACLE ADD ADDRESS: Bitcoin address added successfully');
+      console.log(`   Total addresses: ${result.totalAddresses}`);
+      
+      return {
+        success: true,
+        totalAddresses: result.totalAddresses
+      };
+    } else {
+      console.error('❌ ORACLE ADD ADDRESS: Failed to add Bitcoin address');
+      return {
+        success: false,
+        error: result.error || 'Unknown error'
+      };
+    }
+  } catch (error: any) {
+    console.error('❌ ORACLE ADD ADDRESS: Request failed:', error);
+    return {
+      success: false,
+      error: error.message || 'Network error'
+    };
+  }
+}
+
+/**
+ * Get all users from Oracle (encrypted) - ОБНОВЛЕНО для поддержки массивов
  */
 export async function getAllUsersFromOracle(): Promise<{
   totalUsers: number;
   users: Array<{
     ethAddress: string;
-    bitcoinAddress?: string;
+    bitcoinAddress?: string; // LEGACY: для совместимости
+    bitcoinAddresses?: string[]; // ИСПРАВЛЕНИЕ: массив адресов
     lastSyncedBalance: string;
     transactionCount: number;
     registeredAt: string;
@@ -456,6 +525,7 @@ export async function checkOracleHealth(): Promise<boolean> {
 
 export default {
   registerUserViaOracleVerification,
+  addBitcoinAddressToUser, // НОВАЯ ФУНКЦИЯ
   getOracleStatus,
   getAllUsersFromOracle,
   getUserFromOracle,

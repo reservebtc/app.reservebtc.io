@@ -343,24 +343,34 @@ function generateUserId() {
 }
 
 /**
- * Create comprehensive user profile
+ * Create comprehensive user profile - ИСПРАВЛЕНО: Поддержка массивов Bitcoin адресов
  */
-function createUserProfile(ethAddress, bitcoinAddress = null, signature = null, source = 'manual') {
+function createUserProfile(ethAddress, bitcoinAddresses = [], signature = null, source = 'manual') {
   try {
     const userId = generateUserId();
     const now = new Date().toISOString();
     
+    // ИСПРАВЛЕНИЕ: Нормализуем входные данные для поддержки массивов
+    let processedBitcoinAddresses = [];
+    
+    if (Array.isArray(bitcoinAddresses)) {
+      processedBitcoinAddresses = bitcoinAddresses.filter(addr => addr && typeof addr === 'string');
+    } else if (bitcoinAddresses && typeof bitcoinAddresses === 'string') {
+      processedBitcoinAddresses = [bitcoinAddresses];
+    }
+    
     const profile = {
       userId,
       ethAddress: ethAddress.toLowerCase(),
-      bitcoinAddress,
+      bitcoinAddress: processedBitcoinAddresses[0] || null, // LEGACY: для совместимости
+      bitcoinAddresses: processedBitcoinAddresses, // ИСПРАВЛЕНИЕ: массив адресов
       signature,
       source,
       createdAt: now,
       lastActivityAt: now,
       verification: {
-        status: bitcoinAddress ? 'verified' : 'pending',
-        verifiedAt: bitcoinAddress ? now : null,
+        status: processedBitcoinAddresses.length > 0 ? 'verified' : 'pending',
+        verifiedAt: processedBitcoinAddresses.length > 0 ? now : null,
         signature
       },
       statistics: {
@@ -377,7 +387,7 @@ function createUserProfile(ethAddress, bitcoinAddress = null, signature = null, 
         dataRetention: '10_years'
       },
       metadata: {
-        version: '2.0.0',
+        version: '2.1.0', // УВЕЛИЧИЛИ версию из-за breaking change
         lastUpdated: now
       }
     };
@@ -440,6 +450,61 @@ function updateUserProfile(userId, updates) {
     
   } catch (error) {
     console.error('❌ USER UPDATE FAILED:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * НОВАЯ ФУНКЦИЯ: Добавить Bitcoin адрес к существующему пользователю
+ */
+function addBitcoinAddressToUser(userId, newBitcoinAddress, signature = null) {
+  try {
+    const profile = userProfiles.get(userId);
+    if (!profile) {
+      throw new Error('User not found');
+    }
+    
+    // Получаем текущие Bitcoin адреса
+    const currentAddresses = profile.bitcoinAddresses || [];
+    
+    // Проверяем что адрес еще не добавлен
+    if (currentAddresses.includes(newBitcoinAddress)) {
+      return { success: false, error: 'Bitcoin address already exists for this user' };
+    }
+    
+    // Добавляем новый адрес
+    const updatedAddresses = [...currentAddresses, newBitcoinAddress];
+    
+    const updatedProfile = {
+      ...profile,
+      bitcoinAddresses: updatedAddresses,
+      bitcoinAddress: profile.bitcoinAddress || newBitcoinAddress, // обновляем legacy поле если оно пустое
+      signature: signature || profile.signature,
+      verification: {
+        ...profile.verification,
+        status: 'verified',
+        verifiedAt: profile.verification.verifiedAt || new Date().toISOString(),
+        signature: signature || profile.verification.signature
+      },
+      metadata: {
+        ...profile.metadata,
+        lastUpdated: new Date().toISOString()
+      }
+    };
+    
+    userProfiles.set(userId, updatedProfile);
+    
+    console.log(`🔗 BITCOIN ADDRESS ADDED: ${newBitcoinAddress.substring(0, 12)}... to user ${userId.substring(0, 8)}...`);
+    console.log(`   Total addresses: ${updatedAddresses.length}`);
+    
+    return { 
+      success: true, 
+      profile: updatedProfile,
+      totalAddresses: updatedAddresses.length 
+    };
+    
+  } catch (error) {
+    console.error('❌ ADD BITCOIN ADDRESS FAILED:', error.message);
     return { success: false, error: error.message };
   }
 }
@@ -672,15 +737,35 @@ app.get('/status', (req, res) => {
 });
 
 /**
- * Create user profile via verification (main registration endpoint)
+ * Create user profile via verification - ИСПРАВЛЕНО: Поддержка массивов Bitcoin адресов
  */
 app.post('/store-verification', async (req, res) => {
   try {
-    const { ethAddress, bitcoinAddress, signature, status, verificationType } = req.body;
+    const { 
+      ethAddress, 
+      bitcoinAddress,      // LEGACY: для совместимости
+      bitcoinAddresses,    // ИСПРАВЛЕНИЕ: массив адресов
+      signature, 
+      status, 
+      verificationType,
+      operation = 'create_or_update'
+    } = req.body;
     
-    console.log('👤 NEW USER REGISTRATION:', {
+    // ИСПРАВЛЕНИЕ: Обработка входящих данных для поддержки массивов
+    let processedBitcoinAddresses = [];
+    
+    if (bitcoinAddresses && Array.isArray(bitcoinAddresses)) {
+      processedBitcoinAddresses = bitcoinAddresses.filter(addr => addr && typeof addr === 'string');
+    } else if (bitcoinAddress && typeof bitcoinAddress === 'string') {
+      processedBitcoinAddresses = [bitcoinAddress];
+    }
+    
+    console.log('👤 NEW USER REGISTRATION (ARRAY SUPPORT):', {
       eth: ethAddress?.substring(0, 10) + '...',
-      btc: bitcoinAddress || 'pending',
+      btcSingle: bitcoinAddress || 'none',
+      btcArray: processedBitcoinAddresses.map(addr => addr.substring(0, 12) + '...'),
+      btcCount: processedBitcoinAddresses.length,
+      operation: operation,
       type: verificationType || 'manual'
     });
     
@@ -695,31 +780,46 @@ app.post('/store-verification', async (req, res) => {
     // Check if user already exists
     const existing = findUserByEthAddress(ethAddress);
     if (existing) {
-      console.log('⚠️ User already exists, updating profile...');
+      console.log('⚠️ User already exists, handling array operation...');
       
-      // Update existing user with Bitcoin address if provided
-      if (bitcoinAddress && bitcoinAddress !== existing.profile.bitcoinAddress) {
-        const updateResult = updateUserProfile(existing.userId, {
-          bitcoinAddress,
-          signature,
-          verification: {
-            ...existing.profile.verification,
-            status: 'verified',
-            verifiedAt: new Date().toISOString(),
-            signature
-          }
-        });
+      // ИСПРАВЛЕНИЕ: Обработка массивов адресов для существующих пользователей
+      if (processedBitcoinAddresses.length > 0) {
+        const currentAddresses = existing.profile.bitcoinAddresses || [existing.profile.bitcoinAddress].filter(Boolean);
         
-        if (updateResult.success) {
-          // Save to persistent storage
-          saveUserProfilesToFile();
+        // Найдем новые адреса которых еще нет
+        const newAddresses = processedBitcoinAddresses.filter(addr => !currentAddresses.includes(addr));
+        
+        if (newAddresses.length > 0) {
+          console.log(`🔗 Adding ${newAddresses.length} new Bitcoin addresses to existing user`);
           
-          return res.json({
-            success: true,
-            message: 'User profile updated successfully',
-            userId: existing.userId,
-            totalUsers: systemMetrics.totalUsers
-          });
+          // Добавляем все новые адреса
+          let updateSuccess = true;
+          let totalAddresses = currentAddresses.length;
+          
+          for (const newAddr of newAddresses) {
+            const addResult = addBitcoinAddressToUser(existing.userId, newAddr, signature);
+            if (addResult.success) {
+              totalAddresses = addResult.totalAddresses;
+            } else {
+              updateSuccess = false;
+              console.error(`Failed to add address ${newAddr}:`, addResult.error);
+            }
+          }
+          
+          if (updateSuccess) {
+            // Save to persistent storage
+            saveUserProfilesToFile();
+            
+            return res.json({
+              success: true,
+              message: `User profile updated successfully with ${newAddresses.length} new Bitcoin addresses`,
+              userId: existing.userId,
+              totalUsers: systemMetrics.totalUsers,
+              bitcoinAddressesCount: totalAddresses
+            });
+          }
+        } else {
+          console.log('⚠️ All Bitcoin addresses already exist for this user');
         }
       }
       
@@ -727,12 +827,13 @@ app.post('/store-verification', async (req, res) => {
         success: true,
         message: 'User already registered',
         userId: existing.userId,
-        totalUsers: systemMetrics.totalUsers
+        totalUsers: systemMetrics.totalUsers,
+        bitcoinAddressesCount: (existing.profile.bitcoinAddresses || []).length
       });
     }
     
-    // Create new user profile
-    const result = createUserProfile(ethAddress, bitcoinAddress, signature, 'website_verification');
+    // Create new user profile with array support
+    const result = createUserProfile(ethAddress, processedBitcoinAddresses, signature, 'website_verification');
     
     if (result.success) {
       // Save to persistent storage
@@ -763,13 +864,82 @@ app.post('/store-verification', async (req, res) => {
 });
 
 /**
- * Get all users (encrypted response)
+ * НОВЫЙ ENDPOINT: Добавить Bitcoin адрес к существующему пользователю
+ */
+app.post('/add-bitcoin-address', async (req, res) => {
+  try {
+    const { ethAddress, newBitcoinAddress, signature } = req.body;
+    
+    console.log('🔗 ADD BITCOIN ADDRESS REQUEST:', {
+      eth: ethAddress?.substring(0, 10) + '...',
+      btc: newBitcoinAddress?.substring(0, 12) + '...'
+    });
+    
+    // Validate Ethereum address
+    if (!ethAddress || !ethAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid Ethereum address format'
+      });
+    }
+    
+    // Validate Bitcoin address
+    if (!newBitcoinAddress || typeof newBitcoinAddress !== 'string' || newBitcoinAddress.length < 26) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid Bitcoin address format'
+      });
+    }
+    
+    // Find user
+    const userInfo = findUserByEthAddress(ethAddress);
+    if (!userInfo) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    // Add Bitcoin address
+    const result = addBitcoinAddressToUser(userInfo.userId, newBitcoinAddress, signature);
+    
+    if (result.success) {
+      // Save to persistent storage
+      saveUserProfilesToFile();
+      
+      res.json({
+        success: true,
+        message: 'Bitcoin address added successfully',
+        totalAddresses: result.totalAddresses,
+        userId: userInfo.userId
+      });
+      
+      console.log('✅ BITCOIN ADDRESS ADDED SUCCESSFULLY');
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ ADD BITCOIN ADDRESS FAILED:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * Get all users (encrypted response) - ОБНОВЛЕНО для массивов
  */
 app.get('/users', (req, res) => {
   try {
     const usersList = Array.from(userProfiles.values()).map(profile => ({
       ethAddress: profile.ethAddress,
-      bitcoinAddress: profile.bitcoinAddress,
+      bitcoinAddress: profile.bitcoinAddress, // LEGACY: для совместимости
+      bitcoinAddresses: profile.bitcoinAddresses || [], // ИСПРАВЛЕНИЕ: массив адресов
       lastSyncedBalance: profile.statistics?.lastSyncBalance || '0',
       transactionCount: profile.statistics?.totalTransactions || 0,
       registeredAt: profile.createdAt,

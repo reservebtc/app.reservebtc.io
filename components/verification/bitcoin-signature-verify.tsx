@@ -756,29 +756,23 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
             )}
           </div>
 
-          {/* 🚨 КРИТИЧЕСКОЕ ПРЕДУПРЕЖДЕНИЕ БЕЗОПАСНОСТИ */}
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
-            <div className="flex items-start space-x-3">
-              <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <div className="text-sm">
-                <p className="font-medium text-red-900 dark:text-red-100">🚨 Security Notice</p>
-                <p className="text-red-700 dark:text-red-300 mt-1">
-                  BIP-322 signature validation is temporarily disabled for security audit. 
-                  A critical vulnerability was discovered that could allow signature spoofing.
-                  Verification will be re-enabled after security fixes are implemented.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Verify Button */}
+          {/* Verify Button - ИСПРАВЛЕНО: Включена безопасная верификация */}
           <button
             onClick={verifySignature}
-            disabled={true} // КРИТИЧНО: Временно отключено
-            className="w-full px-6 py-3 bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium transition-all flex items-center justify-center gap-2"
+            disabled={!bitcoinAddress || !signature || isVerifying || addressUniquenessCheck.isUnique === false}
+            className="w-full px-6 py-3 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium transition-all flex items-center justify-center gap-2"
           >
-            <AlertCircle className="h-5 w-5" />
-            <span>Verification Temporarily Disabled</span>
+            {isVerifying ? (
+              <>
+                <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Verifying Signature...</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle className="h-5 w-5" />
+                <span>Verify Bitcoin Ownership</span>
+              </>
+            )}
           </button>
 
           {/* Verification Result */}
