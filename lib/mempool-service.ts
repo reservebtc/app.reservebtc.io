@@ -99,7 +99,7 @@ class MempoolService {
   async getAddressBalance(address: string): Promise<any> {
     try {
       // Список известных фиктивных адресов (только реально невалидные)
-      const fakeAddresses = [
+      const fakeAddresses: string[] = [
         // Оставляем пустым - убираем реальные тестовые адреса
       ];
       
