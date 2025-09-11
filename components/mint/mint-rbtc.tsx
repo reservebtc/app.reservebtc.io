@@ -452,33 +452,41 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         const verifiedAddrs = []
         if (userData) {
           
-          // ORACLE 2.1.0: Используем новый метод для получения массива адресов
-          const processedAddresses = oracleService.getUserBitcoinAddresses(userData)
-          
-          
-          if (processedAddresses.length > 0) {
-            // Обработать все найденные Bitcoin адреса
-            for (const btcAddr of processedAddresses) {
-              console.log('✅ MINT: Processing Bitcoin address:', btcAddr)
-              const mintStatus = await getMintStatusForAddress(btcAddr, userData)
-              verifiedAddrs.push({
-                address: btcAddr,
-                verifiedAt: userData.registeredAt || new Date().toISOString(),
-                signature: 'oracle_verified',
-                mintStatus: mintStatus.status,
-                mintTxHash: mintStatus.mintTxHash
-              })
+          // ИСПРАВЛЕНИЕ: Собираем ВСЕ адреса из всех источников (как на dashboard)
+          const collectAllUserAddresses = () => {
+            const addresses = new Set<string>();
+            const userDataAny = userData as any;
+            
+            // Добавляем ВСЕ источники адресов:
+            if (userData.bitcoinAddress) {
+              addresses.add(userData.bitcoinAddress);
             }
-          } else {
-            // Fallback к старому методу если processedBitcoinAddresses пустой
-            const userDataAny = userData as any
-            const btcAddr = userData.bitcoinAddress || 
-                            userData.btcAddress || 
-                            userDataAny.bitcoin_address ||
-                            userDataAny.BTC_ADDRESS ||
-                            userDataAny.address
-            if (btcAddr) {
-              console.log('✅ MINT: Found Bitcoin address (fallback):', btcAddr)
+            if (userData.btcAddress && userData.btcAddress !== userData.bitcoinAddress) {
+              addresses.add(userData.btcAddress);
+            }
+            if (userData.btcAddresses && Array.isArray(userData.btcAddresses)) {
+              userData.btcAddresses.forEach(addr => addresses.add(addr));
+            }
+            if (userDataAny.bitcoinAddresses && Array.isArray(userDataAny.bitcoinAddresses)) {
+              userDataAny.bitcoinAddresses.forEach(addr => addresses.add(addr));
+            }
+            if (userDataAny.processedBitcoinAddresses && Array.isArray(userDataAny.processedBitcoinAddresses)) {
+              userDataAny.processedBitcoinAddresses.forEach(addr => addresses.add(addr));
+            }
+            if (userDataAny.allBitcoinAddresses && Array.isArray(userDataAny.allBitcoinAddresses)) {
+              userDataAny.allBitcoinAddresses.forEach(addr => addresses.add(addr));
+            }
+            
+            return Array.from(addresses);
+          };
+
+          const allUserAddresses = collectAllUserAddresses();
+          console.log('📋 MINT: Collected all addresses:', allUserAddresses);
+          
+          if (allUserAddresses.length > 0) {
+            // Обработать все найденные Bitcoin адреса
+            for (const btcAddr of allUserAddresses) {
+              console.log('✅ MINT: Processing Bitcoin address:', btcAddr)
               const mintStatus = await getMintStatusForAddress(btcAddr, userData)
               verifiedAddrs.push({
                 address: btcAddr,
@@ -1522,29 +1530,39 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               {allVerifiedAddresses && allVerifiedAddresses.length > 0 ? (
                 <>
                   <select 
-                    className="w-full p-3 bg-background border rounded-lg text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-colors mb-3"
+                    className="w-full p-3 bg-gray-900/70 rounded-lg border border-gray-600 text-white focus:border-blue-500 transition-all appearance-none cursor-pointer hover:bg-gray-900/90"
                     value={verifiedBitcoinAddress}
                     onChange={(e) => handleAddressChange(e.target.value)}
                   >
-                    <option value="" className="text-muted-foreground">Select Bitcoin Address</option>
+                    <option value="" className="bg-gray-900 text-gray-400">
+                      Select Bitcoin Address
+                    </option>
                     {allVerifiedAddresses.map((addr, idx) => {
                       const address = typeof addr === 'string' ? addr : addr.address;
-                      const isTestnet = address.startsWith('tb1');
+                      const isTestnet = address.startsWith('tb1') || address.startsWith('2');
                       const shortAddr = `${address.slice(0, 10)}...${address.slice(-8)}`;
-                      const network = isTestnet ? 'TESTNET' : 'MAINNET';
                       
                       return (
-                        <option key={idx} value={address}>
-                          {shortAddr} ({network})
+                        <option key={idx} value={address} className="bg-gray-900 text-white">
+                          {shortAddr} ({isTestnet ? 'TESTNET' : 'MAINNET'})
                         </option>
                       );
                     })}
                   </select>
                   
                   {verifiedBitcoinAddress && (
-                    <div className="p-3 bg-muted/50 rounded-lg">
-                      <div className="text-xs text-muted-foreground mb-1">Selected:</div>
-                      <div className="font-mono text-sm text-primary break-all">
+                    <div className="mt-3 p-3 bg-gray-900/30 rounded-lg border border-gray-700/50">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500">Selected:</span>
+                        <span className={`px-2 py-0.5 text-xs rounded-full ${
+                          verifiedBitcoinAddress.startsWith('tb1') || verifiedBitcoinAddress.startsWith('2')
+                            ? 'bg-orange-900/30 text-orange-400 border border-orange-500/30' 
+                            : 'bg-green-900/30 text-green-400 border border-green-500/30'
+                        }`}>
+                          {verifiedBitcoinAddress.startsWith('tb1') || verifiedBitcoinAddress.startsWith('2') ? 'TESTNET' : 'MAINNET'}
+                        </span>
+                      </div>
+                      <div className="font-mono text-xs text-blue-400 break-all mt-2">
                         {verifiedBitcoinAddress}
                       </div>
                     </div>
