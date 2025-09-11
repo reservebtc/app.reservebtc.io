@@ -182,7 +182,7 @@ function saveUserProfilesToFile() {
       profiles: profilesObject,
       totalUsers: userProfiles.size,
       timestamp: new Date().toISOString(),
-      version: '2.0.0'
+      version: '2.1.0'
     };
     
     // Atomic write using temporary file
@@ -212,7 +212,7 @@ function saveTransactionHistoryToFile() {
       transactions: historyObject,
       totalTransactions: systemMetrics.totalTransactions,
       timestamp: new Date().toISOString(),
-      version: '2.0.0'
+      version: '2.1.0'
     };
     
     // Atomic write
@@ -708,7 +708,7 @@ app.get('/status', (req, res) => {
   res.json({
     status: 'operational',
     mode: 'PROFESSIONAL_PRODUCTION',
-    version: '2.0.0',
+    version: '2.1.0',
     uptime,
     metrics: {
       totalUsers: systemMetrics.totalUsers,
@@ -952,7 +952,7 @@ app.get('/users', (req, res) => {
       totalUsers: usersList.length,
       users: usersList,
       timestamp: new Date().toISOString(),
-      version: '2.0.0'
+      version: '2.1.0'
     };
     
     const encryptedResponse = encryptData(responseData, 'users_list');
@@ -1018,7 +1018,7 @@ app.get('/health', (req, res) => {
       profiles: userProfiles.size,
       transactions: transactionHistory.size
     },
-    version: '2.0.0',
+    version: '2.1.0',
     mode: 'PROFESSIONAL_PRODUCTION'
   });
 });

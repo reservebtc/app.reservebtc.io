@@ -39,8 +39,8 @@ export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignat
   const { refreshProfile } = useUserVerification()
 
   /**
-   * Create user profile via Professional Oracle (NO BLOCKCHAIN TRANSACTION)
-   * Simply creates encrypted user card with Bitcoin address verification
+   * Create/Update user profile via Professional Oracle (ORACLE 2.1.0 ARRAY SUPPORT)
+   * Handles both new users and adding addresses to existing users
    */
   const createOracleProfile = async (bitcoinAddress: string, signature: string) => {
     if (!ethAddress || !bitcoinAddress) {
@@ -51,24 +51,48 @@ export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignat
     }
     
     try {
-      console.log('🏢 VERIFICATION: Creating user profile via Professional Oracle')
-      console.log('🏭 VERIFICATION: NO blockchain transaction needed - just database record')
-      console.log('🔐 VERIFICATION: Bitcoin address will be saved in encrypted user card')
+      console.log('🏢 VERIFICATION: Oracle 2.1.0 - Checking if user exists for array support...')
       
-      // Create profile directly via Professional Oracle (no blockchain transaction)
-      console.log('📡 VERIFICATION: Calling Professional Oracle API...')
-      const { createOracleProfile: createProfessionalOracleProfile } = await import('@/lib/professional-oracle-integration')
+      // НОВАЯ ЛОГИКА: Проверяем существующего пользователя для массивов
+      const { oracleService } = await import('@/lib/oracle-service')
+      const existingUser = await oracleService.getUserByAddress(ethAddress)
       
-      const profileResult = await createProfessionalOracleProfile(
+      if (existingUser) {
+        console.log('👤 VERIFICATION: Existing user found - adding Bitcoin address to array')
+        console.log('📊 VERIFICATION: Current addresses:', oracleService.getUserBitcoinAddresses(existingUser))
+        
+        // Используем функцию добавления адреса к существующему пользователю
+        const addResult = await oracleService.addBitcoinAddressToExistingUser(
+          ethAddress,
+          bitcoinAddress,
+          signature
+        )
+        
+        if (addResult.success) {
+          console.log('✅ VERIFICATION: Bitcoin address added to existing user array')
+          console.log('📊 VERIFICATION: Total addresses now:', addResult.totalAddresses)
+          
+          // Also save to cache for immediate UI update
+          await saveVerifiedUserToCache(ethAddress, bitcoinAddress, signature)
+          return true
+        } else {
+          console.log('⚠️ VERIFICATION: Failed to add address to existing user:', addResult.error)
+        }
+      } else {
+        console.log('👤 VERIFICATION: New user - creating profile with first Bitcoin address')
+      }
+      
+      // Создаем новый профиль или fallback для существующего
+      console.log('📡 VERIFICATION: Calling Professional Oracle API for profile creation...')
+      const profileResult = await oracleService.createUserProfile(
         ethAddress, 
         bitcoinAddress, 
         signature
       )
       
       if (profileResult.success) {
-        console.log('✅ VERIFICATION: Professional Oracle profile created successfully')
-        console.log('📊 VERIFICATION: User registered in enterprise-grade encrypted database')
-        console.log('💡 VERIFICATION: Bitcoin address saved in user card (no blockchain transaction)')
+        console.log('✅ VERIFICATION: Professional Oracle profile created/updated successfully')
+        console.log('📊 VERIFICATION: User registered with Bitcoin address array support')
         
         // Also save to cache for immediate UI update
         console.log('💾 VERIFICATION: Also saving to cache for immediate UI update...')

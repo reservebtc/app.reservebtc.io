@@ -732,33 +732,93 @@ export function DashboardContent() {
           }
           
           return (
-            <div className="bg-gray-800/50 rounded-xl p-6">
-              <h3 className="text-xl font-bold mb-4">Bitcoin Addresses</h3>
-              
-              {/* ОТЛАДКА */}
-              <div className="text-xs text-yellow-400 mb-3 p-2 bg-yellow-900/20 rounded">
-                DEBUG: {uniqueAddresses?.length || 0} addresses found
-                <br />
-                Raw addresses: {JSON.stringify(uniqueAddresses)}
-              </div>
-              
-              {/* ВСЕГДА показываем если есть хоть один адрес */}
+            <div className="space-y-3">
               {uniqueAddresses?.length > 0 ? (
-                <div className="space-y-2">
-                  {uniqueAddresses.map((address, index) => (
-                    <div key={`bitcoin-addr-${index}`} className="p-3 bg-gray-900 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <input type="checkbox" className="w-4 h-4" />
-                        <span className="font-mono text-sm flex-1">{address}</span>
-                        <span className="text-xs text-gray-400">
-                          {address.startsWith('tb1') ? 'TESTNET' : 'MAINNET'}
-                        </span>
+                uniqueAddresses
+                  .slice(0, showAllAddresses ? undefined : 3)
+                  .map((addr, index) => (
+                  <div key={addr} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm">{addr}</span>
+                          <button
+                            onClick={() => copyAddress(addr)}
+                            className="p-1 hover:bg-accent rounded transition-colors"
+                          >
+                            {copiedAddress === addr ? (
+                              <CheckCircle className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <Copy className="h-3 w-3 text-muted-foreground" />
+                            )}
+                          </button>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Verified Bitcoin address
+                          <span className="ml-2">({isTestnetAddress(addr) ? 'testnet' : 'mainnet'})</span>
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        const addressHasMinted = hasAddressMinted(addr)
+                        const canMint = isVerified && !addressHasMinted
+                        
+                        if (addressHasMinted) {
+                          return (
+                            <div className="flex items-center gap-1">
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                                Minted
+                              </span>
+                            </div>
+                          )
+                        } else if (canMint) {
+                          return (
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              <Link 
+                                href={`/mint?address=${encodeURIComponent(addr)}`}
+                                className="px-3 py-1 bg-primary text-primary-foreground rounded text-xs hover:bg-primary/90 transition-colors flex items-center gap-1"
+                              >
+                                Mint →
+                              </Link>
+                            </div>
+                          )
+                        } else {
+                          return (
+                            <div className="flex items-center gap-1">
+                              <AlertCircle className="h-4 w-4 text-yellow-600" />
+                              <span className="text-xs text-muted-foreground">Pending</span>
+                            </div>
+                          )
+                        }
+                      })()}
+                    </div>
+                  </div>
+                ))
               ) : (
                 <div>No addresses found - Check Oracle connection</div>
+              )}
+              
+              {uniqueAddresses.length > 3 && (
+                <button
+                  onClick={() => setShowAllAddresses(!showAllAddresses)}
+                  className="w-full flex items-center justify-center gap-2 p-3 text-sm text-muted-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                >
+                  {showAllAddresses ? (
+                    <>
+                      <ChevronUp className="h-4 w-4" />
+                      Show Less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4" />
+                      Show {uniqueAddresses.length - 3} More
+                    </>
+                  )}
+                </button>
               )}
             </div>
           )

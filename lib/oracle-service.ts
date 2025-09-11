@@ -253,6 +253,47 @@ class OracleService {
   }
 
   /**
+   * Get Bitcoin addresses as array for Oracle 2.1.0 compatibility
+   */
+  getUserBitcoinAddresses(user: any): string[] {
+    if (!user) return []
+    
+    // Oracle 2.1.0 поддерживает массивы
+    if (user.bitcoinAddresses && Array.isArray(user.bitcoinAddresses)) {
+      return user.bitcoinAddresses
+    }
+    
+    // Check other array formats
+    if (user.btcAddresses && Array.isArray(user.btcAddresses)) {
+      return user.btcAddresses
+    }
+    
+    if (user.bitcoin_addresses && Array.isArray(user.bitcoin_addresses)) {
+      return user.bitcoin_addresses
+    }
+    
+    // Use processed addresses if available
+    if (user.processedBitcoinAddresses && Array.isArray(user.processedBitcoinAddresses)) {
+      return user.processedBitcoinAddresses
+    }
+    
+    if (user.allBitcoinAddresses && Array.isArray(user.allBitcoinAddresses)) {
+      return user.allBitcoinAddresses
+    }
+    
+    // Fallback для старых записей
+    if (user.bitcoinAddress) {
+      return [user.bitcoinAddress]
+    }
+    
+    if (user.btcAddress) {
+      return [user.btcAddress]
+    }
+    
+    return []
+  }
+
+  /**
    * Clear cache (useful for forcing refresh)
    */
   clearCache(): void {

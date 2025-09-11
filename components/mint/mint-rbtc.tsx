@@ -456,11 +456,10 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         if (userData) {
           console.log('🔄 MINT DEBUG: UserData found, processing addresses...')
           
-          // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Используем обработанные адреса из Oracle Service
-          const userDataAny = userData as any
-          const processedAddresses = userDataAny.processedBitcoinAddresses || []
+          // ORACLE 2.1.0: Используем новый метод для получения массива адресов
+          const processedAddresses = oracleService.getUserBitcoinAddresses(userData)
           
-          console.log('🔄 MINT DEBUG: Processed Bitcoin addresses from Oracle:', processedAddresses)
+          console.log('🔄 MINT DEBUG: Bitcoin addresses from Oracle 2.1.0:', processedAddresses)
           
           if (processedAddresses.length > 0) {
             // Обработать все найденные Bitcoin адреса
