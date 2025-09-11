@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react'
 import { CheckCircle, AlertCircle, Copy, Check, ChevronDown, ChevronUp, Info, ArrowRight, Rocket } from 'lucide-react'
 import { useAccount } from 'wagmi'
-// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Временно отключаем небезопасную bip322-js библиотеку
-// import { Verifier } from 'bip322-js'
-import { validateBIP322Signature as secureValidateBIP322 } from '@/lib/bip322-validator'
+// ИСПРАВЛЕНО: Используем надежную bitcoinjs-message библиотеку
+import { BitcoinSignatureValidator } from '@/lib/bitcoin-signature-validator'
 import { useRouter } from 'next/navigation'
 // User data now handled by Professional Oracle only
 import { useUserVerification } from '@/hooks/useUserProfile'
@@ -260,25 +259,31 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
     }
   }, [bitcoinAddress, ethAddress])
 
-  // 🚨 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасная BIP-322 валидация
-  const verifyBIP322Signature = async (address: string, message: string, signature: string): Promise<boolean> => {
-    console.log('🚨 SECURITY: Using SECURE BIP-322 validation to prevent signature spoofing')
+  // ✅ ИСПРАВЛЕНО: Профессиональная BIP-322 валидация с bitcoinjs-message
+  const verifyBitcoinSignature = async (address: string, message: string, signature: string): Promise<boolean> => {
+    console.log('🔐 VALIDATOR: Using professional bitcoinjs-message validation')
+    console.log(`   Address: ${address}`)
+    console.log(`   Message length: ${message.length}`)
+    console.log(`   Signature length: ${signature.length}`)
     
     try {
-      // КРИТИЧНО: Используем безопасный валидатор вместо уязвимой библиотеки
-      const result = secureValidateBIP322(address, message, signature)
+      // Используем профессиональный валидатор с поддержкой всех типов адресов
+      const result = BitcoinSignatureValidator.verify(address, message, signature)
       
       if (result.valid) {
-        console.log('✅ SECURE BIP-322 validation successful')
+        console.log('✅ Bitcoin signature validation successful')
+        console.log(`   Method: ${result.method}`)
+        console.log(`   Address type: ${result.addressType}`)
         return true
       } else {
-        console.error('❌ SECURE BIP-322 validation failed:', result.error)
-        console.log('🔍 Security details:', result.details)
+        console.error('❌ Bitcoin signature validation failed')
+        console.log(`   Address type: ${result.addressType}`)
+        console.log(`   Error: ${result.error}`)
         return false
       }
       
     } catch (error) {
-      console.error('❌ SECURE BIP-322 validation error:', error)
+      console.error('❌ Bitcoin signature validation error:', error)
       return false
     }
   }
@@ -320,8 +325,8 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
         return
       }
       
-      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Строгая BIP-322 проверка для ВСЕХ адресов
-      const isValid = await verifyBIP322Signature(cleanAddress, message, cleanSignature)
+      // ✅ ИСПРАВЛЕНО: Профессиональная Bitcoin подпись проверка для ВСЕХ адресов
+      const isValid = await verifyBitcoinSignature(cleanAddress, message, cleanSignature)
       
       if (!isValid) {
         setVerificationResult({
