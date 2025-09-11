@@ -448,7 +448,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         console.log('📋 Loading verified addresses from Oracle Service:', userData)
         
         // Process all verified addresses with mint status
-        let verifiedAddrs = []
+        const verifiedAddrs = []
         if (userData) {
           // Check primary Bitcoin address
           if (userData.btcAddress) {

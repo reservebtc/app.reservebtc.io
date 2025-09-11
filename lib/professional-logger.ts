@@ -59,7 +59,7 @@ class ProfessionalLogger {
 
   private sanitizeMessage(message: string, userWallet?: string): string {
     // Remove sensitive data patterns
-    let sanitized = message
+    const sanitized = message
       .replace(/0x[a-fA-F0-9]{40}/g, (match) => {
         // Keep only last 6 characters of Ethereum addresses for current user privacy
         return userWallet && match.toLowerCase().includes(userWallet.toLowerCase().slice(-6)) 
