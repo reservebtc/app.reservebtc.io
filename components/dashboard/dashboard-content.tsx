@@ -692,6 +692,15 @@ export function DashboardContent() {
 
         {/* Warning for limited data - removed legacy Oracle direct access */}
 
+        {/* ОТЛАДКА: Принудительный показ адресов */}
+        <div className="text-xs text-yellow-400 mb-2 p-2 bg-yellow-900/20 rounded">
+          DEBUG: bitcoinAddresses = {JSON.stringify(bitcoinAddresses)}
+          <br />
+          directOracleAddresses = {JSON.stringify(directOracleAddresses.map(d => d.address))}
+          <br />
+          Length: {bitcoinAddresses?.length || 0} + {directOracleAddresses?.length || 0}
+        </div>
+
         {(() => {
           // Combine addresses from hook and direct Oracle debugging
           const allAddresses = [...bitcoinAddresses, ...directOracleAddresses.map(d => d.address)]
@@ -702,6 +711,7 @@ export function DashboardContent() {
           console.log('  - directOracleAddresses:', directOracleAddresses.map(d => d.address))
           console.log('  - uniqueAddresses combined:', uniqueAddresses)
           
+          // ПРИНУДИТЕЛЬНО показать если есть хоть один адрес
           if (uniqueAddresses.length === 0) {
             return (
               <div className="text-center py-8">
@@ -720,6 +730,47 @@ export function DashboardContent() {
               </div>
             )
           }
+          
+          return (
+            <div className="bg-gray-800/50 rounded-xl p-6">
+              <h3 className="text-xl font-bold mb-4">Bitcoin Addresses</h3>
+              
+              {/* ОТЛАДКА */}
+              <div className="text-xs text-yellow-400 mb-3 p-2 bg-yellow-900/20 rounded">
+                DEBUG: {uniqueAddresses?.length || 0} addresses found
+                <br />
+                Raw addresses: {JSON.stringify(uniqueAddresses)}
+              </div>
+              
+              {/* ВСЕГДА показываем если есть хоть один адрес */}
+              {uniqueAddresses?.length > 0 ? (
+                <div className="space-y-2">
+                  {uniqueAddresses.map((address, index) => (
+                    <div key={`bitcoin-addr-${index}`} className="p-3 bg-gray-900 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <input type="checkbox" className="w-4 h-4" />
+                        <span className="font-mono text-sm flex-1">{address}</span>
+                        <span className="text-xs text-gray-400">
+                          {address.startsWith('tb1') ? 'TESTNET' : 'MAINNET'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div>No addresses found - Check Oracle connection</div>
+              )}
+            </div>
+          )
+        })()}
+      </div>
+      
+      {/* Оставляем остальной код без изменений */}
+      <div className="hidden">
+        {/* Старый код для справки */}
+        {(() => {
+          const allAddresses = [...bitcoinAddresses, ...directOracleAddresses.map(d => d.address)]
+          const uniqueAddresses = Array.from(new Set(allAddresses)).filter(Boolean)
           
           return (
             <div className="space-y-3">

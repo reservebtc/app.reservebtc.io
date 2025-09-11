@@ -1500,11 +1500,46 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               </p>
             </div>
 
-            {/* Verified Bitcoin Address Selection */}
+            {/* ОТЛАДКА: Принудительный показ адресов в mint */}
+            <div className="text-xs text-yellow-400 mb-2 p-2 bg-yellow-900/20 rounded">
+              MINT DEBUG: allVerifiedAddresses = {JSON.stringify(allVerifiedAddresses.map(a => a.address))}
+              <br />
+              Count: {allVerifiedAddresses?.length || 0}
+              <br />
+              Current: {verifiedBitcoinAddress || 'none'}
+            </div>
+
+            {/* Verified Bitcoin Address Selection - УПРОЩЕННАЯ ВЕРСИЯ */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Your Verified Bitcoin Address</label>
               
-              {/* Current selected address display */}
+              {/* ВСЕГДА показывать dropdown если есть адреса */}
+              {allVerifiedAddresses?.length > 0 ? (
+                <select 
+                  className="w-full p-3 bg-gray-900 rounded border text-white"
+                  value={verifiedBitcoinAddress}
+                  onChange={(e) => {
+                    const newAddress = e.target.value
+                    setVerifiedBitcoinAddress(newAddress)
+                    setValue('bitcoinAddress', newAddress, { shouldValidate: true })
+                    fetchBitcoinBalance(newAddress)
+                  }}
+                >
+                  <option value="">Select Bitcoin Address</option>
+                  {allVerifiedAddresses.map((addr, i) => (
+                    <option key={i} value={addr.address}>
+                      {addr.address} ({addr.address.startsWith('tb1') ? 'TESTNET' : 'MAINNET'})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="p-3 bg-red-900/20 rounded border border-red-800">
+                  No verified addresses found - Check Oracle connection
+                </div>
+              )}
+              
+              {/* Старый сложный код для справки */}
+              <div className="hidden">
               <div className="relative">
                 {verifiedBitcoinAddress ? (
                   <div className="w-full px-4 py-3 border rounded-lg bg-background font-mono text-sm flex items-center justify-between group">
