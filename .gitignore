@@ -13,6 +13,8 @@ debug-*.js
 test-*.js
 *-debug.js
 *-test.js
+scripts/oracle-integration-test.js
+scripts/comprehensive-test.js
 
 # Env & local configs - CRITICAL SECURITY
 .env

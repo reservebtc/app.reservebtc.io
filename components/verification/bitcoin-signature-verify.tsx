@@ -140,6 +140,10 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
   const checkAddressUniqueness = async (address: string) => {
     if (!address || !ethAddress) return
     
+    console.log('🔍 VERIFICATION: Checking Bitcoin address uniqueness via Professional Oracle')
+    console.log(`   Bitcoin Address: ${address.substring(0, 10)}...`)
+    console.log(`   Current User: ${ethAddress.substring(0, 10)}...`)
+    
     setAddressUniquenessCheck({
       isChecking: true,
       isUnique: null,
@@ -148,60 +152,98 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
     })
 
     try {
-      console.log('🔒 Checking address uniqueness for current user')
+      // Use Oracle Service to check address uniqueness
+      const { oracleService } = await import('@/lib/oracle-service')
       
-      // Call Oracle API to check uniqueness without exposing all user data
-      const oracleUrl = process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'
-      const response = await fetch(`${oracleUrl}/check-address-uniqueness`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          bitcoinAddress: address,
-          ethAddress: ethAddress
-        })
-      })
+      // Check if address is already used by another user
+      const isUsed = await oracleService.isBitcoinAddressUsed(address, ethAddress)
       
-      if (!response.ok) {
-        // Fallback: assume address is unique if check fails
-        console.warn('⚠️ Address uniqueness check unavailable - proceeding')
-        setAddressUniquenessCheck({
-          isChecking: false,
-          isUnique: true,
-          error: null,
-          conflictUser: null
-        })
-        return
-      }
-      
-      const result = await response.json()
-      
-      if (result.isUnique === false) {
+      if (isUsed) {
+        // Address is already used by someone else
         setAddressUniquenessCheck({
           isChecking: false,
           isUnique: false,
-          error: 'Bitcoin address is already linked to another account',
-          conflictUser: null // Don't expose which user
+          error: `This Bitcoin address has already been verified by another user`,
+          conflictUser: null // Privacy: don't reveal other user's info
         })
-      } else {
+        console.log('❌ VERIFICATION: Bitcoin address already verified by another user')
+        return
+      }
+      
+      // Check if current user already verified this address
+      const userData = await oracleService.getUserByAddress(ethAddress)
+      const userAddresses = [
+        userData?.bitcoinAddress,
+        userData?.btcAddress,
+        ...(userData?.btcAddresses || [])
+      ].filter(Boolean)
+      
+      if (userAddresses.includes(address)) {
+        // User already verified this address
         setAddressUniquenessCheck({
           isChecking: false,
-          isUnique: true,
-          error: null,
+          isUnique: false,
+          error: `You have already verified this Bitcoin address`,
           conflictUser: null
         })
+        console.log('⚠️ VERIFICATION: User already verified this address')
+        return
       }
-
-    } catch (error) {
-      console.log('⚠️ Address uniqueness check unavailable - proceeding')
-      // Fallback: assume unique if check fails
+      
+      // Address is available for verification
       setAddressUniquenessCheck({
         isChecking: false,
         isUnique: true,
         error: null,
         conflictUser: null
       })
+      console.log('✅ VERIFICATION: Bitcoin address is available for verification')
+
+    } catch (error) {
+      console.error('❌ VERIFICATION: Oracle address uniqueness check failed:', error)
+      
+      // Fallback: Use the old Oracle endpoint if Oracle Service fails
+      try {
+        console.log('🔄 VERIFICATION: Trying fallback Oracle endpoint...')
+        
+        const oracleUrl = process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'
+        const response = await fetch(`${oracleUrl}/check-address-uniqueness`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            bitcoinAddress: address,
+            ethAddress: ethAddress
+          })
+        })
+        
+        if (response.ok) {
+          const result = await response.json()
+          
+          setAddressUniquenessCheck({
+            isChecking: false,
+            isUnique: result.isUnique,
+            error: result.isUnique === false ? 'This Bitcoin address has already been verified by another user' : null,
+            conflictUser: null
+          })
+          
+          console.log(`${result.isUnique ? '✅' : '❌'} VERIFICATION: Fallback check completed - address ${result.isUnique ? 'available' : 'unavailable'}`)
+        } else {
+          throw new Error('Fallback Oracle endpoint also failed')
+        }
+        
+      } catch (fallbackError) {
+        console.warn('⚠️ VERIFICATION: All address checks failed - allowing verification to proceed with caution')
+        
+        // Final fallback: assume address is unique if all checks fail
+        setAddressUniquenessCheck({
+          isChecking: false,
+          isUnique: true,
+          error: 'Unable to verify address uniqueness. Proceeding with caution.',
+          conflictUser: null
+        })
+      }
     }
   }
 
@@ -726,10 +768,17 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                   <div className="flex items-center gap-2 text-red-600">
                     <AlertCircle className="h-4 w-4" />
                     <div className="text-sm">
-                      <div className="font-medium">❌ Address already in use</div>
-                      <div className="text-xs mt-1">{addressUniquenessCheck.error}</div>
+                      <div className="font-medium">
+                        {addressUniquenessCheck.error?.includes('already verified this') 
+                          ? "You have already verified this Bitcoin address" 
+                          : "This Bitcoin address has already been verified by another user"
+                        }
+                      </div>
                       <div className="text-xs mt-1 text-gray-600">
-                        Each Bitcoin address can only be verified by one account.
+                        {addressUniquenessCheck.error?.includes('already verified this') 
+                          ? "This address is already associated with your account."
+                          : "Each Bitcoin address can only be verified by one user account."
+                        }
                       </div>
                     </div>
                   </div>

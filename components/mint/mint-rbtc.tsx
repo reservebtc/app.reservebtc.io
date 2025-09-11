@@ -16,6 +16,7 @@ import { CONTRACTS } from '@/app/lib/contracts'
 import { requestOracleRegistration, checkOracleRegistration, waitForOracleRegistration } from '@/lib/oracle-integration'
 import { getTransactionHashForOracleUser } from '@/lib/transaction-hash-cache'
 import { oracleService } from '@/lib/oracle-service'
+import { mempoolService } from '@/lib/mempool-service'
 import { useMintProtection } from '@/lib/mint-protection'
 
 interface MintRBTCProps {
@@ -32,7 +33,12 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const [errorMessage, setErrorMessage] = useState<string>('')
   const [retryAttempt, setRetryAttempt] = useState<number>(0)
   const [verifiedBitcoinAddress, setVerifiedBitcoinAddress] = useState<string>('')
-  const [allVerifiedAddresses, setAllVerifiedAddresses] = useState<{address: string, verifiedAt: string}[]>([])
+  const [allVerifiedAddresses, setAllVerifiedAddresses] = useState<{
+    address: string, 
+    verifiedAt: string, 
+    mintStatus: 'available' | 'minted',
+    mintTxHash?: string
+  }[]>([])
   const [bitcoinBalance, setBitcoinBalance] = useState<number>(0)
   const [isLoadingBalance, setIsLoadingBalance] = useState(false)
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false)
@@ -55,6 +61,33 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     hasActiveAutoSync,
     getAutoSyncAddresses
   } = useMintProtection()
+
+  // Function to determine mint status for Bitcoin addresses
+  const getMintStatusForAddress = async (bitcoinAddress: string, userData: any): Promise<{status: 'available' | 'minted', mintTxHash?: string}> => {
+    try {
+      // Check if address has been minted by looking at user's transaction history
+      const transactions = userData?.transactions || []
+      const mintTransaction = transactions.find((tx: any) => 
+        tx.bitcoinAddress === bitcoinAddress && 
+        (tx.type === 'mint' || tx.operation === 'mint') &&
+        tx.status === 'completed'
+      )
+      
+      if (mintTransaction) {
+        console.log('✅ MINT STATUS: Address already minted:', bitcoinAddress, 'TX:', mintTransaction.hash)
+        return {
+          status: 'minted',
+          mintTxHash: mintTransaction.hash
+        }
+      }
+      
+      console.log('🔄 MINT STATUS: Address available for minting:', bitcoinAddress)
+      return { status: 'available' }
+    } catch (error) {
+      console.error('❌ MINT STATUS: Error checking mint status:', error)
+      return { status: 'available' } // Default to available on error
+    }
+  }
 
   // Oracle hash resolution function
   const resolveRealTransactionHash = async (ethereumAddress: string): Promise<string | null> => {
@@ -292,102 +325,83 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }, [performCompleteDataCleanup])
 
-  // Fetch Bitcoin balance for specific Bitcoin address using existing Oracle infrastructure
+  // Fetch Bitcoin balance using Professional Mempool Service
   const fetchBitcoinBalance = useCallback(async (btcAddress: string) => {
-    console.log('🔍 Fetching balance for specific Bitcoin address:', btcAddress)
+    console.log('💰 MEMPOOL: Fetching balance for Bitcoin address:', btcAddress.substring(0, 8) + '...')
     setIsLoadingBalance(true)
     setHasAttemptedFetch(false)
     
     try {
-      // For direct Bitcoin API, we don't need Ethereum address
-      console.log('Starting Bitcoin balance fetch, Ethereum address available:', !!address)
-
       // Add small delay to avoid race conditions during Bitcoin transaction processing
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await new Promise(resolve => setTimeout(resolve, 300))
 
-      // Try to get balance directly from Bitcoin blockchain for this specific address
-      console.log('🌐 Fetching Bitcoin balance directly from blockchain for:', btcAddress)
+      // Use professional mempool service for reliable balance fetching
+      const balanceData = await mempoolService.getAddressBalance(btcAddress)
       
-      try {
-        // Use Blockstream API for testnet (tb1 addresses)
-        const isTestnet = btcAddress.startsWith('tb1') || btcAddress.startsWith('2') || btcAddress.startsWith('m') || btcAddress.startsWith('n')
-        const apiUrl = isTestnet 
-          ? `https://blockstream.info/testnet/api/address/${btcAddress}`
-          : `https://blockstream.info/api/address/${btcAddress}`
-        
-        console.log('🔗 Using Bitcoin API:', apiUrl)
-        
-        const bitcoinResponse = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'User-Agent': 'ReserveBTC-Frontend/1.0'
-          }
+      if (balanceData) {
+        console.log('✅ MEMPOOL: Balance fetched successfully:', {
+          address: btcAddress.substring(0, 8) + '...',
+          balance: balanceData.balance,
+          network: balanceData.network,
+          txCount: balanceData.tx_count,
+          spentTxos: balanceData.spent_txo_count
         })
-
-        if (bitcoinResponse.ok) {
-          const bitcoinData = await bitcoinResponse.json()
-          console.log('⚡ Bitcoin API response:', bitcoinData)
-          
-          const balanceInSats = bitcoinData.chain_stats?.funded_txo_sum || 0
-          const spentInSats = bitcoinData.chain_stats?.spent_txo_sum || 0
-          const currentBalanceInSats = balanceInSats - spentInSats
-          
-          // Check if address has made outgoing transactions (spent coins)
-          const hasSpentCoins = spentInSats > 0
-          console.log('🔍 Address transaction analysis:', {
-            received: balanceInSats,
-            spent: spentInSats,
-            currentBalance: currentBalanceInSats,
-            hasSpentCoins
+        
+        // Check if address has made outgoing transactions (spent coins)
+        const hasSpentCoins = balanceData.spent_txo_count > 0
+        setAddressHasSpentCoins(hasSpentCoins)
+        
+        // Set balance and auto-fill amount
+        setBitcoinBalance(balanceData.balance)
+        setValue('amount', balanceData.balance.toString())
+        
+        console.log(`✅ MEMPOOL: Successfully loaded ${balanceData.balance} BTC for ${balanceData.network} address`)
+        return
+      }
+      
+      // If mempool service fails, try fallback to Oracle Aggregator contract
+      if (publicClient && address) {
+        console.log('🔄 MEMPOOL: Service failed, trying Oracle Aggregator fallback...')
+        
+        try {
+          const lastSats = await publicClient.readContract({
+            address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
+            abi: [
+              {
+                name: 'lastSats',
+                type: 'function',
+                stateMutability: 'view',
+                inputs: [{ name: 'user', type: 'address' }],
+                outputs: [{ name: '', type: 'uint64' }]
+              }
+            ],
+            functionName: 'lastSats',
+            args: [address]
           })
           
-          setAddressHasSpentCoins(hasSpentCoins)
-          
-          const bitcoinBalance = currentBalanceInSats / 100000000 // Convert sats to BTC
-          console.log('✅ Direct Bitcoin balance for', btcAddress, ':', bitcoinBalance, 'BTC')
+          const bitcoinBalance = Number(lastSats) / 100000000 // Convert sats to BTC
+          console.log('📊 FALLBACK: Balance from Oracle Aggregator:', bitcoinBalance, 'BTC')
           setBitcoinBalance(bitcoinBalance)
           setValue('amount', bitcoinBalance.toString())
-          return
-        } else {
-          console.log('⚠️ Bitcoin API failed, trying Oracle fallback...')
+          setAddressHasSpentCoins(false) // Oracle doesn't track spent coins
+        } catch (oracleError) {
+          console.warn('⚠️ FALLBACK: Oracle Aggregator also failed:', oracleError)
+          throw oracleError
         }
-      } catch (bitcoinError) {
-        console.log('⚠️ Bitcoin API error, trying Oracle fallback:', bitcoinError)
-      }
-
-      // Fallback: Try Oracle system (only if we have Ethereum address and publicClient)
-      if (publicClient && address) {
-        console.log('🔄 Fallback: Using Oracle Aggregator contract...')
-        
-        const lastSats = await publicClient.readContract({
-          address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
-          abi: [
-            {
-              name: 'lastSats',
-              type: 'function',
-              stateMutability: 'view',
-              inputs: [{ name: 'user', type: 'address' }],
-              outputs: [{ name: '', type: 'uint64' }]
-            }
-          ],
-          functionName: 'lastSats',
-          args: [address]
-        })
-        
-        const bitcoinBalance = Number(lastSats) / 100000000 // Convert sats to BTC
-        console.log('📊 Fallback balance from Oracle Aggregator:', bitcoinBalance, 'BTC')
-        setBitcoinBalance(bitcoinBalance)
-        setValue('amount', bitcoinBalance.toString())
       } else {
-        console.log('⚠️ No fallback available - missing Ethereum connection')
+        console.warn('⚠️ MEMPOOL: Service failed and no Oracle fallback available')
         setBitcoinBalance(0)
         setValue('amount', '0')
+        setAddressHasSpentCoins(false)
       }
+      
     } catch (error) {
-      console.error('❌ Failed to fetch Bitcoin balance:', error)
-      // Fallback to 0
+      console.error('❌ MEMPOOL: Failed to fetch Bitcoin balance:', error)
+      
+      // Final fallback: Set to 0 but still allow user to proceed
       setBitcoinBalance(0)
       setValue('amount', '0')
+      setAddressHasSpentCoins(false)
     } finally {
       setIsLoadingBalance(false)
       setHasAttemptedFetch(true)
@@ -433,17 +447,45 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         const userData = await oracleService.getUserByAddress(address)
         console.log('📋 Loading verified addresses from Oracle Service:', userData)
         
-        const verifiedAddrs = userData && userData.btcAddress ? [{
-          address: userData.btcAddress,
-          verifiedAt: userData.registeredAt || new Date().toISOString(),
-          signature: 'oracle_verified'
-        }] : []
+        // Process all verified addresses with mint status
+        let verifiedAddrs = []
+        if (userData) {
+          // Check primary Bitcoin address
+          if (userData.btcAddress) {
+            const mintStatus = await getMintStatusForAddress(userData.btcAddress, userData)
+            verifiedAddrs.push({
+              address: userData.btcAddress,
+              verifiedAt: userData.registeredAt || new Date().toISOString(),
+              signature: 'oracle_verified',
+              mintStatus: mintStatus.status,
+              mintTxHash: mintStatus.mintTxHash
+            })
+          }
+          
+          // Check additional Bitcoin addresses
+          if (userData.btcAddresses && Array.isArray(userData.btcAddresses)) {
+            for (const btcAddr of userData.btcAddresses) {
+              if (btcAddr !== userData.btcAddress) { // Avoid duplicates
+                const mintStatus = await getMintStatusForAddress(btcAddr, userData)
+                verifiedAddrs.push({
+                  address: btcAddr,
+                  verifiedAt: userData.registeredAt || new Date().toISOString(),
+                  signature: 'oracle_verified',
+                  mintStatus: mintStatus.status,
+                  mintTxHash: mintStatus.mintTxHash
+                })
+              }
+            }
+          }
+        }
         
         if (verifiedAddrs.length > 0) {
-          // Store all addresses for dropdown
+          // Store all addresses for dropdown with mint status
           setAllVerifiedAddresses(verifiedAddrs.map(addr => ({
             address: addr.address,
-            verifiedAt: addr.verifiedAt
+            verifiedAt: addr.verifiedAt,
+            mintStatus: addr.mintStatus,
+            mintTxHash: addr.mintTxHash
           })))
           
           // Check if coming from verification page or if there's a specific address in URL
@@ -1429,9 +1471,134 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                       </button>
                     )}
                   </div>
+                ) : allVerifiedAddresses.length > 0 ? (
+                  <div className="w-full border rounded-lg bg-background">
+                    <div className="px-4 py-3 border-b bg-muted/20">
+                      <div className="text-sm font-medium text-foreground">
+                        Select Bitcoin Address ({allVerifiedAddresses.length} verified)
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Choose an address to mint rBTC-SYNTH tokens
+                      </div>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                      {allVerifiedAddresses.map((addr, index) => {
+                        const isAvailable = addr.mintStatus === 'available'
+                        const isMinted = addr.mintStatus === 'minted'
+                        const network = (addr.address.startsWith('tb1') || addr.address.startsWith('2') || addr.address.startsWith('m') || addr.address.startsWith('n')) ? 'Testnet' : 'Mainnet'
+                        
+                        return (
+                          <div
+                            key={addr.address}
+                            className={`px-4 py-3 border-b last:border-b-0 flex items-center justify-between hover:bg-muted/30 transition-colors ${
+                              !isAvailable ? 'opacity-75' : 'cursor-pointer'
+                            }`}
+                            onClick={() => {
+                              if (isAvailable) {
+                                console.log('🔄 Selecting available address for minting:', addr.address)
+                                
+                                // Reset balance state immediately to show loading
+                                setBitcoinBalance(0)
+                                setIsLoadingBalance(true)
+                                setHasAttemptedFetch(false)
+                                setAddressHasSpentCoins(false)
+                                
+                                // Update address state
+                                setVerifiedBitcoinAddress(addr.address)
+                                setValue('bitcoinAddress', addr.address, { shouldValidate: true })
+                                
+                                // Force refresh balance for selected address
+                                fetchBitcoinBalance(addr.address)
+                              }
+                            }}
+                          >
+                            <div className="flex items-center space-x-3 flex-1 min-w-0">
+                              <div className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={addr.address === verifiedBitcoinAddress && isAvailable}
+                                  readOnly
+                                  disabled={!isAvailable}
+                                  className="rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50"
+                                />
+                              </div>
+                              <div className={`p-1.5 rounded-full ${
+                                isMinted ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
+                              }`}>
+                                <Bitcoin className={`h-3 w-3 ${
+                                  isMinted ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
+                                }`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-mono text-sm truncate">
+                                  {addr.address}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {network} • {getBitcoinAddressTypeLabel('unknown')}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              {isMinted ? (
+                                <>
+                                  <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 text-xs rounded font-medium flex items-center gap-1">
+                                    ✅ Minted
+                                  </span>
+                                  {addr.mintTxHash && (
+                                    <a
+                                      href={`https://www.megaexplorer.xyz/tx/${addr.mintTxHash}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-muted-foreground hover:text-primary text-xs"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded font-medium flex items-center gap-1">
+                                  🔄 Available
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div className="px-4 py-3 border-t bg-muted/10 text-center">
+                      <Link 
+                        href="/verify" 
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-all"
+                      >
+                        <Shield className="h-4 w-4" />
+                        Add New Address
+                      </Link>
+                    </div>
+                  </div>
                 ) : (
-                  <div className="w-full px-4 py-3 border rounded-lg bg-muted/50 cursor-not-allowed font-mono text-sm text-muted-foreground">
-                    No verified address
+                  <div className="w-full px-4 py-6 border rounded-lg bg-muted/20 text-center">
+                    <div className="space-y-3">
+                      <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full w-12 h-12 mx-auto flex items-center justify-center">
+                        <Bitcoin className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-foreground mb-1">
+                          No verified Bitcoin addresses
+                        </div>
+                        <div className="text-xs text-muted-foreground mb-3">
+                          Verify your Bitcoin address ownership to start minting rBTC-SYNTH
+                        </div>
+                        <Link 
+                          href="/verify" 
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-sm font-medium transition-all"
+                        >
+                          <Shield className="h-4 w-4" />
+                          Verify Bitcoin Address
+                        </Link>
+                      </div>
+                    </div>
                   </div>
                 )}
                 
@@ -1445,6 +1612,8 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                       {allVerifiedAddresses.map((addr, index) => {
                         const isSelected = addr.address === verifiedBitcoinAddress
                         const isLatest = index === 0 // Addresses are sorted by verifiedAt desc
+                        const isAvailable = addr.mintStatus === 'available'
+                        const isMinted = addr.mintStatus === 'minted'
                         const verificationDate = new Date(addr.verifiedAt).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -1455,45 +1624,63 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                           <button
                             key={addr.address}
                             type="button"
+                            disabled={!isAvailable}
                             onClick={() => {
-                              console.log('🔄 Dropdown: Address selected, switching to:', addr.address)
-                              
-                              // Reset balance state immediately to show loading
-                              setBitcoinBalance(0)
-                              setIsLoadingBalance(true)
-                              setHasAttemptedFetch(false)
-                              setAddressHasSpentCoins(false)
-                              
-                              // Update address state
-                              setVerifiedBitcoinAddress(addr.address)
-                              setValue('bitcoinAddress', addr.address, { shouldValidate: true })
-                              setShowAddressDropdown(false)
-                              
-                              // Force refresh balance for new address
-                              if (addr.address) {
-                                console.log('🔄 Dropdown: Force fetching balance for new address:', addr.address)
-                                fetchBitcoinBalance(addr.address)
+                              if (isAvailable) {
+                                console.log('🔄 Dropdown: Address selected, switching to:', addr.address)
+                                
+                                // Reset balance state immediately to show loading
+                                setBitcoinBalance(0)
+                                setIsLoadingBalance(true)
+                                setHasAttemptedFetch(false)
+                                setAddressHasSpentCoins(false)
+                                
+                                // Update address state
+                                setVerifiedBitcoinAddress(addr.address)
+                                setValue('bitcoinAddress', addr.address, { shouldValidate: true })
+                                setShowAddressDropdown(false)
+                                
+                                // Force refresh balance for new address
+                                if (addr.address) {
+                                  console.log('🔄 Dropdown: Force fetching balance for new address:', addr.address)
+                                  fetchBitcoinBalance(addr.address)
+                                }
                               }
                             }}
                             className={`w-full text-left px-3 py-3 rounded-lg transition-colors flex items-center justify-between hover:bg-muted/50 ${
                               isSelected ? 'bg-primary/10 ring-1 ring-primary/20' : ''
-                            }`}
+                            } ${!isAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
                             <div className="flex items-center space-x-3 flex-1 min-w-0">
                               <div className="flex items-center space-x-2">
-                                <div className={`p-1 rounded-full ${isSelected ? 'bg-primary/20' : 'bg-muted'}`}>
-                                  <Bitcoin className={`h-3 w-3 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                                <div className={`p-1 rounded-full ${
+                                  isSelected ? 'bg-primary/20' : isMinted ? 'bg-green-100 dark:bg-green-900/30' : 'bg-muted'
+                                }`}>
+                                  <Bitcoin className={`h-3 w-3 ${
+                                    isSelected ? 'text-primary' : 
+                                    isMinted ? 'text-green-600 dark:text-green-400' : 
+                                    'text-muted-foreground'
+                                  }`} />
                                 </div>
                                 {isSelected && <Check className="h-3 w-3 text-primary" />}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center space-x-2">
+                                <div className="flex items-center space-x-2 flex-wrap">
                                   <span className="font-mono text-sm truncate">
                                     {addr.address}
                                   </span>
                                   {isLatest && (
-                                    <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded font-medium">
+                                    <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs rounded font-medium">
                                       Latest
+                                    </span>
+                                  )}
+                                  {isMinted ? (
+                                    <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded font-medium">
+                                      ✅ Minted
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs rounded font-medium">
+                                      🔄 Available
                                     </span>
                                   )}
                                 </div>
@@ -1502,6 +1689,18 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                                 </div>
                               </div>
                             </div>
+                            
+                            {isMinted && addr.mintTxHash && (
+                              <a
+                                href={`https://www.megaexplorer.xyz/tx/${addr.mintTxHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-muted-foreground hover:text-primary text-xs ml-2"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
                           </button>
                         )
                       })}

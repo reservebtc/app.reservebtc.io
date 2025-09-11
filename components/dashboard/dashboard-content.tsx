@@ -27,6 +27,7 @@ import {
 import Link from 'next/link'
 import { CONTRACTS } from '@/app/lib/contracts'
 import { oracleService } from '@/lib/oracle-service'
+import { mempoolService } from '@/lib/mempool-service'
 import type { UserData } from '@/lib/oracle-decryption'
 
 interface VerifiedAddress {
@@ -253,27 +254,23 @@ export function DashboardContent() {
     return address.startsWith('tb1') || address.startsWith('m') || address.startsWith('n') || address.startsWith('2')
   }
 
-  // Fetch Bitcoin balance from Mempool API
+  // Fetch Bitcoin balance using Professional Mempool Service
   const fetchBitcoinBalance = async (address: string): Promise<number> => {
     try {
-      const isTestnet = isTestnetAddress(address)
-      const baseUrl = isTestnet ? 'https://mempool.space/testnet/api' : 'https://mempool.space/api'
+      console.log(`🔍 DASHBOARD: Fetching balance for current user via Professional Mempool Service`)
       
-      console.log(`🔍 PRIVACY: Fetching ${isTestnet ? 'testnet' : 'mainnet'} balance for current user`)
+      const balanceData = await mempoolService.getAddressBalance(address)
       
-      const response = await fetch(`${baseUrl}/address/${address}`)
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
+      if (balanceData) {
+        console.log(`💰 DASHBOARD: Balance fetched for current user: ${balanceData.balance} BTC (${balanceData.network})`)
+        return balanceData.balance
       }
       
-      const data = await response.json()
-      const balanceBTC = (data.chain_stats.funded_txo_sum - data.chain_stats.spent_txo_sum) / 100000000
-      
-      console.log(`💰 PRIVACY: Fetched ${isTestnet ? 'testnet' : 'mainnet'} balance for current user: ${balanceBTC} BTC`)
-      return balanceBTC
+      console.warn(`⚠️ DASHBOARD: Failed to fetch balance for current user address via Mempool Service`)
+      return 0
       
     } catch (error) {
-      console.warn(`⚠️ PRIVACY: Failed to fetch balance for current user:`, error)
+      console.error(`❌ DASHBOARD: Failed to fetch balance for current user address`, error)
       return 0
     }
   }

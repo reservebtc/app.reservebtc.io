@@ -43,7 +43,8 @@ class OracleService {
       const response = await fetch(`${this.baseUrl}/users`, {
         headers: {
           'x-api-key': this.apiKey,
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'User-Agent': 'ReserveBTC-Frontend/1.0'
         }
       })
 
@@ -82,7 +83,8 @@ class OracleService {
       const response = await fetch(`${this.baseUrl}/user/${ethAddress}`, {
         headers: {
           'x-api-key': this.apiKey,
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'User-Agent': 'ReserveBTC-Frontend/1.0'
         }
       })
 
@@ -177,7 +179,11 @@ class OracleService {
    */
   async getStatus(): Promise<any> {
     try {
-      const response = await fetch(`${this.baseUrl}/status`)
+      const response = await fetch(`${this.baseUrl}/status`, {
+        headers: {
+          'User-Agent': 'ReserveBTC-Frontend/1.0'
+        }
+      })
       return await response.json()
     } catch (error) {
       console.error('❌ ORACLE SERVICE: Failed to get status:', error)

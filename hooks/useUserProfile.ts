@@ -13,6 +13,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAccount } from 'wagmi'
 import { userProfileManager, UniversalUserProfile } from '@/lib/user-profile-manager'
+import { mempoolService } from '@/lib/mempool-service'
 
 // Bitcoin balance fetching utility
 const isTestnetAddress = (address: string): boolean => {
@@ -21,21 +22,19 @@ const isTestnetAddress = (address: string): boolean => {
 
 const fetchBitcoinBalance = async (address: string): Promise<number> => {
   try {
-    const isTestnet = isTestnetAddress(address)
-    const baseUrl = isTestnet ? 'https://mempool.space/testnet/api' : 'https://mempool.space/api'
+    console.log(`💰 HOOK: Fetching Bitcoin balance via Professional Mempool Service for ${address.slice(0,10)}...`)
     
-    const response = await fetch(`${baseUrl}/address/${address}`)
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
+    const balanceData = await mempoolService.getAddressBalance(address)
+    
+    if (balanceData) {
+      console.log(`✅ HOOK: Balance fetched: ${balanceData.balance} BTC (${balanceData.network})`)
+      return balanceData.balance
     }
     
-    const data = await response.json()
-    const balanceBTC = (data.chain_stats.funded_txo_sum - data.chain_stats.spent_txo_sum) / 100000000
-    
-    console.log(`💰 Fetched ${isTestnet ? 'testnet' : 'mainnet'} balance for ${address.slice(0,10)}...: ${balanceBTC} BTC`)
-    return balanceBTC
+    console.warn(`⚠️ HOOK: Failed to fetch balance via Mempool Service for ${address.slice(0,10)}...`)
+    return 0
   } catch (error) {
-    console.warn(`Failed to fetch balance for ${address.slice(0,10)}...:`, error)
+    console.warn(`❌ HOOK: Failed to fetch balance for ${address.slice(0,10)}...:`, error)
     return 0
   }
 }

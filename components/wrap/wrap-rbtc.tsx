@@ -26,6 +26,8 @@ import Link from 'next/link'
 import { CONTRACTS, CONTRACT_ABIS } from '@/app/lib/contracts'
 import { getVerifiedBitcoinAddresses } from '@/lib/user-data-storage'
 import { syncWrBTCDataToOracle } from '@/lib/wrbtc-tracking'
+import { oracleService } from '@/lib/oracle-service'
+import { mempoolService } from '@/lib/mempool-service'
 
 interface VerifiedAddress {
   address: string
@@ -89,7 +91,13 @@ export function WrapRBTC() {
 
     const loadBalances = async () => {
       try {
-        // Load rBTC-SYNTH balance
+        console.log('💰 WRAP: Loading balances from Oracle Service and contracts...')
+        
+        // Load user data from Oracle Service for comprehensive balance info
+        const userData = await oracleService.getUserByAddress(address)
+        console.log('📊 WRAP: Oracle user data:', userData)
+        
+        // Load rBTC-SYNTH balance from contract
         const rbtcBal = await publicClient.readContract({
           address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
           abi: [
@@ -105,7 +113,7 @@ export function WrapRBTC() {
           args: [address]
         }) as bigint
 
-        // Load wrBTC balance  
+        // Load wrBTC balance from contract
         const wrbtcBal = await publicClient.readContract({
           address: CONTRACTS.VAULT_WRBTC as `0x${string}`,
           abi: [
@@ -121,15 +129,47 @@ export function WrapRBTC() {
           args: [address]
         }) as bigint
 
-        setRbtcBalance(formatUnits(rbtcBal, 8))
-        setWrbtcBalance(formatUnits(wrbtcBal, 8))
+        const rbtcBalanceFormatted = formatUnits(rbtcBal, 8)
+        const wrbtcBalanceFormatted = formatUnits(wrbtcBal, 8)
         
-        // Load verified addresses
-        const verifiedAddrs = await getVerifiedBitcoinAddresses(address)
+        setRbtcBalance(rbtcBalanceFormatted)
+        setWrbtcBalance(wrbtcBalanceFormatted)
+        
+        console.log(`✅ WRAP: Balances loaded - rBTC: ${rbtcBalanceFormatted}, wrBTC: ${wrbtcBalanceFormatted}`)
+        
+        // Load verified addresses from Oracle Service
+        const verifiedAddrs = []
+        if (userData) {
+          // Add primary Bitcoin address
+          if (userData.btcAddress) {
+            verifiedAddrs.push({
+              address: userData.btcAddress,
+              verifiedAt: userData.registeredAt || new Date().toISOString()
+            })
+          }
+          
+          // Add additional Bitcoin addresses
+          if (userData.btcAddresses && Array.isArray(userData.btcAddresses)) {
+            userData.btcAddresses.forEach(addr => {
+              if (addr && addr !== userData.btcAddress) {
+                verifiedAddrs.push({
+                  address: addr,
+                  verifiedAt: userData.registeredAt || new Date().toISOString()
+                })
+              }
+            })
+          }
+        }
+        
         setVerifiedAddresses(verifiedAddrs)
+        console.log(`📋 WRAP: Loaded ${verifiedAddrs.length} verified Bitcoin addresses`)
         
       } catch (error) {
-        console.error('Error loading balances:', error)
+        console.error('❌ WRAP: Error loading balances:', error)
+        // Set defaults on error
+        setRbtcBalance('0')
+        setWrbtcBalance('0')
+        setVerifiedAddresses([])
       }
     }
 
