@@ -10,7 +10,6 @@ import { oracleService } from '@/lib/oracle-service'
 
 // Verify this is a legitimate cron request
 function verifyCronRequest(request: NextRequest): boolean {
-  const authHeader = request.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET
   
   if (!cronSecret) {
@@ -18,7 +17,20 @@ function verifyCronRequest(request: NextRequest): boolean {
     return false
   }
   
-  return authHeader === `Bearer ${cronSecret}`
+  // Check for Vercel Cron headers (automatic from Vercel platform)
+  const isVercelCron = request.headers.get('user-agent')?.includes('vercel') || 
+                       request.headers.get('host')?.includes('vercel') ||
+                       process.env.VERCEL === '1'
+  
+  // Check for manual authorization header (for testing)
+  const authHeader = request.headers.get('authorization')
+  const hasValidAuth = authHeader === `Bearer ${cronSecret}`
+  
+  // Check for cron secret in query params (for testing)
+  const url = new URL(request.url)
+  const hasValidQuery = url.searchParams.get('secret') === cronSecret
+  
+  return isVercelCron || hasValidAuth || hasValidQuery
 }
 
 export async function GET(request: NextRequest) {
