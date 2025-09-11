@@ -141,6 +141,8 @@ export function DashboardContent() {
           // Get ONLY current user data - DO NOT show other users' addresses
           const currentUserData = await oracleService.getUserByAddress(address)
           console.log('🔍 DASHBOARD DEBUG: Current user data:', currentUserData)
+          console.log('🔍 DASHBOARD DEBUG: Current user data type:', typeof currentUserData)
+          console.log('🔍 DASHBOARD DEBUG: Current user data keys:', currentUserData ? Object.keys(currentUserData) : 'null')
           
           if (currentUserData) {
             console.log('🔍 DASHBOARD DEBUG: Full Oracle user data:', currentUserData)
