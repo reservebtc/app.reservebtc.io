@@ -446,20 +446,14 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         const userData = await oracleService.getUserByAddress(address)
         console.log('🔍 MINT: Full user data:', userData)
         console.log('📋 Loading verified addresses from Oracle Service:', userData)
-        console.log('📋 DEBUG - btcAddress:', userData?.btcAddress)
-        console.log('📋 DEBUG - bitcoinAddress:', userData?.bitcoinAddress) 
-        console.log('📋 DEBUG - btcAddresses:', userData?.btcAddresses)
         
         // Process all verified addresses with mint status
         const verifiedAddrs = []
-        console.log('🔄 MINT DEBUG: Starting address processing...')
         if (userData) {
-          console.log('🔄 MINT DEBUG: UserData found, processing addresses...')
           
           // ORACLE 2.1.0: Используем новый метод для получения массива адресов
           const processedAddresses = oracleService.getUserBitcoinAddresses(userData)
           
-          console.log('🔄 MINT DEBUG: Bitcoin addresses from Oracle 2.1.0:', processedAddresses)
           
           if (processedAddresses.length > 0) {
             // Обработать все найденные Bitcoin адреса
@@ -476,7 +470,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             }
           } else {
             // Fallback к старому методу если processedBitcoinAddresses пустой
-            console.log('⚠️ MINT DEBUG: No processed addresses, using fallback method')
             const userDataAny = userData as any
             const btcAddr = userData.bitcoinAddress || 
                             userData.btcAddress || 
@@ -499,8 +492,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           // УДАЛЕНО: Дублирование обработки адресов - теперь все обрабатывается через processedBitcoinAddresses
         }
         
-        console.log('🔄 MINT DEBUG: Verified addresses processed:', verifiedAddrs.length, 'addresses')
-        console.log('🔄 MINT DEBUG: Address details:', verifiedAddrs.map(a => ({ address: a.address, status: a.mintStatus })))
         
         if (verifiedAddrs.length > 0) {
           // Store all addresses for dropdown with mint status
@@ -510,7 +501,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             mintStatus: addr.mintStatus,
             mintTxHash: addr.mintTxHash
           }))
-          console.log('🔄 MINT DEBUG: Setting dropdown addresses:', addressesForDropdown)
           setAllVerifiedAddresses(addressesForDropdown)
           
           // Check if coming from verification page or if there's a specific address in URL
@@ -561,8 +551,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             fetchBitcoinBalance(selectedAddress)
           }
         } else {
-          console.log('⚠️ MINT DEBUG: No verified Bitcoin addresses found for user')
-          console.log('⚠️ MINT DEBUG: Setting empty dropdown state')
           setAllVerifiedAddresses([])
           setVerifiedBitcoinAddress('')
           setHasAttemptedFetch(true)
@@ -689,7 +677,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         try {
           // ИСПРАВЛЕНИЕ: Use Oracle Service to get user's Bitcoin address
           const userData = await oracleService.getUserByAddress(address)
-          console.log('📋 Reload DEBUG - userData:', userData)
           const userDataAny = userData as any
           const btcAddr = userData?.bitcoinAddress || 
                           userData?.btcAddress || 
@@ -1410,131 +1397,140 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               bitcoinAddress: verifiedBitcoinAddress
             })
           }} className="space-y-6">
-            {/* Bitcoin Balance from Verified Wallet */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <Bitcoin className="h-4 w-4" />
+            {/* Bitcoin Balance (from verified wallet) */}
+            <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <Bitcoin className="h-5 w-5" />
                   Bitcoin Balance (from verified wallet)
-                </label>
+                </h3>
                 <button
                   type="button"
                   onClick={refreshBalance}
                   disabled={isLoadingBalance}
-                  className="text-xs text-primary hover:text-primary/80 flex items-center gap-1"
+                  className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
                 >
                   <RefreshCw className={`h-3 w-3 ${isLoadingBalance ? 'animate-spin' : ''}`} />
                   Refresh
                 </button>
               </div>
-              <div className="relative">
-                <input
-                  type="text"
-                  readOnly
-                  value={bitcoinBalance.toFixed(8)}
-                  className="w-full px-4 py-3 border rounded-lg bg-muted/50 cursor-not-allowed pr-16 font-mono"
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                  BTC
+              
+              {isLoadingBalance ? (
+                <div className="animate-pulse">
+                  <div className="h-8 bg-gray-700 rounded w-32 mb-2"></div>
+                  <div className="h-4 bg-gray-700 rounded w-24"></div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="text-2xl font-bold text-green-400">
+                    {bitcoinBalance ? bitcoinBalance.toFixed(8) : '0.00000000'} BTC
+                  </div>
+                  {amountInSatoshis > 0 && (
+                    <div className="text-sm text-gray-400">
+                      = {amountInSatoshis.toLocaleString()} satoshis
+                    </div>
+                  )}
+                  <div className="text-xs text-gray-500">
+                    Network: {verifiedBitcoinAddress?.startsWith('tb1') || verifiedBitcoinAddress?.startsWith('m') || verifiedBitcoinAddress?.startsWith('n') || verifiedBitcoinAddress?.startsWith('2') ? 'Testnet' : 'Mainnet'}
+                  </div>
+                </div>
+              )}
+              <div className="mt-4 text-xs text-gray-500">
+                ℹ️ Balance is fetched automatically from your verified Bitcoin wallet
+              </div>
+            </div>
+            
+            {/* Quantum protection warning - only if address has spent coins (made outgoing transactions) */}
+            {addressHasSpentCoins && !isLoadingBalance && hasAttemptedFetch && verifiedBitcoinAddress && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
+                <div className="flex items-start gap-3">
+                  <div className="text-blue-600 dark:text-blue-400 text-xl flex-shrink-0">🔐</div>
+                  <div className="space-y-3 flex-1">
+                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">
+                      Quantum-Safe Protocol
+                    </p>
+                    <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
+                      <strong>Important:</strong> This address has made an outgoing transaction, exposing its public key on the blockchain. 
+                      For quantum security, Bitcoin automatically moves funds to new addresses after any spending transaction.
+                    </p>
+                    <div className="bg-blue-100/50 dark:bg-blue-800/30 rounded-lg p-3 space-y-2">
+                      <p className="text-xs font-medium text-blue-900 dark:text-blue-200">🛡️ Quantum Protection Explained:</p>
+                      <ul className="space-y-1 text-xs text-blue-700 dark:text-blue-400 ml-2">
+                        <li>• <strong>Incoming only:</strong> Safe from quantum attacks (public key hidden)</li>
+                        <li>• <strong>After spending:</strong> Public key revealed, theoretically vulnerable</li>
+                        <li>• <strong>Best practice:</strong> Use fresh addresses for receiving</li>
+                      </ul>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-blue-800 dark:text-blue-300">Next Steps:</p>
+                      <div className="bg-white/60 dark:bg-gray-900/40 rounded-lg p-3">
+                        <p className="text-xs text-blue-700 dark:text-blue-400 mb-2">
+                          <strong>Recommended:</strong> Verify a new address from your wallet that contains Bitcoin and has never made outgoing transactions.
+                        </p>
+                        <Link 
+                          href="/verify" 
+                          className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-all"
+                        >
+                          <Shield className="h-3 w-3" />
+                          Verify Quantum-Safe Address
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              {amountInSatoshis > 0 && (
-                <div className="text-sm text-muted-foreground">
-                  = {amountInSatoshis.toLocaleString()} satoshis
-                </div>
-              )}
-              {/* Loading spinner for balance */}
-              {isLoadingBalance && verifiedBitcoinAddress && (
-                <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Checking Bitcoin balance...
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Quantum protection warning - only if address has spent coins (made outgoing transactions) */}
-              {addressHasSpentCoins && !isLoadingBalance && hasAttemptedFetch && verifiedBitcoinAddress && (
-                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <div className="text-blue-600 dark:text-blue-400 text-xl flex-shrink-0">🔐</div>
-                    <div className="space-y-3 flex-1">
-                      <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">
-                        Quantum-Safe Protocol
-                      </p>
-                      <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
-                        <strong>Important:</strong> This address has made an outgoing transaction, exposing its public key on the blockchain. 
-                        For quantum security, Bitcoin automatically moves funds to new addresses after any spending transaction.
-                      </p>
-                      <div className="bg-blue-100/50 dark:bg-blue-800/30 rounded-lg p-3 space-y-2">
-                        <p className="text-xs font-medium text-blue-900 dark:text-blue-200">🛡️ Quantum Protection Explained:</p>
-                        <ul className="space-y-1 text-xs text-blue-700 dark:text-blue-400 ml-2">
-                          <li>• <strong>Incoming only:</strong> Safe from quantum attacks (public key hidden)</li>
-                          <li>• <strong>After spending:</strong> Public key revealed, theoretically vulnerable</li>
-                          <li>• <strong>Best practice:</strong> Use fresh addresses for receiving</li>
-                        </ul>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium text-blue-800 dark:text-blue-300">Next Steps:</p>
-                        <div className="bg-white/60 dark:bg-gray-900/40 rounded-lg p-3">
-                          <p className="text-xs text-blue-700 dark:text-blue-400 mb-2">
-                            <strong>Recommended:</strong> Verify a new address from your wallet that contains Bitcoin and has never made outgoing transactions.
-                          </p>
-                          <Link 
-                            href="/verify" 
-                            className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-all"
-                          >
-                            <Shield className="h-3 w-3" />
-                            Verify Quantum-Safe Address
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                ℹ️ Balance is fetched automatically from your verified Bitcoin wallet
-              </p>
-            </div>
+            )}
 
-            {/* ОТЛАДКА: Принудительный показ адресов в mint */}
-            <div className="text-xs text-yellow-400 mb-2 p-2 bg-yellow-900/20 rounded">
-              MINT DEBUG: allVerifiedAddresses = {JSON.stringify(allVerifiedAddresses.map(a => a.address))}
-              <br />
-              Count: {allVerifiedAddresses?.length || 0}
-              <br />
-              Current: {verifiedBitcoinAddress || 'none'}
-            </div>
-
-            {/* Verified Bitcoin Address Selection - УПРОЩЕННАЯ ВЕРСИЯ */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Your Verified Bitcoin Address</label>
+            {/* Your Verified Bitcoin Address */}
+            <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+              <h3 className="text-lg font-semibold mb-4 text-white">Your Verified Bitcoin Address</h3>
               
-              {/* ВСЕГДА показывать dropdown если есть адреса */}
-              {allVerifiedAddresses?.length > 0 ? (
-                <select 
-                  className="w-full p-3 bg-gray-900 rounded border text-white"
-                  value={verifiedBitcoinAddress}
-                  onChange={(e) => {
-                    const newAddress = e.target.value
-                    setVerifiedBitcoinAddress(newAddress)
-                    setValue('bitcoinAddress', newAddress, { shouldValidate: true })
-                    fetchBitcoinBalance(newAddress)
-                  }}
-                >
-                  <option value="">Select Bitcoin Address</option>
-                  {allVerifiedAddresses.map((addr, i) => (
-                    <option key={i} value={addr.address}>
-                      {addr.address} ({addr.address.startsWith('tb1') ? 'TESTNET' : 'MAINNET'})
-                    </option>
-                  ))}
-                </select>
+              {allVerifiedAddresses && allVerifiedAddresses.length > 0 ? (
+                <div className="space-y-3">
+                  <select 
+                    className="w-full p-3 bg-gray-900 rounded-lg border border-gray-600 text-white focus:border-blue-500 transition-colors"
+                    value={verifiedBitcoinAddress}
+                    onChange={(e) => {
+                      setVerifiedBitcoinAddress(e.target.value)
+                      setValue('bitcoinAddress', e.target.value, { shouldValidate: true })
+                      // Сброс баланса при смене адреса
+                      setBitcoinBalance(0)
+                      setIsLoadingBalance(true)
+                      if (e.target.value) {
+                        fetchBitcoinBalance(e.target.value)
+                      }
+                    }}
+                  >
+                    <option value="" className="text-gray-400">Select Bitcoin Address</option>
+                    {allVerifiedAddresses.map((addr, idx) => {
+                      const addressStr = typeof addr === 'string' ? addr : addr.address
+                      const isTestnet = addressStr.startsWith('tb1') || addressStr.startsWith('m') || addressStr.startsWith('n') || addressStr.startsWith('2')
+                      const network = isTestnet ? 'TESTNET' : 'MAINNET'
+                      
+                      return (
+                        <option key={idx} value={addressStr} className="text-white">
+                          {addressStr.slice(0, 10)}...{addressStr.slice(-8)} 
+                          {' '}({network})
+                        </option>
+                      )
+                    })}
+                  </select>
+                  
+                  {verifiedBitcoinAddress && (
+                    <div className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
+                      <span className="text-sm text-gray-400">Selected:</span>
+                      <span className="font-mono text-xs text-blue-400 break-all">
+                        {verifiedBitcoinAddress}
+                      </span>
+                    </div>
+                  )}
+                </div>
               ) : (
-                <div className="p-3 bg-red-900/20 rounded border border-red-800">
-                  No verified addresses found - Check Oracle connection
+                <div className="text-center py-8">
+                  <p className="text-gray-400 mb-3">No verified addresses yet</p>
+                  <Link href="/verify" className="text-blue-400 hover:text-blue-300 underline">
+                    Verify your first address →
+                  </Link>
                 </div>
               )}
             </div>

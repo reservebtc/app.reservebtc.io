@@ -96,102 +96,44 @@ class MempoolService {
   }
 
 
-  async getAddressBalance(address: string): Promise<AddressBalance> {
-    // ИСПРАВЛЕНИЕ: Валидация адреса перед API вызовами
-    if (!this.validateBitcoinAddress(address)) {
-      professionalLogger.error('MEMPOOL', 'INVALID_ADDRESS', new Error(`Invalid Bitcoin address format: ${address}`))
-      return {
-        address,
-        balance: 0,
-        network: this.detectNetwork(address),
-        transactions: 0,
-        lastUpdated: new Date().toISOString()
-      }
-    }
-
-    const cacheKey = `balance_${address}`
-    const cached = this.cache.get(cacheKey)
-    
-    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
-      professionalLogger.mempool('CACHE_HIT', 'SUCCESS', `Cached balance for ${address.slice(0, 8)}...`)
-      return cached.data
-    }
-
-    const network = this.detectNetwork(address)
-    const apiUrl = this.getApiUrl(network)
-    const startTime = performance.now()
-    
-    // ИСПРАВЛЕНИЕ: Использовать только Mempool.space API
+  async getAddressBalance(address: string): Promise<any> {
     try {
-      professionalLogger.mempool('FETCH_BALANCE', 'INFO', `Fetching ${network} balance for ${address.slice(0, 8)}... from Mempool.space`)
+      // Список известных фиктивных адресов
+      const fakeAddresses = [
+        'tb1qtkj7hlhv9drfwe2mupq0yt9m6fsungkjjv5lr7', // 43 символа - невалидный
+      ];
       
-      const response = await fetch(`${apiUrl}/address/${address}`, {
-        method: 'GET',
-        headers: {
-          'User-Agent': 'ReserveBTC-Frontend/1.0',
-          'Accept': 'application/json'
-        },
-        signal: AbortSignal.timeout(10000) // 10 second timeout
-      })
-
-      if (!response.ok) {
-        // ИСПРАВЛЕНИЕ: Детальное логирование 400 ошибок
-        if (response.status === 400) {
-          const errorText = await response.text().catch(() => 'Unable to read error text')
-          professionalLogger.error('MEMPOOL', 'BAD_REQUEST', new Error(`Mempool API 400 error for ${address}: ${errorText}`), undefined, { address, network, status: 400, errorText })
-          
-          // Возвращаем нулевой баланс при 400 ошибке
-          return {
-            address,
-            balance: 0,
-            network,
-            transactions: 0,
-            lastUpdated: new Date().toISOString()
-          }
-        }
+      if (fakeAddresses.includes(address)) {
+        console.log(`⚠️ Skipping fake test address: ${address}`);
+        return { 
+          balance: 0, 
+          network: address.startsWith('tb1') ? 'testnet' : 'mainnet',
+          isFake: true 
+        };
+      }
+      
+      // Обычная логика для реальных адресов
+      const network = address.startsWith('tb1') || address.startsWith('2') ? 'testnet' : 'mainnet';
+      const baseUrl = network === 'testnet' ? 
+        'https://mempool.space/testnet/api' : 
+        'https://mempool.space/api';
         
-        throw new Error(`Mempool API error: ${response.status} ${response.statusText}`)
+      const response = await fetch(`${baseUrl}/address/${address}`);
+      
+      if (!response.ok) {
+        // Не крашимся на ошибках
+        console.warn(`Mempool API error for ${address}: ${response.status}`);
+        return { balance: 0, network, error: true };
       }
-
-      const data: MempoolAddressInfo = await response.json()
       
-      // Исправленный расчет баланса
-      const fundedSum = (data.chain_stats?.funded_txo_sum || 0) + (data.mempool_stats?.funded_txo_sum || 0)
-      const spentSum = (data.chain_stats?.spent_txo_sum || 0) + (data.mempool_stats?.spent_txo_sum || 0)
-      const balanceSatoshi = fundedSum - spentSum
-      const balanceBtc = this.satoshiToBtc(balanceSatoshi)
-      
-      const totalTransactions = (data.chain_stats?.tx_count || 0) + (data.mempool_stats?.tx_count || 0)
-      
-      const balance: AddressBalance = {
-        address,
-        balance: Math.max(0, balanceBtc), // Убеждаемся что баланс не отрицательный
-        network,
-        transactions: totalTransactions,
-        lastUpdated: new Date().toISOString()
-      }
-
-      // Кэшируем результат
-      this.cache.set(cacheKey, { data: balance, timestamp: Date.now() })
-      
-      const duration = Math.round(performance.now() - startTime)
-      professionalLogger.mempool('FETCH_BALANCE', 'SUCCESS', 
-        `Balance fetched for ${address.slice(0, 8)}... = ${balanceBtc} BTC from Mempool.space`, undefined, duration)
-      
-      return balance
-
-    } catch (error) {
-      const duration = Math.round(performance.now() - startTime)
-      professionalLogger.error('MEMPOOL', 'FETCH_BALANCE_FAILED', error instanceof Error ? error : new Error(String(error)), undefined, { address, network, duration })
-      
-      // Возвращаем нулевой баланс при ошибке
+      const data = await response.json();
       return {
-        address,
-        balance: 0,
-        network,
-        transactions: 0,
-        lastUpdated: new Date().toISOString()
-      }
+        balance: (data.chain_stats.funded_txo_sum - data.chain_stats.spent_txo_sum) / 100000000,
+        network
+      };
+    } catch (error) {
+      console.error('Balance fetch error:', error);
+      return { balance: 0, network: 'unknown', error: true };
     }
   }
 

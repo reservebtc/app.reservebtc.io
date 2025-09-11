@@ -675,153 +675,80 @@ export function DashboardContent() {
       </div>
 
       {/* Bitcoin Addresses */}
-      <div className="bg-card border rounded-xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Bitcoin className="h-5 w-5 text-orange-500" />
-            <h2 className="text-xl font-semibold">Bitcoin Addresses</h2>
-          </div>
+      <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-bold text-white">Bitcoin Addresses</h3>
           <Link 
             href="/verify" 
-            className="flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm"
+            className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-500 text-sm"
           >
-            <Plus className="h-4 w-4" />
-            Add Address
+            + Add Address
           </Link>
-        </div>
-
-        {/* Warning for limited data - removed legacy Oracle direct access */}
-
-        {/* ОТЛАДКА: Принудительный показ адресов */}
-        <div className="text-xs text-yellow-400 mb-2 p-2 bg-yellow-900/20 rounded">
-          DEBUG: bitcoinAddresses = {JSON.stringify(bitcoinAddresses)}
-          <br />
-          directOracleAddresses = {JSON.stringify(directOracleAddresses.map(d => d.address))}
-          <br />
-          Length: {bitcoinAddresses?.length || 0} + {directOracleAddresses?.length || 0}
         </div>
 
         {(() => {
           // Combine addresses from hook and direct Oracle debugging
           const allAddresses = [...bitcoinAddresses, ...directOracleAddresses.map(d => d.address)]
           const uniqueAddresses = Array.from(new Set(allAddresses)).filter(Boolean)
-          
-          console.log('🔍 DASHBOARD DEBUG: Address display logic:')
-          console.log('  - bitcoinAddresses from hook:', bitcoinAddresses)
-          console.log('  - directOracleAddresses:', directOracleAddresses.map(d => d.address))
-          console.log('  - uniqueAddresses combined:', uniqueAddresses)
-          
-          // ПРИНУДИТЕЛЬНО показать если есть хоть один адрес
-          if (uniqueAddresses.length === 0) {
+
+          if (uniqueAddresses && uniqueAddresses.length > 0) {
+            return (
+              <div className="space-y-2">
+                {uniqueAddresses.map((address, index) => {
+                  const isTestnet = address.startsWith('tb1');
+                  const network = isTestnet ? 'TESTNET' : 'MAINNET';
+                  const isMinted = false; // TODO: проверить статус минта из транзакций
+                  
+                  return (
+                    <div key={index} className="flex items-center gap-3 p-3 bg-gray-900/50 rounded-lg hover:bg-gray-900/70 transition-colors">
+                      <input 
+                        type="checkbox" 
+                        id={`btc-${index}`}
+                        className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-blue-600"
+                      />
+                      <label htmlFor={`btc-${index}`} className="flex-1 flex items-center gap-3 cursor-pointer">
+                        <div className="flex-1">
+                          <div className="font-mono text-sm text-gray-200">
+                            {address.slice(0, 12)}...{address.slice(-10)}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            <span className={`inline-block px-2 py-0.5 rounded ${isTestnet ? 'bg-orange-900/30 text-orange-400' : 'bg-green-900/30 text-green-400'}`}>
+                              {network}
+                            </span>
+                            {isMinted && (
+                              <span className="ml-2 inline-block px-2 py-0.5 bg-purple-900/30 text-purple-400 rounded">
+                                ✓ Minted
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {!isMinted && (
+                          <Link 
+                            href={`/mint?address=${address}`}
+                            className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-500"
+                          >
+                            Mint →
+                          </Link>
+                        )}
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          } else {
             return (
               <div className="text-center py-8">
-                <Bitcoin className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <h3 className="font-medium mb-2">No Bitcoin Addresses</h3>
-                <p className="text-muted-foreground text-sm mb-4">
-                  Add and verify your Bitcoin addresses to start using ReserveBTC
-                </p>
+                <div className="text-gray-400 mb-4">No Bitcoin addresses verified yet</div>
                 <Link 
-                  href="/verify"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                  href="/verify" 
+                  className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
                 >
-                  <Plus className="h-4 w-4" />
-                  Verify Address
+                  Verify Your First Address
                 </Link>
               </div>
             )
           }
-          
-          return (
-            <div className="space-y-3">
-              {uniqueAddresses?.length > 0 ? (
-                uniqueAddresses
-                  .slice(0, showAllAddresses ? undefined : 3)
-                  .map((addr, index) => (
-                  <div key={addr} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-green-500" />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm">{addr}</span>
-                          <button
-                            onClick={() => copyAddress(addr)}
-                            className="p-1 hover:bg-accent rounded transition-colors"
-                          >
-                            {copiedAddress === addr ? (
-                              <CheckCircle className="h-3 w-3 text-green-600" />
-                            ) : (
-                              <Copy className="h-3 w-3 text-muted-foreground" />
-                            )}
-                          </button>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Verified Bitcoin address
-                          <span className="ml-2">({isTestnetAddress(addr) ? 'testnet' : 'mainnet'})</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {(() => {
-                        const addressHasMinted = hasAddressMinted(addr)
-                        const canMint = isVerified && !addressHasMinted
-                        
-                        if (addressHasMinted) {
-                          return (
-                            <div className="flex items-center gap-1">
-                              <CheckCircle className="h-4 w-4 text-green-600" />
-                              <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                                Minted
-                              </span>
-                            </div>
-                          )
-                        } else if (canMint) {
-                          return (
-                            <div className="flex items-center gap-2">
-                              <CheckCircle className="h-4 w-4 text-green-600" />
-                              <Link 
-                                href={`/mint?address=${encodeURIComponent(addr)}`}
-                                className="px-3 py-1 bg-primary text-primary-foreground rounded text-xs hover:bg-primary/90 transition-colors flex items-center gap-1"
-                              >
-                                Mint →
-                              </Link>
-                            </div>
-                          )
-                        } else {
-                          return (
-                            <div className="flex items-center gap-1">
-                              <AlertCircle className="h-4 w-4 text-yellow-600" />
-                              <span className="text-xs text-muted-foreground">Pending</span>
-                            </div>
-                          )
-                        }
-                      })()}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div>No addresses found - Check Oracle connection</div>
-              )}
-              
-              {uniqueAddresses.length > 3 && (
-                <button
-                  onClick={() => setShowAllAddresses(!showAllAddresses)}
-                  className="w-full flex items-center justify-center gap-2 p-3 text-sm text-muted-foreground hover:bg-muted/50 rounded-lg transition-colors"
-                >
-                  {showAllAddresses ? (
-                    <>
-                      <ChevronUp className="h-4 w-4" />
-                      Show Less
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown className="h-4 w-4" />
-                      Show {uniqueAddresses.length - 3} More
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-          )
         })()}
       </div>
       

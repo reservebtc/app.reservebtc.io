@@ -160,13 +160,19 @@ export function useUserProfile(): UserProfileHookState {
     
     const newBalances: Record<string, number> = {}
     
-    for (const btcAddress of bitcoinAddresses) {
+    // При загрузке балансов обрабатывай ошибки gracefully:
+    for (const address of bitcoinAddresses) {
       try {
-        const balance = await fetchBitcoinBalance(btcAddress)
-        newBalances[btcAddress] = balance
-      } catch (error) {
-        console.warn(`Failed to fetch balance for ${btcAddress}:`, error)
-        newBalances[btcAddress] = 0
+        const result = await mempoolService.getAddressBalance(address);
+        // Продолжаем даже если адрес невалидный
+        if (result.error || result.isFake) {
+          console.log(`⚠️ Skipping invalid/fake address: ${address}`);
+          continue;
+        }
+        // Обработка валидных адресов
+        newBalances[address] = result.balance || 0;
+      } catch (e) {
+        console.log(`⚠️ Balance fetch failed for ${address}, continuing...`);
       }
     }
     
