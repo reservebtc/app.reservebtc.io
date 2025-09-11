@@ -465,16 +465,16 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               addresses.add(userData.btcAddress);
             }
             if (userData.btcAddresses && Array.isArray(userData.btcAddresses)) {
-              userData.btcAddresses.forEach(addr => addresses.add(addr));
+              userData.btcAddresses.forEach((addr: string) => addresses.add(addr));
             }
             if (userDataAny.bitcoinAddresses && Array.isArray(userDataAny.bitcoinAddresses)) {
-              userDataAny.bitcoinAddresses.forEach(addr => addresses.add(addr));
+              userDataAny.bitcoinAddresses.forEach((addr: string) => addresses.add(addr));
             }
             if (userDataAny.processedBitcoinAddresses && Array.isArray(userDataAny.processedBitcoinAddresses)) {
-              userDataAny.processedBitcoinAddresses.forEach(addr => addresses.add(addr));
+              userDataAny.processedBitcoinAddresses.forEach((addr: string) => addresses.add(addr));
             }
             if (userDataAny.allBitcoinAddresses && Array.isArray(userDataAny.allBitcoinAddresses)) {
-              userDataAny.allBitcoinAddresses.forEach(addr => addresses.add(addr));
+              userDataAny.allBitcoinAddresses.forEach((addr: string) => addresses.add(addr));
             }
             
             return Array.from(addresses);
