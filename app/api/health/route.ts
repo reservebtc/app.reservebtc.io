@@ -16,9 +16,9 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
       services: {
         frontend: { status: 'healthy', response_time: '0ms' },
-        oracle: { status: 'unknown', response_time: 'N/A' },
-        mempool: { status: 'unknown', response_time: 'N/A' },
-        cron: { status: 'unknown', last_run: 'N/A' }
+        oracle: { status: 'unknown', response_time: 'N/A' } as any,
+        mempool: { status: 'unknown', response_time: 'N/A' } as any,
+        cron: { status: 'unknown', last_run: 'N/A' } as any
       },
       version: '1.0.0',
       deployment: {
