@@ -166,6 +166,13 @@ async function makeOracleRequest(endpoint: string, options: RequestInit = {}): P
 /**
  * Register new user via verification (automatic user creation)
  */
+// ИСПРАВЛЕНИЕ: Добать валидацию Bitcoin адреса
+function isValidBitcoinAddress(address: string): boolean {
+  if (!address || typeof address !== 'string') return false
+  // Базовая проверка длины и формата
+  return address.length >= 26 && address.length <= 62 && /^[a-zA-Z0-9]+$/.test(address)
+}
+
 export async function registerUserViaOracleVerification(
   ethAddress: string,
   bitcoinAddress?: string,
@@ -177,15 +184,27 @@ export async function registerUserViaOracleVerification(
     console.log(`   ETH: ${ethAddress}`);
     console.log(`   BTC: ${bitcoinAddress || 'pending'}`);
     
+    // ИСПРАВЛЕНИЕ: Проверить валидность адреса перед сохранением
+    if (bitcoinAddress && !isValidBitcoinAddress(bitcoinAddress)) {
+      console.error('❌ INVALID BITCOIN ADDRESS:', bitcoinAddress);
+      return {
+        success: false,
+        error: `Invalid Bitcoin address format: ${bitcoinAddress}`
+      };
+    }
+    
+    const payload = {
+      ethAddress,
+      bitcoinAddress,
+      signature,
+      status: 'verified',
+      verificationType
+    };
+    console.log('🔍 ORACLE REQUEST PAYLOAD:', JSON.stringify(payload, null, 2));
+    
     const response = await makeOracleRequest('/store-verification', {
       method: 'POST',
-      body: JSON.stringify({
-        ethAddress,
-        bitcoinAddress,
-        signature,
-        status: 'verified',
-        verificationType
-      }),
+      body: JSON.stringify(payload),
     });
 
     const result = await response.json();

@@ -460,14 +460,15 @@ export class UserProfileManager {
   private async convertOracleDataToProfile(oracleData: any, userAddress: string): Promise<UniversalUserProfile | null> {
     try {
       console.log('🔄 PROFILE: Converting Oracle data to Universal Profile...')
+      console.log('🔍 ORACLE RAW DATA:', JSON.stringify(oracleData, null, 2))
       console.log('🔍 PROFILE: Oracle user data details:')
       console.log('   - lastSyncedBalance:', oracleData.lastSyncedBalance)
       console.log('   - lastTxHash:', oracleData.lastTxHash)
       console.log('   - transactionHashes:', oracleData.transactionHashes ? oracleData.transactionHashes.length : 'None')
       console.log('   - transactionCount:', oracleData.transactionCount)
-      console.log('   - bitcoinAddress (Professional Oracle):', oracleData.bitcoinAddress)
-      console.log('   - btcAddress (Legacy):', oracleData.btcAddress)
-      console.log('   - btcAddresses (Array):', oracleData.btcAddresses)
+      console.log('🔍 BITCOIN ADDRESS FROM ORACLE:', oracleData.bitcoinAddress)
+      console.log('🔍 BTC ADDRESS (legacy):', oracleData.btcAddress)
+      console.log('🔍 BTC ADDRESSES ARRAY:', oracleData.btcAddresses)
       
       // ИСПРАВЛЕНИЕ: Priority bitcoinAddress (Professional Oracle) > btcAddress (Legacy) > btcAddresses (Array)
       let bitcoinAddresses = []
@@ -488,26 +489,11 @@ export class UserProfileManager {
       console.log('🔧 PROFILE: Resolved Bitcoin addresses:', bitcoinAddresses)
       const lastSyncedBalance = oracleData.lastSyncedBalance || 0
       
-      // Create transactions from Oracle data
+      // ИСПРАВЛЕНИЕ: НЕ создаем фиктивные транзакции - только реальные пользовательские транзакции
       const transactions: any[] = []
       
-      // Always add balance_sync transaction if user exists in Oracle
-      transactions.push({
-        hash: 'oracle_registration_' + userAddress.slice(-8),
-        transactionHash: 'oracle_registration_' + userAddress.slice(-8),
-        type: 'balance_sync',
-        amount: '0.00000000',
-        timestamp: new Date(oracleData.registeredAt || Date.now()).getTime(),
-        status: 'success',
-        blockNumber: 0,
-        fromAddress: '0x0000000000000000000000000000000000000000',
-        toAddress: userAddress,
-        tokenAddress: '0x4BC51d94937f145C7D995E146C32EC3b9CeB3ACC',
-        gasUsed: 0,
-        gasPrice: '0',
-        fee: '0',
-        confirmations: 1
-      })
+      // Системные Oracle события НЕ являются пользовательскими транзакциями
+      // Удаляем фиктивную balance_sync транзакцию
       
       // Add real transactions from Oracle transactionHashes array
       if (oracleData.transactionHashes && Array.isArray(oracleData.transactionHashes)) {
@@ -590,20 +576,7 @@ export class UserProfileManager {
             largestTransaction: '0',
             firstTransactionDate: null
           },
-          oracleTransactions: [{
-            hash: oracleData.lastTxHash || 'oracle_registration', // Dashboard expects 'hash'
-            transactionHash: oracleData.lastTxHash || 'oracle_registration', // Keep for compatibility
-            amount: (lastSyncedBalance / 100000000).toFixed(8), // Convert to BTC format 
-            timestamp: Date.now(),
-            type: 'balance_sync',
-            status: 'success',
-            fee: 0,
-            blockHeight: 0,
-            bitcoinAddress: bitcoinAddresses[0] || 'unknown',
-            ethereumAddress: userAddress,
-            syncMethod: 'automatic',
-            oracleVersion: '1.0'
-          }],
+          oracleTransactions: [], // ИСПРАВЛЕНИЕ: НЕ создаем фиктивные Oracle транзакции
           oracleStats: {
             totalSyncs: 1,
             lastSyncTimestamp: oracleData.lastSyncTime || Date.now(),
@@ -627,7 +600,7 @@ export class UserProfileManager {
         allTransactionHashes: {
           rBTCHashes: transactions.map(tx => tx.transactionHash),
           wrBTCHashes: [],
-          oracleHashes: [oracleData.lastTxHash || 'oracle_registration'],
+          oracleHashes: oracleData.lastTxHash ? [oracleData.lastTxHash] : [], // ИСПРАВЛЕНИЕ: только реальные хэши
           feeHashes: [],
           lastTxHash: oracleData.lastTxHash || null,
           allHashes: [oracleData.lastTxHash].filter(Boolean)

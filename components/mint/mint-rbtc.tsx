@@ -442,50 +442,76 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         // NO CLEANUP HERE: Cleanup is handled by the first useEffect
         console.log('🔄 MINT: Loading data for user (cleanup handled separately):', address.toLowerCase())
         
-        // Use Oracle Service to get user's verified Bitcoin addresses
+        // ИСПРАВЛЕНИЕ: Use Oracle Service to get user's verified Bitcoin addresses  
         const userData = await oracleService.getUserByAddress(address)
+        console.log('🔍 MINT: Full user data:', userData)
         console.log('📋 Loading verified addresses from Oracle Service:', userData)
+        console.log('📋 DEBUG - btcAddress:', userData?.btcAddress)
+        console.log('📋 DEBUG - bitcoinAddress:', userData?.bitcoinAddress) 
+        console.log('📋 DEBUG - btcAddresses:', userData?.btcAddresses)
         
         // Process all verified addresses with mint status
         const verifiedAddrs = []
+        console.log('🔄 MINT DEBUG: Starting address processing...')
         if (userData) {
-          // Check primary Bitcoin address
-          if (userData.btcAddress) {
-            const mintStatus = await getMintStatusForAddress(userData.btcAddress, userData)
-            verifiedAddrs.push({
-              address: userData.btcAddress,
-              verifiedAt: userData.registeredAt || new Date().toISOString(),
-              signature: 'oracle_verified',
-              mintStatus: mintStatus.status,
-              mintTxHash: mintStatus.mintTxHash
-            })
-          }
+          console.log('🔄 MINT DEBUG: UserData found, processing addresses...')
           
-          // Check additional Bitcoin addresses
-          if (userData.btcAddresses && Array.isArray(userData.btcAddresses)) {
-            for (const btcAddr of userData.btcAddresses) {
-              if (btcAddr !== userData.btcAddress) { // Avoid duplicates
-                const mintStatus = await getMintStatusForAddress(btcAddr, userData)
-                verifiedAddrs.push({
-                  address: btcAddr,
-                  verifiedAt: userData.registeredAt || new Date().toISOString(),
-                  signature: 'oracle_verified',
-                  mintStatus: mintStatus.status,
-                  mintTxHash: mintStatus.mintTxHash
-                })
-              }
+          // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Используем обработанные адреса из Oracle Service
+          const userDataAny = userData as any
+          const processedAddresses = userDataAny.processedBitcoinAddresses || []
+          
+          console.log('🔄 MINT DEBUG: Processed Bitcoin addresses from Oracle:', processedAddresses)
+          
+          if (processedAddresses.length > 0) {
+            // Обработать все найденные Bitcoin адреса
+            for (const btcAddr of processedAddresses) {
+              console.log('✅ MINT: Processing Bitcoin address:', btcAddr)
+              const mintStatus = await getMintStatusForAddress(btcAddr, userData)
+              verifiedAddrs.push({
+                address: btcAddr,
+                verifiedAt: userData.registeredAt || new Date().toISOString(),
+                signature: 'oracle_verified',
+                mintStatus: mintStatus.status,
+                mintTxHash: mintStatus.mintTxHash
+              })
+            }
+          } else {
+            // Fallback к старому методу если processedBitcoinAddresses пустой
+            console.log('⚠️ MINT DEBUG: No processed addresses, using fallback method')
+            const btcAddr = userData.bitcoinAddress || 
+                            userData.btcAddress || 
+                            userDataAny.bitcoin_address ||
+                            userDataAny.BTC_ADDRESS ||
+                            userDataAny.address
+            if (btcAddr) {
+              console.log('✅ MINT: Found Bitcoin address (fallback):', btcAddr)
+              const mintStatus = await getMintStatusForAddress(btcAddr, userData)
+              verifiedAddrs.push({
+                address: btcAddr,
+                verifiedAt: userData.registeredAt || new Date().toISOString(),
+                signature: 'oracle_verified',
+                mintStatus: mintStatus.status,
+                mintTxHash: mintStatus.mintTxHash
+              })
             }
           }
+          
+          // УДАЛЕНО: Дублирование обработки адресов - теперь все обрабатывается через processedBitcoinAddresses
         }
+        
+        console.log('🔄 MINT DEBUG: Verified addresses processed:', verifiedAddrs.length, 'addresses')
+        console.log('🔄 MINT DEBUG: Address details:', verifiedAddrs.map(a => ({ address: a.address, status: a.mintStatus })))
         
         if (verifiedAddrs.length > 0) {
           // Store all addresses for dropdown with mint status
-          setAllVerifiedAddresses(verifiedAddrs.map(addr => ({
+          const addressesForDropdown = verifiedAddrs.map(addr => ({
             address: addr.address,
             verifiedAt: addr.verifiedAt,
             mintStatus: addr.mintStatus,
             mintTxHash: addr.mintTxHash
-          })))
+          }))
+          console.log('🔄 MINT DEBUG: Setting dropdown addresses:', addressesForDropdown)
+          setAllVerifiedAddresses(addressesForDropdown)
           
           // Check if coming from verification page or if there's a specific address in URL
           const fromVerify = searchParams.get('from') === 'verify'
@@ -535,7 +561,10 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             fetchBitcoinBalance(selectedAddress)
           }
         } else {
-          console.log('⚠️ No verified Bitcoin address found')
+          console.log('⚠️ MINT DEBUG: No verified Bitcoin addresses found for user')
+          console.log('⚠️ MINT DEBUG: Setting empty dropdown state')
+          setAllVerifiedAddresses([])
+          setVerifiedBitcoinAddress('')
           setHasAttemptedFetch(true)
         }
       } catch (error) {
@@ -658,13 +687,41 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       // Try to reload from centralized storage first
       const reloadAddress = async () => {
         try {
-          // Use Oracle Service to get user's Bitcoin address
+          // ИСПРАВЛЕНИЕ: Use Oracle Service to get user's Bitcoin address
           const userData = await oracleService.getUserByAddress(address)
-          if (userData && userData.btcAddress) {
-            const firstAddress = userData.btcAddress
-            console.log('🔄 Reloading address from Oracle Service:', firstAddress)
-            setVerifiedBitcoinAddress(firstAddress)
-            setValue('bitcoinAddress', firstAddress, { shouldValidate: true })
+          console.log('📋 Reload DEBUG - userData:', userData)
+          const userDataAny = userData as any
+          const btcAddr = userData?.bitcoinAddress || 
+                          userData?.btcAddress || 
+                          userDataAny?.bitcoin_address ||
+                          userDataAny?.BTC_ADDRESS ||
+                          userDataAny?.address
+          
+          if (userData && btcAddr) {
+            console.log('✅ RELOAD: Found Bitcoin address via Oracle Service:', btcAddr)
+            setVerifiedBitcoinAddress(btcAddr)
+            setValue('bitcoinAddress', btcAddr, { shouldValidate: true })
+          } else {
+            console.log('⚠️ RELOAD: Oracle Service returned null, trying Profile Manager fallback...')
+            
+            // ИСПРАВЛЕНИЕ: Fallback через Universal Profile Manager
+            try {
+              const { userProfileManager } = await import('@/lib/user-profile-manager')
+              const profile = await userProfileManager.getUserProfile(address)
+              console.log('📋 Profile Manager data:', profile)
+              
+              if (profile && profile.walletInformation?.bitcoin?.addresses?.length > 0) {
+                const primaryAddr = profile.walletInformation.bitcoin.primaryAddress || 
+                                   profile.walletInformation.bitcoin.addresses[0]
+                console.log('✅ RELOAD: Found address via Profile Manager:', primaryAddr)
+                setVerifiedBitcoinAddress(primaryAddr)
+                setValue('bitcoinAddress', primaryAddr, { shouldValidate: true })
+              } else {
+                console.log('❌ RELOAD: No addresses found in both Oracle Service and Profile Manager')
+              }
+            } catch (profileError) {
+              console.error('❌ Profile Manager fallback failed:', profileError)
+            }
           }
         } catch (error) {
           console.error('❌ Failed to reload address:', error)
@@ -997,9 +1054,17 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       console.log('📋 Step 1: Checking user in Professional Oracle...')
       try {
         const userData = await oracleService.getUserByAddress(address!)
-        if (userData && userData.btcAddress) {
-          console.log('✅ User verified in Professional Oracle with address:', userData.btcAddress)
+        console.log('📋 MINT VERIFY - userData:', userData)
+        const userDataAny = userData as any
+        const btcAddr = userData?.bitcoinAddress || 
+                        userData?.btcAddress || 
+                        userDataAny?.bitcoin_address ||
+                        userDataAny?.BTC_ADDRESS ||
+                        userDataAny?.address
+        if (userData && btcAddr) {
+          console.log('✅ User verified in Professional Oracle with address:', btcAddr)
         } else {
+          console.log('❌ Oracle data missing - userData:', userData)
           throw new Error('User not found in Professional Oracle - verification required')
         }
       } catch (error) {
@@ -1457,14 +1522,14 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                       </div>
                     </div>
                     
-                    {allVerifiedAddresses.length > 1 && (
+                    {allVerifiedAddresses.length > 0 && (
                       <button
                         type="button"
                         onClick={() => setShowAddressDropdown(!showAddressDropdown)}
                         className="flex items-center space-x-2 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors ml-3"
                       >
                         <span className="text-xs font-medium text-primary">
-                          {allVerifiedAddresses.length} addresses
+                          {allVerifiedAddresses.length} {allVerifiedAddresses.length === 1 ? 'address' : 'addresses'}
                         </span>
                         <ChevronDown className={`h-4 w-4 text-primary transition-transform ${showAddressDropdown ? 'rotate-180' : ''}`} />
                       </button>
@@ -1602,7 +1667,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                 )}
                 
                 {/* Dropdown menu */}
-                {showAddressDropdown && allVerifiedAddresses.length > 1 && (
+                {showAddressDropdown && allVerifiedAddresses.length > 0 && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-background border rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
                     <div className="p-2">
                       <div className="text-xs font-medium text-muted-foreground px-3 py-2 border-b mb-2">

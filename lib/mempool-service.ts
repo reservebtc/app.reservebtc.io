@@ -60,15 +60,55 @@ class MempoolService {
     return 'mainnet'
   }
 
+  // ИСПРАВЛЕНИЕ: Добавить валидацию Bitcoin адресов
+  private validateBitcoinAddress(address: string): boolean {
+    // Базовая валидация формата
+    if (!address || typeof address !== 'string') {
+      return false
+    }
+    
+    // Testnet адреса
+    if (address.startsWith('tb1')) {
+      // Bech32 testnet должен быть 42 символа для обычных адресов
+      return address.length >= 42 && address.length <= 62 && /^tb1[ac-hj-np-z02-9]{39,59}$/.test(address)
+    }
+    
+    // Mainnet bech32
+    if (address.startsWith('bc1')) {
+      return address.length >= 42 && address.length <= 62 && /^bc1[ac-hj-np-z02-9]{39,59}$/.test(address)
+    }
+    
+    // Legacy адреса (P2PKH, P2SH)
+    if (/^[13mn2][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(address)) {
+      return true
+    }
+    
+    return false
+  }
+
   private getApiUrl(network: 'mainnet' | 'testnet'): string {
     return network === 'testnet' ? this.TESTNET_URL : this.MAINNET_URL
   }
+
 
   private satoshiToBtc(satoshi: number): number {
     return satoshi / 100000000
   }
 
+
   async getAddressBalance(address: string): Promise<AddressBalance> {
+    // ИСПРАВЛЕНИЕ: Валидация адреса перед API вызовами
+    if (!this.validateBitcoinAddress(address)) {
+      professionalLogger.error('MEMPOOL', 'INVALID_ADDRESS', new Error(`Invalid Bitcoin address format: ${address}`))
+      return {
+        address,
+        balance: 0,
+        network: this.detectNetwork(address),
+        transactions: 0,
+        lastUpdated: new Date().toISOString()
+      }
+    }
+
     const cacheKey = `balance_${address}`
     const cached = this.cache.get(cacheKey)
     
@@ -81,8 +121,9 @@ class MempoolService {
     const apiUrl = this.getApiUrl(network)
     const startTime = performance.now()
     
+    // ИСПРАВЛЕНИЕ: Использовать только Mempool.space API
     try {
-      professionalLogger.mempool('FETCH_BALANCE', 'INFO', `Fetching ${network} balance for ${address.slice(0, 8)}...`)
+      professionalLogger.mempool('FETCH_BALANCE', 'INFO', `Fetching ${network} balance for ${address.slice(0, 8)}... from Mempool.space`)
       
       const response = await fetch(`${apiUrl}/address/${address}`, {
         method: 'GET',
@@ -94,6 +135,21 @@ class MempoolService {
       })
 
       if (!response.ok) {
+        // ИСПРАВЛЕНИЕ: Детальное логирование 400 ошибок
+        if (response.status === 400) {
+          const errorText = await response.text().catch(() => 'Unable to read error text')
+          professionalLogger.error('MEMPOOL', 'BAD_REQUEST', new Error(`Mempool API 400 error for ${address}: ${errorText}`), undefined, { address, network, status: 400, errorText })
+          
+          // Возвращаем нулевой баланс при 400 ошибке
+          return {
+            address,
+            balance: 0,
+            network,
+            transactions: 0,
+            lastUpdated: new Date().toISOString()
+          }
+        }
+        
         throw new Error(`Mempool API error: ${response.status} ${response.statusText}`)
       }
 
@@ -120,7 +176,7 @@ class MempoolService {
       
       const duration = Math.round(performance.now() - startTime)
       professionalLogger.mempool('FETCH_BALANCE', 'SUCCESS', 
-        `Balance fetched for ${address.slice(0, 8)}... = ${balanceBtc} BTC`, undefined, duration)
+        `Balance fetched for ${address.slice(0, 8)}... = ${balanceBtc} BTC from Mempool.space`, undefined, duration)
       
       return balance
 
@@ -128,16 +184,14 @@ class MempoolService {
       const duration = Math.round(performance.now() - startTime)
       professionalLogger.error('MEMPOOL', 'FETCH_BALANCE_FAILED', error instanceof Error ? error : new Error(String(error)), undefined, { address, network, duration })
       
-      // Возвращаем fallback баланс вместо NaN
-      const fallbackBalance: AddressBalance = {
+      // Возвращаем нулевой баланс при ошибке
+      return {
         address,
         balance: 0,
         network,
         transactions: 0,
         lastUpdated: new Date().toISOString()
       }
-      
-      return fallbackBalance
     }
   }
 

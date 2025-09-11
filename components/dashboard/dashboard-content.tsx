@@ -89,10 +89,37 @@ export function DashboardContent() {
     refreshProfile
   } = useUserDashboard()
 
+  // ИСПРАВЛЕНИЕ: Фильтровать только реальные пользовательские транзакции
+  const getUserTransactions = () => {
+    if (!recentTransactions) return [];
+    
+    // Фильтруем только реальные пользовательские транзакции
+    const realTransactions = recentTransactions.filter((tx: any) => 
+      tx.type !== 'oracle_registration' && 
+      tx.type !== 'oracle_sync' &&
+      tx.type !== 'balance_sync' &&
+      tx.type !== 'system' &&
+      tx.hash && // Должен иметь реальный hash транзакции
+      tx.hash !== 'oracle_registration' &&
+      tx.hash !== 'oracle_sync' &&
+      tx.hash !== 'balance_sync' &&
+      (tx.amount === undefined || parseFloat(tx.amount || '0') > 0) && // Реальная сумма или нет поля amount
+      !tx.hash.includes('oracle') // Исключить Oracle системные хэши
+    );
+    
+    console.log('🔍 DASHBOARD: Total raw transactions:', recentTransactions.length);
+    console.log('🔍 DASHBOARD: Real user transactions:', realTransactions.length);
+    console.log('🔍 DASHBOARD: Filtered out fake transactions:', recentTransactions.length - realTransactions.length);
+    
+    return realTransactions;
+  };
+
+  const transactions = getUserTransactions();
+
   // Privacy-focused logging for current user only
   console.log('🔍 DASHBOARD: Profile loaded for current user')
   console.log('   - Current user has', bitcoinAddresses?.length || 0, 'verified addresses')
-  console.log('   - Current user has', recentTransactions?.length || 0, 'transactions')
+  console.log('   - Current user has', transactions.length, 'real transactions (filtered from', recentTransactions?.length || 0, 'total)')
   console.log('   - Current user verification status:', isVerified)
   console.log('   - Profile loading status:', isLoading ? 'loading' : 'complete')
   
@@ -334,19 +361,19 @@ export function DashboardContent() {
 
   // Check if Bitcoin address already minted tokens
   const hasAddressMinted = (bitcoinAddress: string): boolean => {
-    if (!recentTransactions || recentTransactions.length === 0) {
-      console.log(`🔍 PRIVACY: No transactions found for current user`)
+    if (!transactions || transactions.length === 0) {
+      console.log(`🔍 PRIVACY: No real transactions found for current user`)
       return false
     }
 
-    const mintTransactions = recentTransactions.filter(tx => 
+    const mintTransactions = transactions.filter((tx: any) => 
       tx.type === 'mint' && 
       (tx.bitcoinAddress === bitcoinAddress || 
        (tx.source === 'rBTC' && parseFloat(tx.amount || '0') > 0))
     )
 
     console.log(`🔍 PRIVACY: Checking mint status for current user address`)
-    console.log(`   - Current user total transactions:`, recentTransactions.length)
+    console.log(`   - Current user real transactions:`, transactions.length)
     console.log(`   - Current user mint transactions found:`, mintTransactions.length)
     console.log(`   - Current user has minted:`, mintTransactions.length > 0)
 
@@ -793,21 +820,21 @@ export function DashboardContent() {
             <h2 className="text-xl font-semibold">Transaction History</h2>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>Total: {totalTransactionCount}</span>
+            <span>Total: {transactions.length}</span>
           </div>
         </div>
 
-{recentTransactions.length === 0 ? (
+{transactions.length === 0 ? (
           <div className="text-center py-8">
             <History className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <h3 className="font-medium mb-2">No Transactions</h3>
+            <h3 className="font-medium mb-2">No transactions yet</h3>
             <p className="text-muted-foreground text-sm">
-              Your transaction history will appear here after your first mint
+              Complete verification and mint rBTC to see transactions here
             </p>
           </div>
         ) : (
           <div className="space-y-3">
-            {recentTransactions.map((tx, index) => (
+            {transactions.map((tx, index) => (
               <div key={tx.hash + index} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center ${

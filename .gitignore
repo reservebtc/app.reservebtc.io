@@ -344,6 +344,13 @@ fix-oracle-mock-sync.js
 oracle-production.js
 *.test.js
 
+# SECURITY TEST SCRIPTS - CRITICAL - NEVER COMMIT
+scripts/bip322-security-test.js
+scripts/*-security-*.js
+security-test-*.js
+*-vulnerability-*.js
+bip322-*.test.js
+
 # Oracle test and production files - NEVER COMMIT
 test-oracle-decryption.js
 test-interface-oracle-integration.js

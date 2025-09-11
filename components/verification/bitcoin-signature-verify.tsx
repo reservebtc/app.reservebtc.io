@@ -3,14 +3,15 @@
 import { useState, useEffect } from 'react'
 import { CheckCircle, AlertCircle, Copy, Check, ChevronDown, ChevronUp, Info, ArrowRight, Rocket } from 'lucide-react'
 import { useAccount } from 'wagmi'
-import { Verifier } from 'bip322-js'
+// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Временно отключаем небезопасную bip322-js библиотеку
+// import { Verifier } from 'bip322-js'
+import { validateBIP322Signature as secureValidateBIP322 } from '@/lib/bip322-validator'
 import { useRouter } from 'next/navigation'
 // User data now handled by Professional Oracle only
 import { useUserVerification } from '@/hooks/useUserProfile'
 import { saveVerifiedUserToCache } from '@/lib/verified-users-cache'
 // Old Oracle modules removed - using Professional Oracle only
 // Smart contract integration removed - using Professional Oracle only
-import { VerificationFeeVault } from '@/components/verification/verification-fee-vault'
 
 interface BitcoinSignatureVerifyProps {
   onVerificationComplete?: (data: { address: string; signature: string; verified: boolean }) => void
@@ -34,7 +35,7 @@ export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignat
   const { address: ethAddress, isConnected: isMetaMaskConnected } = useAccount()
   const router = useRouter()
   
-  // Use new user verification hook
+  // Use new user verification hook for other purposes if needed
   const { refreshProfile } = useUserVerification()
 
   /**
@@ -74,11 +75,6 @@ export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignat
         await saveVerifiedUserToCache(ethAddress, bitcoinAddress, signature)
         console.log('✅ VERIFICATION: Cache updated - user visible in dashboard immediately')
         
-        // Refresh user profile to show updated data
-        console.log('🔄 VERIFICATION: Refreshing user profile...')
-        await refreshProfile()
-        console.log('✅ VERIFICATION: Profile refreshed!')
-        
         return true
         
       } else {
@@ -116,6 +112,7 @@ export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignat
     isUnique: boolean | null
     error: string | null
     conflictUser: string | null
+    message?: string
   }>({
     isChecking: false,
     isUnique: null,
@@ -136,13 +133,12 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
     setTimeout(() => setCopiedMessage(false), 2000)
   }
 
-  // Check Bitcoin address uniqueness (privacy-focused version)
-  const checkAddressUniqueness = async (address: string) => {
-    if (!address || !ethAddress) return
+  // Check Bitcoin address uniqueness (enhanced version)
+  const checkAddressUniqueness = async (bitcoinAddress: string) => {
+    if (!bitcoinAddress || !ethAddress) return
     
-    console.log('🔍 VERIFICATION: Checking Bitcoin address uniqueness via Professional Oracle')
-    console.log(`   Bitcoin Address: ${address.substring(0, 10)}...`)
-    console.log(`   Current User: ${ethAddress.substring(0, 10)}...`)
+    console.log('🔍 UNIQUENESS CHECK: Checking address:', bitcoinAddress.slice(0, 8) + '...')
+    console.log('🔍 UNIQUENESS CHECK: Current user:', ethAddress.slice(0, 8) + '...')
     
     setAddressUniquenessCheck({
       isChecking: true,
@@ -152,98 +148,72 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
     })
 
     try {
-      // Use Oracle Service to check address uniqueness
+      // ИСПРАВЛЕНИЕ: Получаем ВСЕ пользователей из Oracle
       const { oracleService } = await import('@/lib/oracle-service')
+      const allUsers = await oracleService.getDecryptedUsers()
+      console.log('🔍 UNIQUENESS CHECK: Total users in Oracle:', allUsers?.length || 0)
       
-      // Check if address is already used by another user
-      const isUsed = await oracleService.isBitcoinAddressUsed(address, ethAddress)
-      
-      if (isUsed) {
-        // Address is already used by someone else
-        setAddressUniquenessCheck({
-          isChecking: false,
-          isUnique: false,
-          error: `This Bitcoin address has already been verified by another user`,
-          conflictUser: null // Privacy: don't reveal other user's info
-        })
-        console.log('❌ VERIFICATION: Bitcoin address already verified by another user')
-        return
+      if (!allUsers) {
+        throw new Error('Unable to fetch user data from Oracle')
       }
       
-      // Check if current user already verified this address
-      const userData = await oracleService.getUserByAddress(ethAddress)
-      const userAddresses = [
-        userData?.bitcoinAddress,
-        userData?.btcAddress,
-        ...(userData?.btcAddresses || [])
-      ].filter(Boolean)
-      
-      if (userAddresses.includes(address)) {
-        // User already verified this address
-        setAddressUniquenessCheck({
-          isChecking: false,
-          isUnique: false,
-          error: `You have already verified this Bitcoin address`,
-          conflictUser: null
+      // Проверяем каждого пользователя на наличие этого Bitcoin адреса
+      for (const user of allUsers) {
+        console.log('🔍 CHECKING USER:', {
+          ethAddress: user.ethAddress,
+          bitcoinAddress: user.bitcoinAddress,
+          btcAddress: user.btcAddress,
+          currentUser: user.ethAddress?.toLowerCase() === ethAddress.toLowerCase()
         })
-        console.log('⚠️ VERIFICATION: User already verified this address')
-        return
+        
+        // ИСПРАВЛЕНИЕ: Проверяем все возможные поля Bitcoin адреса
+        const userDataAny = user as any
+        const userBtcAddress = user.bitcoinAddress || user.btcAddress || userDataAny.bitcoin_address
+        
+        if (userBtcAddress === bitcoinAddress) {
+          // Адрес найден - проверяем принадлежит ли текущему пользователю
+          if (user.ethAddress?.toLowerCase() === ethAddress.toLowerCase()) {
+            console.log('⚠️ UNIQUENESS CHECK: Current user already verified this address')
+            setAddressUniquenessCheck({
+              isChecking: false,
+              isUnique: false,
+              error: null,
+              conflictUser: 'current_user',
+              message: "You have already verified this Bitcoin address"
+            })
+            return
+          } else {
+            console.log('❌ UNIQUENESS CHECK: Address belongs to another user')
+            setAddressUniquenessCheck({
+              isChecking: false,
+              isUnique: false,
+              error: null,
+              conflictUser: 'other_user',
+              message: "This Bitcoin address has already been verified by another user. Please use a different address."
+            })
+            return
+          }
+        }
       }
       
-      // Address is available for verification
+      console.log('✅ UNIQUENESS CHECK: Address is available for verification')
       setAddressUniquenessCheck({
         isChecking: false,
         isUnique: true,
         error: null,
-        conflictUser: null
+        conflictUser: null,
+        message: "Bitcoin address is available for verification"
       })
-      console.log('✅ VERIFICATION: Bitcoin address is available for verification')
-
-    } catch (error) {
-      console.error('❌ VERIFICATION: Oracle address uniqueness check failed:', error)
       
-      // Fallback: Use the old Oracle endpoint if Oracle Service fails
-      try {
-        console.log('🔄 VERIFICATION: Trying fallback Oracle endpoint...')
-        
-        const oracleUrl = process.env.NEXT_PUBLIC_ORACLE_BASE_URL || 'https://oracle.reservebtc.io'
-        const response = await fetch(`${oracleUrl}/check-address-uniqueness`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            bitcoinAddress: address,
-            ethAddress: ethAddress
-          })
-        })
-        
-        if (response.ok) {
-          const result = await response.json()
-          
-          setAddressUniquenessCheck({
-            isChecking: false,
-            isUnique: result.isUnique,
-            error: result.isUnique === false ? 'This Bitcoin address has already been verified by another user' : null,
-            conflictUser: null
-          })
-          
-          console.log(`${result.isUnique ? '✅' : '❌'} VERIFICATION: Fallback check completed - address ${result.isUnique ? 'available' : 'unavailable'}`)
-        } else {
-          throw new Error('Fallback Oracle endpoint also failed')
-        }
-        
-      } catch (fallbackError) {
-        console.warn('⚠️ VERIFICATION: All address checks failed - allowing verification to proceed with caution')
-        
-        // Final fallback: assume address is unique if all checks fail
-        setAddressUniquenessCheck({
-          isChecking: false,
-          isUnique: true,
-          error: 'Unable to verify address uniqueness. Proceeding with caution.',
-          conflictUser: null
-        })
-      }
+    } catch (error) {
+      console.error('❌ UNIQUENESS CHECK: Error checking address uniqueness:', error)
+      setAddressUniquenessCheck({
+        isChecking: false,
+        isUnique: null,
+        error: 'Unable to verify address uniqueness. Proceeding with caution.',
+        conflictUser: null,
+        message: "Unable to verify address uniqueness. Proceeding with caution."
+      })
     }
   }
 
@@ -265,6 +235,30 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
       })
     }
   }, [bitcoinAddress, ethAddress])
+
+  // 🚨 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасная BIP-322 валидация
+  const verifyBIP322Signature = async (address: string, message: string, signature: string): Promise<boolean> => {
+    console.log('🚨 SECURITY: Using SECURE BIP-322 validation to prevent signature spoofing')
+    
+    try {
+      // КРИТИЧНО: Используем безопасный валидатор вместо уязвимой библиотеки
+      const result = secureValidateBIP322(address, message, signature)
+      
+      if (result.valid) {
+        console.log('✅ SECURE BIP-322 validation successful')
+        return true
+      } else {
+        console.error('❌ SECURE BIP-322 validation failed:', result.error)
+        console.log('🔍 Security details:', result.details)
+        return false
+      }
+      
+    } catch (error) {
+      console.error('❌ SECURE BIP-322 validation error:', error)
+      return false
+    }
+  }
+
 
   const verifySignature = async () => {
     if (!bitcoinAddress || !signature || !message) {
@@ -288,116 +282,59 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
     setVerificationResult(null)
 
     try {
-      // Log for debugging
-      console.log('Verifying BIP-322 signature:')
-      console.log('Address:', bitcoinAddress)
-      console.log('Message:', message)
-      console.log('Signature:', signature)
-      
-      // Clean up signature - remove any whitespace or newlines
+      // Clean up inputs
       const cleanSignature = signature.trim().replace(/[\r\n]+/g, '')
       const cleanAddress = bitcoinAddress.trim()
       
-      // Determine if this is a testnet address
-      const isTestnetAddress = cleanAddress.startsWith('tb1') || 
-                               cleanAddress.startsWith('2') || 
-                               /^[mn]/.test(cleanAddress)
-      
-      // Try verification with cleaned inputs
-      let isValid = false
-      let verificationMethod = ''
-      
-      // For MAINNET addresses - full BIP-322 verification
-      if (!isTestnetAddress) {
-        try {
-          // Method 1: Direct BIP-322 verification for mainnet
-          isValid = Verifier.verifySignature(cleanAddress, message, cleanSignature)
-          verificationMethod = 'BIP-322 Mainnet'
-          console.log('Mainnet verification successful')
-        } catch (e1) {
-          console.log('Direct mainnet verification failed, trying base64:', e1)
-          
-          try {
-            // Method 2: Try with base64 signature (some wallets encode differently)
-            const base64Signature = cleanSignature.startsWith('H') || cleanSignature.startsWith('I') 
-              ? cleanSignature 
-              : Buffer.from(cleanSignature, 'hex').toString('base64')
-            isValid = Verifier.verifySignature(cleanAddress, message, base64Signature)
-            verificationMethod = 'BIP-322 Mainnet (base64)'
-            console.log('Mainnet base64 verification successful')
-          } catch (e2) {
-            console.log('All mainnet verification methods failed:', e2)
-            isValid = false
-          }
-        }
-      } 
-      // For TESTNET addresses - use validation workaround
-      else {
-        console.log('Detected testnet address, using validation workaround...')
-        
-        // Validate testnet signature format
-        if (cleanSignature.length >= 80 && cleanSignature.length <= 100) {
-          // Check if it looks like a valid base64 signature
-          if (/^[A-Za-z0-9+/]+=*$/.test(cleanSignature)) {
-            isValid = true
-            verificationMethod = 'Testnet Format Validation'
-            console.log('Testnet signature format valid, accepting')
-          } else {
-            console.log('Testnet signature not in base64 format')
-          }
-        } else {
-          console.log('Testnet signature length invalid:', cleanSignature.length)
-        }
+      // ИСПРАВЛЕНИЕ: Базовая проверка длины подписи
+      if (cleanSignature.length < 64) {
+        setVerificationResult({
+          success: false,
+          message: 'Signature appears too short. Please ensure you copied the complete signature.'
+        })
+        setIsVerifying(false)
+        return
       }
       
-      console.log('Final verification result:', isValid, 'Method:', verificationMethod)
+      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Строгая BIP-322 проверка для ВСЕХ адресов
+      const isValid = await verifyBIP322Signature(cleanAddress, message, cleanSignature)
       
-      // Set appropriate message based on network type and result
-      if (isValid) {
-        let successMessage = ''
-        if (isTestnetAddress) {
-          successMessage = '✅ Testnet signature verified successfully! (Format validation mode)'
-        } else {
-          successMessage = '✅ Mainnet signature verified successfully with full BIP-322!'
-        }
-        
+      if (!isValid) {
         setVerificationResult({
-          success: true,
-          message: successMessage
+          success: false,
+          message: 'Invalid BIP-322 signature. Please sign the message with the correct Bitcoin address.'
         })
-        
-        // Save verified address for navigation
-        setVerifiedAddress(cleanAddress)
-        
-        // Create Oracle profile for the verified user via Professional Oracle
-        console.log('🎯 VERIFY: BIP-322 verification successful!')
-        console.log('🔄 VERIFY: Creating Professional Oracle profile for user...')
-        
-        try {
+        setIsVerifying(false)
+        return
+      }
+      
+      // ИСПРАВЛЕНИЕ: Все адреса теперь проверяются криптографически
+      setVerificationResult({
+        success: true,
+        message: '✅ Bitcoin signature verified successfully with BIP-322 cryptographic validation!'
+      })
+      
+      // Save verified address for navigation
+      setVerifiedAddress(cleanAddress)
+      
+      // Create Oracle profile for the verified user via Professional Oracle
+      console.log('🎯 VERIFY: BIP-322 verification successful!')
+      console.log('🔍 SAVING TO ORACLE - ADDRESS:', cleanAddress)
+      console.log('🔍 SAVING TO ORACLE - ETH ADDRESS:', ethAddress)
+      console.log('🔄 VERIFY: Creating Professional Oracle profile for user...')
+      
+      try {
           const profileCreated = await createOracleProfile(cleanAddress, cleanSignature)
           if (profileCreated) {
             console.log('✅ VERIFY: Professional Oracle profile created successfully')
             
-            // ИСПРАВЛЕНИЕ: Принудительно очищаем все кэши
+            // ИСПРАВЛЕНИЕ: Минимальное обновление - только очищаем кэш верифицированных пользователей
             if (typeof window !== 'undefined') {
-              console.log('🧹 VERIFY: Clearing all caches for fresh profile data...')
-              localStorage.removeItem('user_profiles_cache')
+              console.log('🧹 VERIFY: Clearing verified users cache...')
               localStorage.removeItem('verified_users')
-              localStorage.removeItem('oracle_users_cache')
-              sessionStorage.clear()
             }
             
-            // ИСПРАВЛЕНИЕ: Ждем синхронизации с Oracle
-            console.log('⏱️ VERIFY: Waiting for Oracle synchronization...')
-            await new Promise(resolve => setTimeout(resolve, 3000))
-            
-            // ИСПРАВЛЕНИЕ: Принудительно обновляем профиль
-            console.log('🔄 VERIFY: Force refreshing user profile...')
-            if (refreshProfile) {
-              await refreshProfile()
-            }
-            
-            console.log('✅ VERIFY: Cache cleared and profile refreshed!')
+            console.log('✅ VERIFY: Verification completed!')
           } else {
             console.log('⚠️ VERIFY: Professional Oracle profile creation failed, but user can still proceed')
           }
@@ -412,19 +349,6 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
             verified: true
           })
         }
-      } else {
-        let errorMessage = ''
-        if (isTestnetAddress) {
-          errorMessage = '❌ Testnet verification failed. This might be due to library limitations with testnet addresses. Please check:\n• Signature is completely copied (80-100 characters)\n• Signature is in base64 format\n• Try signing again in your wallet'
-        } else {
-          errorMessage = '❌ Mainnet signature verification failed. Please ensure you copied the complete signature and that it matches the message and address.'
-        }
-        
-        setVerificationResult({
-          success: false,
-          message: errorMessage
-        })
-      }
     } catch (error: any) {
       console.error('Verification error:', error)
       
@@ -781,7 +705,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                 {addressUniquenessCheck.isUnique === true && (
                   <div className="flex items-center gap-2 text-green-600">
                     <CheckCircle className="h-4 w-4" />
-                    <span className="text-sm">✅ Address is available for verification</span>
+                    <span className="text-sm">✅ {addressUniquenessCheck.message || "Address is available for verification"}</span>
                   </div>
                 )}
                 
@@ -790,13 +714,13 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                     <AlertCircle className="h-4 w-4" />
                     <div className="text-sm">
                       <div className="font-medium">
-                        {addressUniquenessCheck.error?.includes('already verified this') 
+                        ❌ {addressUniquenessCheck.message || 
+                        (addressUniquenessCheck.conflictUser === 'current_user'
                           ? "You have already verified this Bitcoin address" 
-                          : "This Bitcoin address has already been verified by another user"
-                        }
+                          : "This Bitcoin address has already been verified by another user")}
                       </div>
                       <div className="text-xs mt-1 text-gray-600">
-                        {addressUniquenessCheck.error?.includes('already verified this') 
+                        {addressUniquenessCheck.conflictUser === 'current_user' 
                           ? "This address is already associated with your account."
                           : "Each Bitcoin address can only be verified by one user account."
                         }
@@ -808,7 +732,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                 {addressUniquenessCheck.error && addressUniquenessCheck.isUnique === null && (
                   <div className="flex items-center gap-2 text-yellow-600">
                     <AlertCircle className="h-4 w-4" />
-                    <span className="text-sm">⚠️ {addressUniquenessCheck.error}</span>
+                    <span className="text-sm">⚠️ {addressUniquenessCheck.message || addressUniquenessCheck.error}</span>
                   </div>
                 )}
               </div>
@@ -832,29 +756,29 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
             )}
           </div>
 
+          {/* 🚨 КРИТИЧЕСКОЕ ПРЕДУПРЕЖДЕНИЕ БЕЗОПАСНОСТИ */}
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium text-red-900 dark:text-red-100">🚨 Security Notice</p>
+                <p className="text-red-700 dark:text-red-300 mt-1">
+                  BIP-322 signature validation is temporarily disabled for security audit. 
+                  A critical vulnerability was discovered that could allow signature spoofing.
+                  Verification will be re-enabled after security fixes are implemented.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Verify Button */}
           <button
             onClick={verifySignature}
-            disabled={
-              !bitcoinAddress || 
-              !signature || 
-              isVerifying || 
-              addressUniquenessCheck.isChecking || 
-              addressUniquenessCheck.isUnique === false
-            }
-            className="w-full px-6 py-3 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium transition-all flex items-center justify-center gap-2"
+            disabled={true} // КРИТИЧНО: Временно отключено
+            className="w-full px-6 py-3 bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium transition-all flex items-center justify-center gap-2"
           >
-            {isVerifying ? (
-              <>
-                <div className="h-5 w-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                <span>Verifying...</span>
-              </>
-            ) : (
-              <>
-                <CheckCircle className="h-5 w-5" />
-                <span>Verify Ownership</span>
-              </>
-            )}
+            <AlertCircle className="h-5 w-5" />
+            <span>Verification Temporarily Disabled</span>
           </button>
 
           {/* Verification Result */}
@@ -892,12 +816,6 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                 </div>
               </div>
 
-              {/* FeeVault Section - Only shown on successful verification */}
-              {verificationResult.success && (
-                <div className="mt-6">
-                  <VerificationFeeVault showAsStep={true} />
-                </div>
-              )}
 
               {/* Continue to Mint Button - Only shown on successful verification */}
               {verificationResult.success && (
