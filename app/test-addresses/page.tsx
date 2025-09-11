@@ -1,11 +1,11 @@
 'use client';
-import { useUserProfile } from '@/hooks/use-user-profile';
 import { oracleService } from '@/lib/oracle-service';
 import { useAccount } from 'wagmi';
 import { useState, useEffect } from 'react';
 
 export default function TestAddresses() {
-  const { bitcoinAddresses, isLoading } = useUserProfile();
+  const [bitcoinAddresses, setBitcoinAddresses] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { address } = useAccount();
   const [oracleData, setOracleData] = useState(null);
   const [oracleLoading, setOracleLoading] = useState(false);
