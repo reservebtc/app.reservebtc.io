@@ -1580,6 +1580,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               </div>
             )}
           </form>
+        </div>
         </>
       )}
     </div>

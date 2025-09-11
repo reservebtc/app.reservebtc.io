@@ -4,10 +4,10 @@ import { useAccount } from 'wagmi';
 import { useState, useEffect } from 'react';
 
 export default function TestAddresses() {
-  const [bitcoinAddresses, setBitcoinAddresses] = useState([]);
+  const [bitcoinAddresses, setBitcoinAddresses] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { address } = useAccount();
-  const [oracleData, setOracleData] = useState(null);
+  const [oracleData, setOracleData] = useState<any>(null);
   const [oracleLoading, setOracleLoading] = useState(false);
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export default function TestAddresses() {
           setOracleData(userData);
         } catch (error) {
           console.error('Oracle load error:', error);
-          setOracleData({ error: error.message });
+          setOracleData({ error: error instanceof Error ? error.message : 'Unknown error' });
         }
         setOracleLoading(false);
       }
