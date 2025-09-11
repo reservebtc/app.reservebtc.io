@@ -6,7 +6,7 @@
   "crons": [
     {
       "path": "/api/cron/bitcoin-balance-sync",
-      "schedule": "*/15 * * * * *"
+      "schedule": "* * * * *"
     }
   ]
 }
