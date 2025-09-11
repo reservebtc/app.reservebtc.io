@@ -495,7 +495,7 @@ export class UserProfileManager {
       }
 
       // Убираем дубликаты
-      const uniqueAddresses = [...new Set(bitcoinAddresses)];
+      const uniqueAddresses = Array.from(new Set(bitcoinAddresses));
       
       console.log('🔧 PROFILE: Resolved Bitcoin addresses:', uniqueAddresses)
       const lastSyncedBalance = oracleData.lastSyncedBalance || 0
