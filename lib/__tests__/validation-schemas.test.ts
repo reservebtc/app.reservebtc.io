@@ -258,7 +258,26 @@ describe('Validation Schemas', () => {
       }
 
       const result = walletVerificationSchema.safeParse(pollutionAttempt)
-      expect(result.isAdmin).toBeUndefined()
+      
+      // Fix: Check that the result object itself doesn't have the polluted property
+      expect((result as any).isAdmin).toBeUndefined()
+      
+      // Additional security checks
+      expect(result.success).toBe(true)
+      if (result.success) {
+        // Ensure the parsed data doesn't contain prototype pollution
+        expect((result.data as any).isAdmin).toBeUndefined()
+        expect((result.data as any).__proto__).toBeUndefined()
+        
+        // Verify only expected properties exist
+        expect(result.data).toHaveProperty('bitcoinAddress')
+        expect(result.data).toHaveProperty('ethereumAddress')
+        expect(result.data).toHaveProperty('message')
+        expect(result.data).toHaveProperty('signature')
+        
+        // Ensure no prototype pollution occurred
+        expect(Object.prototype.hasOwnProperty.call(result.data, 'isAdmin')).toBe(false)
+      }
     })
 
     test('should handle extremely large inputs gracefully', () => {

@@ -113,6 +113,70 @@ class ProfessionalLogger {
     return `${levelEmoji} [${timestamp}] ${entry.category}${userInfo} [${entry.action}] ${resultEmoji} ${entry.message}${duration}`
   }
 
+  /**
+   * Production Error Tracking
+   * Sends critical errors to external monitoring services in production
+   */
+  private trackProductionError(
+    level: LogLevel,
+    category: LogCategory,
+    action: string,
+    message: string,
+    error?: Error | string,
+    userWallet?: string,
+    metadata?: Record<string, any>
+  ): void {
+    if (this.isProductionMode && ['error', 'critical'].includes(level)) {
+      // Enhanced production error tracking
+      const productionError = {
+        timestamp: new Date().toISOString(),
+        level,
+        category,
+        action,
+        message: this.sanitizeMessage(message, userWallet),
+        userWallet: this.formatUserWallet(userWallet),
+        sessionId: this.sessionId.substring(0, 8),
+        userAgent: navigator.userAgent,
+        url: window.location.href,
+        stack: error instanceof Error ? error.stack : undefined,
+        metadata: metadata || {}
+      }
+
+      // Console error for immediate visibility
+      console.error('🚨 PRODUCTION ERROR TRACKED:', {
+        level,
+        category,
+        action,
+        message: productionError.message,
+        timestamp: productionError.timestamp,
+        sessionId: productionError.sessionId
+      })
+
+      // TODO: Integrate with external error tracking service
+      // Examples:
+      // - Sentry: Sentry.captureException(error, { extra: productionError })
+      // - LogRocket: LogRocket.captureException(error)
+      // - Datadog: DD_RUM.addError(error, productionError)
+      // - Custom API: fetch('/api/error-tracking', { method: 'POST', body: JSON.stringify(productionError) })
+      
+      // For now, store in localStorage for debugging (with size limit)
+      try {
+        const storedErrors = JSON.parse(localStorage.getItem('reservebtc_production_errors') || '[]')
+        storedErrors.push(productionError)
+        
+        // Keep only last 50 errors to prevent localStorage overflow
+        if (storedErrors.length > 50) {
+          storedErrors.splice(0, storedErrors.length - 50)
+        }
+        
+        localStorage.setItem('reservebtc_production_errors', JSON.stringify(storedErrors))
+      } catch (e) {
+        // Fail silently if localStorage is not available
+        console.warn('Unable to store production error in localStorage:', e)
+      }
+    }
+  }
+
   public log(
     level: LogLevel,
     category: LogCategory,
@@ -282,7 +346,7 @@ class ProfessionalLogger {
     this.log('info', 'TRANSACTION', action, result, message, { userWallet, duration, metadata })
   }
 
-  // Error logging with stack traces
+  // Error logging with stack traces and production tracking
   public error(
     category: LogCategory,
     action: string,
@@ -292,6 +356,12 @@ class ProfessionalLogger {
   ): void {
     const errorMessage = error instanceof Error ? error.message : error
     const stack = error instanceof Error ? error.stack : undefined
+    
+    // Track in production
+    this.trackProductionError('error', category, action, errorMessage, error, userWallet, {
+      ...metadata,
+      stack
+    })
     
     this.log('error', category, action, 'FAILURE', errorMessage, {
       userWallet,
@@ -308,6 +378,12 @@ class ProfessionalLogger {
     errorCode?: string,
     metadata?: Record<string, any>
   ): void {
+    // Track critical errors in production
+    this.trackProductionError('critical', category, action, message, message, userWallet, {
+      errorCode,
+      ...metadata
+    })
+    
     this.log('critical', category, action, 'FAILURE', message, {
       userWallet,
       errorCode,
@@ -336,6 +412,25 @@ class ProfessionalLogger {
     return this.logHistory.filter(entry => entry.userWallet === userSuffix)
   }
 
+  // Get production errors from localStorage (development only)
+  public getProductionErrors(): any[] {
+    if (this.isProductionMode) return []
+    
+    try {
+      return JSON.parse(localStorage.getItem('reservebtc_production_errors') || '[]')
+    } catch {
+      return []
+    }
+  }
+
+  // Clear production errors (development only)
+  public clearProductionErrors(): void {
+    if (!this.isProductionMode) {
+      localStorage.removeItem('reservebtc_production_errors')
+      console.info('🗑️ Production error history cleared')
+    }
+  }
+
   // Clear log history
   public clearHistory(): void {
     this.logHistory = []
@@ -349,6 +444,7 @@ class ProfessionalLogger {
     logsByCategory: Record<LogCategory, number>
     sessionId: string
     sessionDuration: string
+    productionErrors: number
   } {
     const logsByLevel = this.logHistory.reduce((acc, entry) => {
       acc[entry.level] = (acc[entry.level] || 0) + 1
@@ -368,7 +464,8 @@ class ProfessionalLogger {
       logsByLevel,
       logsByCategory,
       sessionId: this.sessionId.substring(0, 8),
-      sessionDuration: `${sessionDuration}s`
+      sessionDuration: `${sessionDuration}s`,
+      productionErrors: this.getProductionErrors().length
     }
   }
 }
