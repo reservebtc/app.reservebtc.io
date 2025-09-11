@@ -267,7 +267,8 @@ describe('Validation Schemas', () => {
       if (result.success) {
         // Ensure the parsed data doesn't contain prototype pollution
         expect((result.data as any).isAdmin).toBeUndefined()
-        expect((result.data as any).__proto__).toBeUndefined()
+        // Check that __proto__ doesn't contain the polluted property
+        expect((result.data as any).__proto__.isAdmin).toBeUndefined()
         
         // Verify only expected properties exist
         expect(result.data).toHaveProperty('bitcoinAddress')
