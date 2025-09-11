@@ -343,12 +343,11 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           address: btcAddress.substring(0, 8) + '...',
           balance: balanceData.balance,
           network: balanceData.network,
-          txCount: balanceData.tx_count,
-          spentTxos: balanceData.spent_txo_count
+          transactions: balanceData.transactions
         })
         
         // Check if address has made outgoing transactions (spent coins)
-        const hasSpentCoins = balanceData.spent_txo_count > 0
+        const hasSpentCoins = balanceData.transactions > 0
         setAddressHasSpentCoins(hasSpentCoins)
         
         // Set balance and auto-fill amount

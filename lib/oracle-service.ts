@@ -211,6 +211,99 @@ class OracleService {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }
+
+  // Метод для проверки статуса верификации
+  async checkVerificationStatus(
+    ethereumAddress: string, 
+    bitcoinAddress: string
+  ): Promise<{
+    isVerified: boolean
+    canVerify: boolean
+    message: string
+  }> {
+    try {
+      const users = await this.getDecryptedUsers()
+      
+      if (!users) {
+        return {
+          isVerified: false,
+          canVerify: true,
+          message: "Unable to fetch user data"
+        }
+      }
+      
+      // Проверяем есть ли уже такой Bitcoin адрес у другого пользователя
+      const addressUsedByOther = users.find(user => 
+        user.btcAddress === bitcoinAddress && 
+        user.ethAddress.toLowerCase() !== ethereumAddress.toLowerCase()
+      )
+      
+      if (addressUsedByOther) {
+        return {
+          isVerified: false,
+          canVerify: false,
+          message: "This Bitcoin address has already been verified by another user"
+        }
+      }
+      
+      // Проверяем уже ли верифицирован текущий пользователь с этим адресом
+      const currentUserVerified = users.find(user =>
+        user.ethAddress.toLowerCase() === ethereumAddress.toLowerCase() &&
+        user.btcAddress === bitcoinAddress
+      )
+      
+      if (currentUserVerified) {
+        return {
+          isVerified: true,
+          canVerify: false,
+          message: "You have already verified this Bitcoin address"
+        }
+      }
+      
+      return {
+        isVerified: false,
+        canVerify: true,
+        message: "Bitcoin address is available for verification"
+      }
+      
+    } catch (error) {
+      console.error('❌ ORACLE SERVICE: Check verification status failed:', error)
+      return {
+        isVerified: false,
+        canVerify: true,
+        message: "Unable to check verification status"
+      }
+    }
+  }
+
+  // Метод для обновления статуса верификации
+  async updateVerificationStatus(
+    ethereumAddress: string,
+    bitcoinAddress: string
+  ): Promise<boolean> {
+    try {
+      // Принудительно очищаем кэш
+      this.clearCache()
+      
+      // Ждем немного для Oracle server sync
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // Проверяем что данные сохранились
+      const users = await this.getDecryptedUsers()
+      const user = users?.find(u => u.ethAddress.toLowerCase() === ethereumAddress.toLowerCase())
+      
+      if (user && user.btcAddress === bitcoinAddress) {
+        console.log(`✅ ORACLE SERVICE: Verification status updated for ${ethereumAddress.slice(0, 8)}...`)
+        return true
+      }
+      
+      return false
+      
+    } catch (error) {
+      console.error('❌ ORACLE SERVICE: Update verification status failed:', error)
+      return false
+    }
+  }
 }
 
 // Export singleton instance

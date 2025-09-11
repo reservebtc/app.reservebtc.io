@@ -4,6 +4,35 @@
  * Supports both Mainnet and Testnet addresses
  */
 
+import { professionalLogger } from './professional-logger'
+
+export interface AddressBalance {
+  address: string
+  balance: number // в BTC
+  network: 'mainnet' | 'testnet'
+  transactions: number
+  lastUpdated: string
+}
+
+interface MempoolAddressInfo {
+  address: string
+  chain_stats: {
+    funded_txo_count: number
+    funded_txo_sum: number
+    spent_txo_count: number
+    spent_txo_sum: number
+    tx_count: number
+  }
+  mempool_stats: {
+    funded_txo_count: number
+    funded_txo_sum: number
+    spent_txo_count: number
+    spent_txo_sum: number
+    tx_count: number
+  }
+}
+
+// Legacy interface for backward compatibility
 interface BitcoinAddressBalance {
   address: string
   balance: number // in BTC
@@ -17,26 +46,13 @@ interface BitcoinAddressBalance {
   lastUpdated: number
 }
 
-interface MempoolAddressStats {
-  address: string
-  funded_txo_count: number
-  funded_txo_sum: number
-  spent_txo_count: number
-  spent_txo_sum: number
-  tx_count: number
-  unconfirmed_tx_count?: number
-}
-
 class MempoolService {
-  private cache: Map<string, { data: BitcoinAddressBalance; timestamp: number }> = new Map()
-  private readonly CACHE_TTL = 15000 // 15 seconds for frequent updates
-  private readonly MAINNET_BASE_URL = 'https://mempool.space/api'
-  private readonly TESTNET_BASE_URL = 'https://mempool.space/testnet/api'
+  private cache = new Map<string, { data: AddressBalance; timestamp: number }>()
+  private readonly CACHE_TTL = 30000 // 30 секунд
+  private readonly MAINNET_URL = 'https://mempool.space/api'
+  private readonly TESTNET_URL = 'https://mempool.space/testnet/api'
 
-  /**
-   * Determine network type from Bitcoin address
-   */
-  private getNetworkFromAddress(address: string): 'mainnet' | 'testnet' {
+  private detectNetwork(address: string): 'mainnet' | 'testnet' {
     if (address.startsWith('tb1') || address.startsWith('2') || 
         address.startsWith('m') || address.startsWith('n')) {
       return 'testnet'
@@ -44,194 +60,164 @@ class MempoolService {
     return 'mainnet'
   }
 
-  /**
-   * Get the appropriate API base URL for the network
-   */
-  private getBaseUrl(network: 'mainnet' | 'testnet'): string {
-    return network === 'testnet' ? this.TESTNET_BASE_URL : this.MAINNET_BASE_URL
+  private getApiUrl(network: 'mainnet' | 'testnet'): string {
+    return network === 'testnet' ? this.TESTNET_URL : this.MAINNET_URL
   }
 
-  /**
-   * Fetch Bitcoin balance for a specific address
-   */
-  async getAddressBalance(address: string): Promise<BitcoinAddressBalance | null> {
-    const cacheKey = address
+  private satoshiToBtc(satoshi: number): number {
+    return satoshi / 100000000
+  }
+
+  async getAddressBalance(address: string): Promise<AddressBalance> {
+    const cacheKey = `balance_${address}`
     const cached = this.cache.get(cacheKey)
     
-    if (cached && (Date.now() - cached.timestamp < this.CACHE_TTL)) {
-      console.log(`📋 MEMPOOL: Using cached balance for ${address.substring(0, 8)}...`)
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+      professionalLogger.mempool('CACHE_HIT', 'SUCCESS', `Cached balance for ${address.slice(0, 8)}...`)
       return cached.data
     }
 
+    const network = this.detectNetwork(address)
+    const apiUrl = this.getApiUrl(network)
+    const startTime = performance.now()
+    
     try {
-      const network = this.getNetworkFromAddress(address)
-      const baseUrl = this.getBaseUrl(network)
+      professionalLogger.mempool('FETCH_BALANCE', 'INFO', `Fetching ${network} balance for ${address.slice(0, 8)}...`)
       
-      console.log(`🔍 MEMPOOL: Fetching ${network} balance for ${address.substring(0, 8)}...`)
-      
-      const response = await fetch(`${baseUrl}/address/${address}`, {
+      const response = await fetch(`${apiUrl}/address/${address}`, {
+        method: 'GET',
         headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'ReserveBTC-Frontend/1.0'
-        }
+          'User-Agent': 'ReserveBTC-Frontend/1.0',
+          'Accept': 'application/json'
+        },
+        signal: AbortSignal.timeout(10000) // 10 second timeout
       })
 
       if (!response.ok) {
-        if (response.status === 404) {
-          console.log(`💰 MEMPOOL: Address ${address.substring(0, 8)}... not found - assuming zero balance`)
-          return {
-            address,
-            balance: 0,
-            network,
-            funded_txo_count: 0,
-            funded_txo_sum: 0,
-            spent_txo_count: 0,
-            spent_txo_sum: 0,
-            tx_count: 0,
-            unconfirmed_balance: 0,
-            lastUpdated: Date.now()
-          }
-        }
-        throw new Error(`Mempool API error: ${response.status}`)
+        throw new Error(`Mempool API error: ${response.status} ${response.statusText}`)
       }
 
-      const stats: MempoolAddressStats = await response.json()
+      const data: MempoolAddressInfo = await response.json()
       
-      // Calculate balance: funded - spent (in satoshis, convert to BTC)
-      const balanceSatoshis = stats.funded_txo_sum - stats.spent_txo_sum
-      const balanceBTC = balanceSatoshis / 100000000 // Convert satoshis to BTC
+      // Исправленный расчет баланса
+      const fundedSum = (data.chain_stats?.funded_txo_sum || 0) + (data.mempool_stats?.funded_txo_sum || 0)
+      const spentSum = (data.chain_stats?.spent_txo_sum || 0) + (data.mempool_stats?.spent_txo_sum || 0)
+      const balanceSatoshi = fundedSum - spentSum
+      const balanceBtc = this.satoshiToBtc(balanceSatoshi)
       
-      const balanceData: BitcoinAddressBalance = {
+      const totalTransactions = (data.chain_stats?.tx_count || 0) + (data.mempool_stats?.tx_count || 0)
+      
+      const balance: AddressBalance = {
         address,
-        balance: balanceBTC,
+        balance: Math.max(0, balanceBtc), // Убеждаемся что баланс не отрицательный
         network,
-        funded_txo_count: stats.funded_txo_count,
-        funded_txo_sum: stats.funded_txo_sum,
-        spent_txo_count: stats.spent_txo_count,
-        spent_txo_sum: stats.spent_txo_sum,
-        tx_count: stats.tx_count,
-        unconfirmed_balance: 0, // Mempool.space doesn't provide this in basic endpoint
-        lastUpdated: Date.now()
+        transactions: totalTransactions,
+        lastUpdated: new Date().toISOString()
+      }
+
+      // Кэшируем результат
+      this.cache.set(cacheKey, { data: balance, timestamp: Date.now() })
+      
+      const duration = Math.round(performance.now() - startTime)
+      professionalLogger.mempool('FETCH_BALANCE', 'SUCCESS', 
+        `Balance fetched for ${address.slice(0, 8)}... = ${balanceBtc} BTC`, undefined, duration)
+      
+      return balance
+
+    } catch (error) {
+      const duration = Math.round(performance.now() - startTime)
+      professionalLogger.error('MEMPOOL', 'FETCH_BALANCE_FAILED', error instanceof Error ? error : new Error(String(error)), undefined, { address, network, duration })
+      
+      // Возвращаем fallback баланс вместо NaN
+      const fallbackBalance: AddressBalance = {
+        address,
+        balance: 0,
+        network,
+        transactions: 0,
+        lastUpdated: new Date().toISOString()
       }
       
-      this.cache.set(cacheKey, { data: balanceData, timestamp: Date.now() })
-      
-      console.log(`✅ MEMPOOL: Balance fetched for ${address.substring(0, 8)}... = ${balanceBTC} BTC`)
-      
-      return balanceData
-    } catch (error) {
-      console.error(`❌ MEMPOOL: Failed to fetch balance for ${address.substring(0, 8)}...`, error)
-      return null
+      return fallbackBalance
     }
   }
 
-  /**
-   * Get aggregated balance for multiple addresses
-   */
   async getAggregatedBalance(addresses: string[]): Promise<{
-    totalBalance: number
-    balancesByAddress: Record<string, number>
-    networks: { mainnet: number; testnet: number }
-    totalAddresses: number
-    successfulFetches: number
+    mainnet: number
+    testnet: number
+    total: number
+    addressCount: { mainnet: number; testnet: number }
   }> {
     if (addresses.length === 0) {
-      return {
-        totalBalance: 0,
-        balancesByAddress: {},
-        networks: { mainnet: 0, testnet: 0 },
-        totalAddresses: 0,
-        successfulFetches: 0
-      }
+      return { mainnet: 0, testnet: 0, total: 0, addressCount: { mainnet: 0, testnet: 0 } }
     }
 
-    console.log(`📊 MEMPOOL: Fetching aggregated balance for ${addresses.length} addresses`)
+    const startTime = performance.now()
     
-    const results = await Promise.allSettled(
-      addresses.map(addr => this.getAddressBalance(addr))
-    )
+    try {
+      const balances = await Promise.all(
+        addresses.map(address => this.getAddressBalance(address))
+      )
 
-    let totalBalance = 0
-    const balancesByAddress: Record<string, number> = {}
-    const networks = { mainnet: 0, testnet: 0 }
-    let successfulFetches = 0
+      const aggregated = balances.reduce(
+        (acc, balance) => {
+          if (balance.network === 'mainnet') {
+            acc.mainnet += balance.balance
+            acc.addressCount.mainnet++
+          } else {
+            acc.testnet += balance.balance
+            acc.addressCount.testnet++
+          }
+          return acc
+        },
+        { mainnet: 0, testnet: 0, total: 0, addressCount: { mainnet: 0, testnet: 0 } }
+      )
 
-    results.forEach((result, index) => {
-      const address = addresses[index]
+      aggregated.total = aggregated.mainnet + aggregated.testnet
       
-      if (result.status === 'fulfilled' && result.value) {
-        const balance = result.value.balance
-        const network = result.value.network
-        
-        totalBalance += balance
-        balancesByAddress[address] = balance
-        networks[network] += balance
-        successfulFetches++
-      } else {
-        console.warn(`⚠️ MEMPOOL: Failed to fetch balance for ${address.substring(0, 8)}...`)
-        balancesByAddress[address] = 0
-      }
-    })
-
-    console.log(`✅ MEMPOOL: Aggregated ${successfulFetches}/${addresses.length} balances = ${totalBalance} BTC`)
-    
-    return {
-      totalBalance,
-      balancesByAddress,
-      networks,
-      totalAddresses: addresses.length,
-      successfulFetches
+      const duration = Math.round(performance.now() - startTime)
+      professionalLogger.mempool('AGGREGATE_BALANCE', 'SUCCESS', 
+        `Aggregated balance for ${addresses.length} addresses`, undefined, duration)
+      
+      return aggregated
+      
+    } catch (error) {
+      const duration = Math.round(performance.now() - startTime)
+      professionalLogger.error('MEMPOOL', 'AGGREGATE_BALANCE_FAILED', error instanceof Error ? error : new Error(String(error)), undefined, { addressCount: addresses.length, duration })
+      
+      return { mainnet: 0, testnet: 0, total: 0, addressCount: { mainnet: 0, testnet: 0 } }
     }
   }
 
-  /**
-   * Check if address has spent any coins (has outgoing transactions)
-   */
+  clearCache(): void {
+    this.cache.clear()
+    professionalLogger.mempool('CACHE_CLEAR', 'SUCCESS', 'Mempool service cache cleared')
+  }
+
+  getCacheStats(): { size: number; keys: string[] } {
+    return {
+      size: this.cache.size,
+      keys: Array.from(this.cache.keys())
+    }
+  }
+
+  // Legacy methods for backward compatibility
   async hasSpentCoins(address: string): Promise<boolean> {
     try {
       const balance = await this.getAddressBalance(address)
-      if (!balance) return false
-      
-      return balance.spent_txo_count > 0
+      return balance.transactions > 0
     } catch (error) {
-      console.error(`❌ MEMPOOL: Error checking spent coins for ${address.substring(0, 8)}...`, error)
+      professionalLogger.error('MEMPOOL', 'HAS_SPENT_COINS_FAILED', error instanceof Error ? error : new Error(String(error)))
       return false
     }
   }
 
-  /**
-   * Get transaction count for address
-   */
   async getTransactionCount(address: string): Promise<number> {
     try {
       const balance = await this.getAddressBalance(address)
-      return balance?.tx_count || 0
+      return balance?.transactions || 0
     } catch (error) {
-      console.error(`❌ MEMPOOL: Error getting tx count for ${address.substring(0, 8)}...`, error)
+      professionalLogger.error('MEMPOOL', 'GET_TX_COUNT_FAILED', error instanceof Error ? error : new Error(String(error)))
       return 0
-    }
-  }
-
-  /**
-   * Clear cache for specific address or all addresses
-   */
-  clearCache(address?: string): void {
-    if (address) {
-      this.cache.delete(address)
-      console.log(`🗑️ MEMPOOL: Cache cleared for ${address.substring(0, 8)}...`)
-    } else {
-      this.cache.clear()
-      console.log('🗑️ MEMPOOL: All cache cleared')
-    }
-  }
-
-  /**
-   * Get cache statistics
-   */
-  getCacheStats(): { size: number; addresses: string[] } {
-    return {
-      size: this.cache.size,
-      addresses: Array.from(this.cache.keys()).map(addr => addr.substring(0, 8) + '...')
     }
   }
 }

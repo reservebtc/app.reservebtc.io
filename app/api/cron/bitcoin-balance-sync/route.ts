@@ -109,11 +109,11 @@ export async function GET(request: NextRequest) {
     const syncResults = {
       totalUsers: allUsers.length,
       totalAddresses: uniqueAddresses.length,
-      successfulFetches: balanceResults.successfulFetches,
-      totalBalance: balanceResults.totalBalance,
-      mainnetBalance: balanceResults.networks.mainnet,
-      testnetBalance: balanceResults.networks.testnet,
-      failedFetches: uniqueAddresses.length - balanceResults.successfulFetches,
+      successfulFetches: balanceResults.addressCount.mainnet + balanceResults.addressCount.testnet,
+      totalBalance: balanceResults.total,
+      mainnetBalance: balanceResults.mainnet,
+      testnetBalance: balanceResults.testnet,
+      failedFetches: uniqueAddresses.length - (balanceResults.addressCount.mainnet + balanceResults.addressCount.testnet),
       userSyncSuccess: 0,
       userSyncFailed: 0
     }
