@@ -43,6 +43,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const [isLoadingBalance, setIsLoadingBalance] = useState(false)
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false)
   const [addressHasSpentCoins, setAddressHasSpentCoins] = useState(false)
+  const [hasOutgoingTx, setHasOutgoingTx] = useState(false)
   const [showFeeVaultWarning, setShowFeeVaultWarning] = useState(false)
   const [showAutoSyncDetails, setShowAutoSyncDetails] = useState(false)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
@@ -728,23 +729,53 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }, [verifiedBitcoinAddress, publicClient, address, fetchBitcoinBalance, isLoadingBalance, hasAttemptedFetch])
 
+  // Handle address change with balance refresh
+  const handleAddressChange = useCallback((newAddress: string) => {
+    setVerifiedBitcoinAddress(newAddress)
+    setValue('bitcoinAddress', newAddress, { shouldValidate: true })
+    // Reset balance when address changes
+    setBitcoinBalance(0)
+    setIsLoadingBalance(true)
+    if (newAddress) {
+      fetchBitcoinBalance(newAddress)
+    }
+  }, [setValue, fetchBitcoinBalance])
+
+  // Check for outgoing transactions (quantum security warning)
+  useEffect(() => {
+    if (verifiedBitcoinAddress) {
+      console.log('🔍 Checking for outgoing transactions for quantum warning...')
+      mempoolService.checkOutgoingTransactions(verifiedBitcoinAddress)
+        .then(hasOutgoing => {
+          setHasOutgoingTx(hasOutgoing)
+          console.log(`🔐 Quantum warning check: Address ${verifiedBitcoinAddress.substring(0, 10)}... has outgoing transactions: ${hasOutgoing}`)
+        })
+        .catch(error => {
+          console.error('❌ Error checking outgoing transactions:', error)
+          setHasOutgoingTx(false)
+        })
+    } else {
+      setHasOutgoingTx(false)
+    }
+  }, [verifiedBitcoinAddress])
+
   // Monitor address transaction status for quantum warning
   useEffect(() => {
     if (verifiedBitcoinAddress && !isLoadingBalance && hasAttemptedFetch) {
       console.log('🔍 Quantum warning check:', {
         address: verifiedBitcoinAddress,
-        hasSpentCoins: addressHasSpentCoins,
+        hasOutgoingTx: hasOutgoingTx,
         balance: bitcoinBalance,
-        showWarning: addressHasSpentCoins
+        showWarning: hasOutgoingTx
       })
       
-      if (addressHasSpentCoins) {
-        console.log('⚠️ Address has spent coins - quantum warning should be visible')
+      if (hasOutgoingTx) {
+        console.log('⚠️ Address has outgoing transactions - quantum warning should be visible')
       } else {
-        console.log('✅ Address has no outgoing transactions - no quantum warning')
+        console.log('✅ Address has no outgoing transactions - no quantum warning needed')
       }
     }
-  }, [verifiedBitcoinAddress, addressHasSpentCoins, isLoadingBalance, hasAttemptedFetch, bitcoinBalance])
+  }, [verifiedBitcoinAddress, hasOutgoingTx, isLoadingBalance, hasAttemptedFetch, bitcoinBalance])
 
   // Monitor Fee Vault balance and auto-hide warning when sufficient funds are deposited
   useEffect(() => {
@@ -1398,50 +1429,51 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             })
           }} className="space-y-6">
             {/* Bitcoin Balance (from verified wallet) */}
-            <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                  <Bitcoin className="h-5 w-5" />
+            <div className="bg-card border rounded-xl p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent">
                   Bitcoin Balance (from verified wallet)
                 </h3>
-                <button
-                  type="button"
+                <button 
                   onClick={refreshBalance}
                   disabled={isLoadingBalance}
-                  className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+                  className="bg-muted hover:bg-muted/80 text-foreground px-3 py-1 rounded-lg text-sm transition-colors disabled:opacity-50"
                 >
-                  <RefreshCw className={`h-3 w-3 ${isLoadingBalance ? 'animate-spin' : ''}`} />
-                  Refresh
+                  🔄 Refresh
                 </button>
               </div>
-              
+
               {isLoadingBalance ? (
                 <div className="animate-pulse">
-                  <div className="h-8 bg-gray-700 rounded w-32 mb-2"></div>
-                  <div className="h-4 bg-gray-700 rounded w-24"></div>
+                  <div className="h-10 bg-muted rounded w-32 mb-2"></div>
+                  <div className="h-4 bg-muted rounded w-24"></div>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <div className="text-2xl font-bold text-green-400">
-                    {bitcoinBalance ? bitcoinBalance.toFixed(8) : '0.00000000'} BTC
+                <>
+                  <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">
+                    {bitcoinBalance || '0.00000000'} BTC
                   </div>
-                  {amountInSatoshis > 0 && (
-                    <div className="text-sm text-gray-400">
-                      = {amountInSatoshis.toLocaleString()} satoshis
-                    </div>
-                  )}
-                  <div className="text-xs text-gray-500">
-                    Network: {verifiedBitcoinAddress?.startsWith('tb1') || verifiedBitcoinAddress?.startsWith('m') || verifiedBitcoinAddress?.startsWith('n') || verifiedBitcoinAddress?.startsWith('2') ? 'Testnet' : 'Mainnet'}
+                  <div className="text-sm text-muted-foreground mb-3">
+                    = {Math.round((bitcoinBalance || 0) * 100000000).toLocaleString()} satoshis
                   </div>
-                </div>
+                  <div className="text-xs text-muted-foreground">
+                    Network: {verifiedBitcoinAddress?.startsWith('tb1') ? 
+                      <span className="text-orange-600 dark:text-orange-400">Testnet</span> : 
+                      <span className="text-green-600 dark:text-green-400">Mainnet</span>
+                    }
+                  </div>
+                </>
               )}
-              <div className="mt-4 text-xs text-gray-500">
-                ℹ️ Balance is fetched automatically from your verified Bitcoin wallet
+              
+              <div className="mt-3 pt-3 border-t">
+                <p className="text-xs text-muted-foreground">
+                  ℹ️ Balance is fetched automatically from your verified Bitcoin wallet
+                </p>
               </div>
             </div>
             
-            {/* Quantum protection warning - only if address has spent coins (made outgoing transactions) */}
-            {addressHasSpentCoins && !isLoadingBalance && hasAttemptedFetch && verifiedBitcoinAddress && (
+            {/* Quantum protection warning - only if address has outgoing transactions */}
+            {hasOutgoingTx && !isLoadingBalance && hasAttemptedFetch && verifiedBitcoinAddress && (
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
                 <div className="flex items-start gap-3">
                   <div className="text-blue-600 dark:text-blue-400 text-xl flex-shrink-0">🔐</div>
@@ -1482,53 +1514,52 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             )}
 
             {/* Your Verified Bitcoin Address */}
-            <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-              <h3 className="text-lg font-semibold mb-4 text-white">Your Verified Bitcoin Address</h3>
+            <div className="bg-card border rounded-xl p-6">
+              <h3 className="text-lg font-semibold bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent mb-4">
+                Your Verified Bitcoin Address
+              </h3>
               
               {allVerifiedAddresses && allVerifiedAddresses.length > 0 ? (
-                <div className="space-y-3">
+                <>
                   <select 
-                    className="w-full p-3 bg-gray-900 rounded-lg border border-gray-600 text-white focus:border-blue-500 transition-colors"
+                    className="w-full p-3 bg-background border rounded-lg text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-colors mb-3"
                     value={verifiedBitcoinAddress}
-                    onChange={(e) => {
-                      setVerifiedBitcoinAddress(e.target.value)
-                      setValue('bitcoinAddress', e.target.value, { shouldValidate: true })
-                      // Сброс баланса при смене адреса
-                      setBitcoinBalance(0)
-                      setIsLoadingBalance(true)
-                      if (e.target.value) {
-                        fetchBitcoinBalance(e.target.value)
-                      }
-                    }}
+                    onChange={(e) => handleAddressChange(e.target.value)}
                   >
-                    <option value="" className="text-gray-400">Select Bitcoin Address</option>
+                    <option value="" className="text-muted-foreground">Select Bitcoin Address</option>
                     {allVerifiedAddresses.map((addr, idx) => {
-                      const addressStr = typeof addr === 'string' ? addr : addr.address
-                      const isTestnet = addressStr.startsWith('tb1') || addressStr.startsWith('m') || addressStr.startsWith('n') || addressStr.startsWith('2')
-                      const network = isTestnet ? 'TESTNET' : 'MAINNET'
+                      const address = typeof addr === 'string' ? addr : addr.address;
+                      const isTestnet = address.startsWith('tb1');
+                      const shortAddr = `${address.slice(0, 10)}...${address.slice(-8)}`;
+                      const network = isTestnet ? 'TESTNET' : 'MAINNET';
                       
                       return (
-                        <option key={idx} value={addressStr} className="text-white">
-                          {addressStr.slice(0, 10)}...{addressStr.slice(-8)} 
-                          {' '}({network})
+                        <option key={idx} value={address}>
+                          {shortAddr} ({network})
                         </option>
-                      )
+                      );
                     })}
                   </select>
                   
                   {verifiedBitcoinAddress && (
-                    <div className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
-                      <span className="text-sm text-gray-400">Selected:</span>
-                      <span className="font-mono text-xs text-blue-400 break-all">
+                    <div className="p-3 bg-muted/50 rounded-lg">
+                      <div className="text-xs text-muted-foreground mb-1">Selected:</div>
+                      <div className="font-mono text-sm text-primary break-all">
                         {verifiedBitcoinAddress}
-                      </span>
+                      </div>
                     </div>
                   )}
-                </div>
+                  
+                  {allVerifiedAddresses.length > 1 && (
+                    <p className="text-xs text-muted-foreground mt-3">
+                      You have {allVerifiedAddresses.length} verified addresses. Use the dropdown to switch between them.
+                    </p>
+                  )}
+                </>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-gray-400 mb-3">No verified addresses yet</p>
-                  <Link href="/verify" className="text-blue-400 hover:text-blue-300 underline">
+                  <p className="text-muted-foreground mb-3">No verified addresses yet</p>
+                  <Link href="/verify" className="text-primary hover:text-primary/80 underline">
                     Verify your first address →
                   </Link>
                 </div>

@@ -22,7 +22,8 @@ import {
   ChevronDown,
   ChevronUp,
   Plus,
-  ExternalLink
+  ExternalLink,
+  Check
 } from 'lucide-react'
 import Link from 'next/link'
 import { CONTRACTS } from '@/app/lib/contracts'
@@ -74,6 +75,7 @@ export function DashboardContent() {
     lastTransactionHash,
     ethAddress,
     bitcoinAddresses,
+    mintedAddresses,
     isVerified,
     hasTransactions,
     profileCreatedAt,
@@ -675,81 +677,117 @@ export function DashboardContent() {
       </div>
 
       {/* Bitcoin Addresses */}
-      <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-white">Bitcoin Addresses</h3>
-          <Link 
-            href="/verify" 
-            className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-500 text-sm"
+      <div className="bg-card border rounded-xl p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Bitcoin className="h-5 w-5 text-orange-500" />
+            <h2 className="text-xl font-semibold bg-gradient-to-r from-orange-500 to-yellow-500 bg-clip-text text-transparent">
+              Bitcoin Addresses
+            </h2>
+          </div>
+          <button
+            onClick={() => router.push('/verify')}
+            className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-3 py-1 rounded text-sm flex items-center gap-1 transition-colors"
           >
-            + Add Address
-          </Link>
+            <Plus className="h-4 w-4" />
+            Add Address
+          </button>
         </div>
 
-        {(() => {
-          // Combine addresses from hook and direct Oracle debugging
-          const allAddresses = [...bitcoinAddresses, ...directOracleAddresses.map(d => d.address)]
-          const uniqueAddresses = Array.from(new Set(allAddresses)).filter(Boolean)
-
-          if (uniqueAddresses && uniqueAddresses.length > 0) {
-            return (
-              <div className="space-y-2">
-                {uniqueAddresses.map((address, index) => {
-                  const isTestnet = address.startsWith('tb1');
-                  const network = isTestnet ? 'TESTNET' : 'MAINNET';
-                  const isMinted = false; // TODO: проверить статус минта из транзакций
-                  
-                  return (
-                    <div key={index} className="flex items-center gap-3 p-3 bg-gray-900/50 rounded-lg hover:bg-gray-900/70 transition-colors">
+        <div className="space-y-3">
+          {(() => {
+            // Comprehensive address collection from all Oracle sources
+            const allOracleAddresses = [
+              ...(bitcoinAddresses || []),
+              ...(directOracleAddresses.map(d => d.address) || []),
+              // Add any additional Oracle address fields when available
+            ];
+            
+            const uniqueAddresses = Array.from(new Set(allOracleAddresses)).filter(Boolean);
+            
+            if (uniqueAddresses && uniqueAddresses.length > 0) {
+              return uniqueAddresses.map((address, index) => {
+                const isMinted = mintedAddresses.includes(address);
+                const network = address.startsWith('tb1') || address.startsWith('2') || address.startsWith('m') || address.startsWith('n') 
+                  ? 'TESTNET' 
+                  : 'MAINNET';
+                
+                return (
+                  <div key={address} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border hover:bg-muted/70 transition-colors">
+                    <div className="flex items-center gap-3">
                       <input 
                         type="checkbox" 
                         id={`btc-${index}`}
-                        className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-blue-600"
+                        className="w-4 h-4 text-primary bg-background border-2 rounded focus:ring-primary focus:ring-2"
                       />
-                      <label htmlFor={`btc-${index}`} className="flex-1 flex items-center gap-3 cursor-pointer">
-                        <div className="flex-1">
-                          <div className="font-mono text-sm text-gray-200">
-                            {address.slice(0, 12)}...{address.slice(-10)}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            <span className={`inline-block px-2 py-0.5 rounded ${isTestnet ? 'bg-orange-900/30 text-orange-400' : 'bg-green-900/30 text-green-400'}`}>
-                              {network}
-                            </span>
-                            {isMinted && (
-                              <span className="ml-2 inline-block px-2 py-0.5 bg-purple-900/30 text-purple-400 rounded">
-                                ✓ Minted
-                              </span>
-                            )}
-                          </div>
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                        <CheckCircle className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-mono text-sm font-medium">
+                            {address.slice(0, 8)}...{address.slice(-8)}
+                          </span>
+                          <span className={`px-2 py-0.5 text-xs rounded border ${
+                            network === 'TESTNET' 
+                              ? 'bg-yellow-500/10 border-yellow-500/50 text-yellow-600 dark:text-yellow-400' 
+                              : 'bg-blue-500/10 border-blue-500/50 text-blue-600 dark:text-blue-400'
+                          }`}>
+                            {network}
+                          </span>
                         </div>
-                        {!isMinted && (
-                          <Link 
-                            href={`/mint?address=${address}`}
-                            className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-500"
-                          >
-                            Mint →
-                          </Link>
-                        )}
-                      </label>
+                        <div className="flex items-center gap-2">
+                          <span className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/50 border px-2 py-0.5 text-xs rounded">
+                            ✓ Verified
+                          </span>
+                          {isMinted ? (
+                            <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/50 border px-2 py-0.5 text-xs rounded">
+                              ✓ Minted
+                            </span>
+                          ) : (
+                            <span className="bg-muted text-muted-foreground border px-2 py-0.5 text-xs rounded">
+                              Available to Mint
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            )
-          } else {
-            return (
-              <div className="text-center py-8">
-                <div className="text-gray-400 mb-4">No Bitcoin addresses verified yet</div>
-                <Link 
-                  href="/verify" 
-                  className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
-                >
-                  Verify Your First Address
-                </Link>
-              </div>
-            )
-          }
-        })()}
+                    <div className="flex items-center gap-2">
+                      {!isMinted && (
+                        <button
+                          onClick={() => router.push(`/mint?address=${address}`)}
+                          className="bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-1 rounded text-sm transition-colors"
+                        >
+                          Mint →
+                        </button>
+                      )}
+                      <button
+                        onClick={() => window.open(`https://mempool.space/${network === 'TESTNET' ? 'testnet' : ''}/address/${address}`, '_blank')}
+                        className="p-2 hover:bg-muted rounded transition-colors"
+                        title="View on Explorer"
+                      >
+                        <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            } else {
+              return (
+                <div className="text-center py-8">
+                  <Bitcoin className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+                  <p className="text-muted-foreground mb-4">No verified addresses yet</p>
+                  <button
+                    onClick={() => router.push('/verify')}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded transition-colors"
+                  >
+                    Verify Your First Address
+                  </button>
+                </div>
+              )
+            }
+          })()}
+        </div>
       </div>
       
       {/* Оставляем остальной код без изменений */}

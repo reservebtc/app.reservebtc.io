@@ -216,6 +216,29 @@ class MempoolService {
       return 0
     }
   }
+
+  async checkOutgoingTransactions(address: string): Promise<boolean> {
+    try {
+      const network = address.startsWith('tb1') || address.startsWith('m') || address.startsWith('n') || address.startsWith('2') ? 'testnet' : 'mainnet';
+      const baseUrl = network === 'testnet' ? 
+        'https://mempool.space/testnet/api' : 
+        'https://mempool.space/api';
+      
+      const response = await fetch(`${baseUrl}/address/${address}/txs`);
+      if (!response.ok) return false;
+      
+      const txs = await response.json();
+      // Check if there are outgoing transactions
+      return txs.some((tx: any) => 
+        tx.vin.some((input: any) => 
+          input.prevout?.scriptpubkey_address === address
+        )
+      );
+    } catch (error) {
+      console.error('Error checking transactions:', error);
+      return false;
+    }
+  }
 }
 
 // Export singleton instance

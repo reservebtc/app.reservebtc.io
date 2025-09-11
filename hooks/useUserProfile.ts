@@ -52,6 +52,10 @@ export interface UserProfileHookState {
   walletInformation: UniversalUserProfile['walletInformation'] | null
   userStatistics: UniversalUserProfile['userStatistics'] | null
   
+  // Address collections
+  bitcoinAddresses: string[]
+  mintedAddresses: string[]
+  
   // Balances (formatted for UI display)
   rBTCBalance: string
   wrBTCBalance: string
@@ -233,6 +237,8 @@ export function useUserProfile(): UserProfileHookState {
         allTransactionHashes: null,
         walletInformation: null,
         userStatistics: null,
+        bitcoinAddresses: [],
+        mintedAddresses: [],
         rBTCBalance: '0.00000000',
         wrBTCBalance: '0.00000000',
         bitcoinBalance: '0.00000000',
@@ -254,13 +260,24 @@ export function useUserProfile(): UserProfileHookState {
     const rBTCBalance = parseFloat(profile.transactionHistory?.rBTCStats?.currentBalance || '0') / 100000000 // Convert satoshis to BTC
     const wrBTCBalance = parseFloat(profile.transactionHistory?.wrBTCStats?.currentBalance || '0') / 100000000
     
+    // Collect all Bitcoin addresses from available sources
+    const allAddresses = [
+      ...(profile.walletInformation?.bitcoin?.addresses || []),
+      profile.walletInformation?.bitcoin?.primaryAddress
+    ].filter((addr): addr is string => addr !== null && addr !== undefined)
+     .filter((addr, index, self) => self.indexOf(addr) === index);
+    
+    // Identify addresses that have been minted (have mint transactions)
+    // Note: TransactionRecord doesn't include bitcoinAddress, so we can't determine minted addresses from this source
+    // This functionality will need to be implemented differently when the backend provides the necessary data
+    const mintedAddresses: string[] = []
+    
     // Calculate Bitcoin balances separated by network
-    const bitcoinAddresses = profile.walletInformation?.bitcoin?.addresses || []
     let mainnetBalance = 0
     let testnetBalance = 0
     let totalBitcoinBalance = 0
     
-    bitcoinAddresses.forEach(addr => {
+    allAddresses.forEach(addr => {
       const balance = bitcoinBalances[addr] || 0
       if (isTestnetAddress(addr)) {
         testnetBalance += balance
@@ -286,6 +303,9 @@ export function useUserProfile(): UserProfileHookState {
       walletInformation: profile.walletInformation,
       userStatistics: profile.userStatistics,
       
+      bitcoinAddresses: allAddresses,
+      mintedAddresses: mintedAddresses,
+      
       rBTCBalance: rBTCBalance.toFixed(8),
       wrBTCBalance: wrBTCBalance.toFixed(8),
       bitcoinBalance: totalBitcoinBalance.toFixed(8),
@@ -298,7 +318,7 @@ export function useUserProfile(): UserProfileHookState {
       wrBTCTransactions: profile.transactionHistory?.wrBTCTransactions || [],
       oracleTransactions: profile.transactionHistory?.oracleTransactions || [],
       
-      isVerified: profile.userIdentity?.verificationType !== 'unknown' && (profile.walletInformation?.bitcoin?.addresses?.length || 0) > 0,
+      isVerified: profile.userIdentity?.verificationType !== 'unknown' && allAddresses.length > 0,
       hasTransactions: (profile.userStatistics?.totalTransactionCount || 0) > 0,
       isActive: profile.userIdentity?.profileStatus === 'active',
       dataCompletenessScore: profile.systemMetadata?.dataCompletenessScore || 0
@@ -422,6 +442,8 @@ export function useUserDashboard() {
     allTransactionHashes,
     userIdentity,
     walletInformation,
+    bitcoinAddresses,
+    mintedAddresses,
     isVerified,
     hasTransactions,
     dataCompletenessScore,
@@ -445,7 +467,8 @@ export function useUserDashboard() {
     
     // User info
     ethAddress: userIdentity?.ethAddress,
-    bitcoinAddresses: walletInformation?.bitcoin?.addresses || [],
+    bitcoinAddresses: bitcoinAddresses,
+    mintedAddresses: mintedAddresses,
     isVerified,
     hasTransactions,
     profileCreatedAt: userIdentity?.profileCreatedAt,
