@@ -136,58 +136,53 @@ export function DashboardContent() {
     async function loadDirectOracleData() {
       if (address) {
         try {
-          console.log('🔍 DASHBOARD DEBUG: Fetching ALL Oracle addresses for comprehensive collection...')
+          console.log('🔍 DASHBOARD DEBUG: Fetching CURRENT USER addresses only...')
           
-          // Get ALL decrypted users to collect all Bitcoin addresses
-          const allDecryptedUsers = await oracleService.getDecryptedUsers()
-          console.log('🔍 DASHBOARD DEBUG: All decrypted users:', allDecryptedUsers?.length || 0, 'users found')
+          // Get ONLY current user data - DO NOT show other users' addresses
+          const currentUserData = await oracleService.getUserByAddress(address)
+          console.log('🔍 DASHBOARD DEBUG: Current user data:', currentUserData)
           
-          if (allDecryptedUsers && allDecryptedUsers.length > 0) {
-            // Collect ALL Bitcoin addresses from ALL users in the Oracle
-            const collectAllAddresses = () => {
+          if (currentUserData) {
+            console.log('👤 DASHBOARD: Current user addresses:')
+            console.log('  - ethAddress:', currentUserData.ethAddress?.substring(0, 10) + '...')
+            console.log('  - bitcoinAddress:', currentUserData.bitcoinAddress)
+            console.log('  - btcAddress:', currentUserData.btcAddress)
+            console.log('  - btcAddresses:', currentUserData.btcAddresses)
+            
+            // Collect Bitcoin addresses ONLY from current user
+            const collectCurrentUserAddresses = () => {
               const addresses = new Set<string>()
               const addressData: {address: string, verifiedAt: string}[] = []
+              const verifiedAt = currentUserData.createdAt || currentUserData.registeredAt || new Date().toISOString()
               
-              allDecryptedUsers.forEach((user, index) => {
-                console.log(`📊 DASHBOARD: Processing user ${index + 1}:`, {
-                  ethAddress: user.ethAddress?.substring(0, 10) + '...',
-                  bitcoinAddress: user.bitcoinAddress,
-                  btcAddress: user.btcAddress,
-                  btcAddresses: user.btcAddresses,
-                  registeredAt: user.registeredAt
+              // Only collect addresses from CURRENT user, not from all users!
+              if (currentUserData.bitcoinAddress) {
+                addresses.add(currentUserData.bitcoinAddress)
+                addressData.push({
+                  address: currentUserData.bitcoinAddress,
+                  verifiedAt: verifiedAt
                 })
-                
-                const verifiedAt = user.createdAt || user.registeredAt || new Date().toISOString()
-                
-                // Collect from all possible Bitcoin address fields
-                if (user.bitcoinAddress) {
-                  addresses.add(user.bitcoinAddress)
-                  addressData.push({
-                    address: user.bitcoinAddress,
-                    verifiedAt: verifiedAt
-                  })
-                }
-                
-                if (user.btcAddress && user.btcAddress !== user.bitcoinAddress) {
-                  addresses.add(user.btcAddress)
-                  addressData.push({
-                    address: user.btcAddress,
-                    verifiedAt: verifiedAt
-                  })
-                }
-                
-                if (user.btcAddresses && Array.isArray(user.btcAddresses)) {
-                  user.btcAddresses.forEach(addr => {
-                    if (addr && !addresses.has(addr)) {
-                      addresses.add(addr)
-                      addressData.push({
-                        address: addr,
-                        verifiedAt: verifiedAt
-                      })
-                    }
-                  })
-                }
-              })
+              }
+              
+              if (currentUserData.btcAddress && currentUserData.btcAddress !== currentUserData.bitcoinAddress) {
+                addresses.add(currentUserData.btcAddress)
+                addressData.push({
+                  address: currentUserData.btcAddress,
+                  verifiedAt: verifiedAt
+                })
+              }
+              
+              if (currentUserData.btcAddresses && Array.isArray(currentUserData.btcAddresses)) {
+                currentUserData.btcAddresses.forEach(addr => {
+                  if (addr && !addresses.has(addr)) {
+                    addresses.add(addr)
+                    addressData.push({
+                      address: addr,
+                      verifiedAt: verifiedAt
+                    })
+                  }
+                })
+              }
               
               return Array.from(addresses).map(addr => {
                 const data = addressData.find(d => d.address === addr)
@@ -198,24 +193,17 @@ export function DashboardContent() {
               })
             }
 
-            const uniqueAddresses = collectAllAddresses()
-            setDirectOracleAddresses(uniqueAddresses)
-            console.log('📊 DASHBOARD: Total unique addresses found:', uniqueAddresses.length, uniqueAddresses.map(a => a.address))
-            
-            // Show current user data specifically
-            const currentUserData = await oracleService.getUserByAddress(address)
-            if (currentUserData) {
-              console.log('👤 DASHBOARD: Current user addresses:')
-              console.log('  - bitcoinAddress:', currentUserData.bitcoinAddress)
-              console.log('  - btcAddress:', currentUserData.btcAddress)
-              console.log('  - btcAddresses:', currentUserData.btcAddresses)
-            }
+            const currentUserAddresses = collectCurrentUserAddresses()
+            setDirectOracleAddresses(currentUserAddresses)
+            console.log('📊 DASHBOARD: Current user addresses ONLY:', currentUserAddresses.length, currentUserAddresses.map(a => a.address))
             
           } else {
-            console.log('❌ DASHBOARD DEBUG: No users returned from Oracle')
+            console.log('❌ DASHBOARD DEBUG: Current user not found in Oracle')
+            setDirectOracleAddresses([])
           }
         } catch (error) {
-          console.error('❌ DASHBOARD DEBUG: Failed to load Oracle data:', error)
+          console.error('❌ DASHBOARD DEBUG: Failed to load current user Oracle data:', error)
+          setDirectOracleAddresses([])
         }
       }
     }
@@ -722,14 +710,13 @@ export function DashboardContent() {
 
         <div className="space-y-3">
           {(() => {
-            // Comprehensive address collection from all Oracle sources
-            const allOracleAddresses = [
-              ...(bitcoinAddresses || []),
-              ...(directOracleAddresses.map(d => d.address) || []),
-              // Add any additional Oracle address fields when available
+            // Show ONLY current user addresses - DO NOT mix with other users!
+            const currentUserAddresses = [
+              ...(bitcoinAddresses || []),  // From profile hook (current user only)
+              ...(directOracleAddresses.map(d => d.address) || []),  // From current user Oracle data only
             ];
             
-            const uniqueAddresses = Array.from(new Set(allOracleAddresses)).filter(Boolean);
+            const uniqueAddresses = Array.from(new Set(currentUserAddresses)).filter(Boolean);
             
             // Function to check mint status for each address
             const checkMintStatus = (address: string) => {
