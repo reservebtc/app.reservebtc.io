@@ -377,6 +377,27 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
           const profileCreated = await createOracleProfile(cleanAddress, cleanSignature)
           if (profileCreated) {
             console.log('✅ VERIFY: Professional Oracle profile created successfully')
+            
+            // ИСПРАВЛЕНИЕ: Принудительно очищаем все кэши
+            if (typeof window !== 'undefined') {
+              console.log('🧹 VERIFY: Clearing all caches for fresh profile data...')
+              localStorage.removeItem('user_profiles_cache')
+              localStorage.removeItem('verified_users')
+              localStorage.removeItem('oracle_users_cache')
+              sessionStorage.clear()
+            }
+            
+            // ИСПРАВЛЕНИЕ: Ждем синхронизации с Oracle
+            console.log('⏱️ VERIFY: Waiting for Oracle synchronization...')
+            await new Promise(resolve => setTimeout(resolve, 3000))
+            
+            // ИСПРАВЛЕНИЕ: Принудительно обновляем профиль
+            console.log('🔄 VERIFY: Force refreshing user profile...')
+            if (refreshProfile) {
+              await refreshProfile()
+            }
+            
+            console.log('✅ VERIFY: Cache cleared and profile refreshed!')
           } else {
             console.log('⚠️ VERIFY: Professional Oracle profile creation failed, but user can still proceed')
           }

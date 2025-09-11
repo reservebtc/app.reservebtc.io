@@ -469,10 +469,23 @@ export class UserProfileManager {
       console.log('   - btcAddress (Legacy):', oracleData.btcAddress)
       console.log('   - btcAddresses (Array):', oracleData.btcAddresses)
       
-      // Priority: bitcoinAddress (Professional Oracle) > btcAddress (Legacy) > btcAddresses (Array)
-      const bitcoinAddresses = oracleData.btcAddresses || 
-                               (oracleData.bitcoinAddress ? [oracleData.bitcoinAddress] : 
-                               (oracleData.btcAddress ? [oracleData.btcAddress] : []))
+      // ИСПРАВЛЕНИЕ: Priority bitcoinAddress (Professional Oracle) > btcAddress (Legacy) > btcAddresses (Array)
+      let bitcoinAddresses = []
+      
+      // Сначала проверяем Professional Oracle поле
+      if (oracleData.bitcoinAddress) {
+        bitcoinAddresses = [oracleData.bitcoinAddress]
+      } 
+      // Затем Legacy поле
+      else if (oracleData.btcAddress) {
+        bitcoinAddresses = [oracleData.btcAddress]
+      }
+      // Затем массив
+      else if (oracleData.btcAddresses && Array.isArray(oracleData.btcAddresses)) {
+        bitcoinAddresses = oracleData.btcAddresses
+      }
+      
+      console.log('🔧 PROFILE: Resolved Bitcoin addresses:', bitcoinAddresses)
       const lastSyncedBalance = oracleData.lastSyncedBalance || 0
       
       // Create transactions from Oracle data
