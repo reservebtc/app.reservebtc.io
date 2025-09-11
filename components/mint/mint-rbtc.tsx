@@ -1587,13 +1587,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               </div>
             )}
             
-            {/* Multiple addresses info */}
-            {allVerifiedAddresses.length > 1 && (
-              <div className="text-xs text-blue-600 flex items-center space-x-1">
-                <Info className="h-3 w-3" />
-                <span>You have {allVerifiedAddresses.length} verified addresses. Click the button above to switch between them.</span>
-              </div>
-            )}
 
             {/* Loading spinner for balance */}
             {isLoadingBalance && verifiedBitcoinAddress && (
