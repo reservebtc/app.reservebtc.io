@@ -477,6 +477,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           } else {
             // Fallback к старому методу если processedBitcoinAddresses пустой
             console.log('⚠️ MINT DEBUG: No processed addresses, using fallback method')
+            const userDataAny = userData as any
             const btcAddr = userData.bitcoinAddress || 
                             userData.btcAddress || 
                             userDataAny.bitcoin_address ||
