@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BitcoinSignatureValidator } from '@/lib/bitcoin-signature-validator';
+import { BIP322NativeValidator } from '@/lib/bip322-native-validator';
 
 export default function DebugSignature() {
   const [address, setAddress] = useState('tb1qtkj7hlhv9drfwe2mupq0yt9m6fsungkjjv5lr4');
@@ -13,7 +13,7 @@ export default function DebugSignature() {
   const testSignature = async () => {
     setLoading(true);
     try {
-      const validationResult = BitcoinSignatureValidator.verify(address, message, signature);
+      const validationResult = BIP322NativeValidator.verify(address, message, signature);
       setResult(validationResult);
     } catch (error) {
       setResult({
