@@ -143,20 +143,28 @@ export function DashboardContent() {
           console.log('🔍 DASHBOARD DEBUG: Current user data:', currentUserData)
           
           if (currentUserData) {
+            console.log('🔍 DASHBOARD DEBUG: Full Oracle user data:', currentUserData)
             console.log('👤 DASHBOARD: Current user addresses:')
             console.log('  - ethAddress:', currentUserData.ethAddress?.substring(0, 10) + '...')
             console.log('  - bitcoinAddress:', currentUserData.bitcoinAddress)
             console.log('  - btcAddress:', currentUserData.btcAddress)
             console.log('  - btcAddresses:', currentUserData.btcAddresses)
+            console.log('  - bitcoinAddresses:', currentUserData.bitcoinAddresses)
+            console.log('  - processedBitcoinAddresses:', currentUserData.processedBitcoinAddresses)
+            console.log('  - allBitcoinAddresses:', currentUserData.allBitcoinAddresses)
+            console.log('  - ALL ORACLE FIELDS:', Object.keys(currentUserData))
             
-            // Collect Bitcoin addresses ONLY from current user
+            // Collect ALL Bitcoin addresses from ALL possible fields for current user
             const collectCurrentUserAddresses = () => {
               const addresses = new Set<string>()
               const addressData: {address: string, verifiedAt: string}[] = []
               const verifiedAt = currentUserData.createdAt || currentUserData.registeredAt || new Date().toISOString()
               
-              // Only collect addresses from CURRENT user, not from all users!
+              console.log('🔍 DASHBOARD: Collecting addresses from ALL fields...')
+              
+              // Check single address fields
               if (currentUserData.bitcoinAddress) {
+                console.log('  ✅ Found bitcoinAddress:', currentUserData.bitcoinAddress)
                 addresses.add(currentUserData.bitcoinAddress)
                 addressData.push({
                   address: currentUserData.bitcoinAddress,
@@ -165,6 +173,7 @@ export function DashboardContent() {
               }
               
               if (currentUserData.btcAddress && currentUserData.btcAddress !== currentUserData.bitcoinAddress) {
+                console.log('  ✅ Found btcAddress:', currentUserData.btcAddress)
                 addresses.add(currentUserData.btcAddress)
                 addressData.push({
                   address: currentUserData.btcAddress,
@@ -172,7 +181,9 @@ export function DashboardContent() {
                 })
               }
               
+              // Check array fields
               if (currentUserData.btcAddresses && Array.isArray(currentUserData.btcAddresses)) {
+                console.log('  ✅ Found btcAddresses array:', currentUserData.btcAddresses)
                 currentUserData.btcAddresses.forEach(addr => {
                   if (addr && !addresses.has(addr)) {
                     addresses.add(addr)
@@ -184,13 +195,55 @@ export function DashboardContent() {
                 })
               }
               
-              return Array.from(addresses).map(addr => {
+              if (currentUserData.bitcoinAddresses && Array.isArray(currentUserData.bitcoinAddresses)) {
+                console.log('  ✅ Found bitcoinAddresses array:', currentUserData.bitcoinAddresses)
+                currentUserData.bitcoinAddresses.forEach(addr => {
+                  if (addr && !addresses.has(addr)) {
+                    addresses.add(addr)
+                    addressData.push({
+                      address: addr,
+                      verifiedAt: verifiedAt
+                    })
+                  }
+                })
+              }
+              
+              if (currentUserData.processedBitcoinAddresses && Array.isArray(currentUserData.processedBitcoinAddresses)) {
+                console.log('  ✅ Found processedBitcoinAddresses array:', currentUserData.processedBitcoinAddresses)
+                currentUserData.processedBitcoinAddresses.forEach(addr => {
+                  if (addr && !addresses.has(addr)) {
+                    addresses.add(addr)
+                    addressData.push({
+                      address: addr,
+                      verifiedAt: verifiedAt
+                    })
+                  }
+                })
+              }
+              
+              if (currentUserData.allBitcoinAddresses && Array.isArray(currentUserData.allBitcoinAddresses)) {
+                console.log('  ✅ Found allBitcoinAddresses array:', currentUserData.allBitcoinAddresses)
+                currentUserData.allBitcoinAddresses.forEach(addr => {
+                  if (addr && !addresses.has(addr)) {
+                    addresses.add(addr)
+                    addressData.push({
+                      address: addr,
+                      verifiedAt: verifiedAt
+                    })
+                  }
+                })
+              }
+              
+              const finalAddresses = Array.from(addresses).map(addr => {
                 const data = addressData.find(d => d.address === addr)
                 return {
                   address: addr,
                   verifiedAt: data?.verifiedAt || new Date().toISOString()
                 }
               })
+              
+              console.log('📊 DASHBOARD: Final collected addresses:', finalAddresses.length, finalAddresses.map(a => a.address))
+              return finalAddresses
             }
 
             const currentUserAddresses = collectCurrentUserAddresses()
