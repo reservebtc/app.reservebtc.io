@@ -219,10 +219,15 @@ export function useUserProfile(): UserProfileHookState {
   useEffect(() => {
     if (profile?.walletInformation?.bitcoin?.addresses) {
       const bitcoinAddresses = profile.walletInformation.bitcoin.addresses
+      console.log(`🔄 HOOK: Profile loaded with ${bitcoinAddresses.length} Bitcoin addresses:`, bitcoinAddresses)
       if (bitcoinAddresses.length > 0) {
         console.log(`🔄 HOOK: Profile loaded with Bitcoin addresses, fetching balances...`)
         loadBitcoinBalances(bitcoinAddresses)
+      } else {
+        console.log(`⚠️ HOOK: Profile loaded but NO Bitcoin addresses found!`)
       }
+    } else {
+      console.log(`⚠️ HOOK: Profile loaded but bitcoin addresses field is undefined!`)
     }
   }, [profile?.walletInformation?.bitcoin?.addresses, loadBitcoinBalances])
 
@@ -261,11 +266,16 @@ export function useUserProfile(): UserProfileHookState {
     const wrBTCBalance = parseFloat(profile.transactionHistory?.wrBTCStats?.currentBalance || '0') / 100000000
     
     // Collect all Bitcoin addresses from available sources
+    console.log('💰 HOOK: Bitcoin addresses from profile:', profile?.walletInformation?.bitcoin?.addresses);
+    console.log('💰 HOOK: Primary Bitcoin address:', profile?.walletInformation?.bitcoin?.primaryAddress);
+    
     const allAddresses = [
       ...(profile.walletInformation?.bitcoin?.addresses || []),
       profile.walletInformation?.bitcoin?.primaryAddress
     ].filter((addr): addr is string => addr !== null && addr !== undefined)
      .filter((addr, index, self) => self.indexOf(addr) === index);
+    
+    console.log('💰 HOOK: Final collected addresses:', allAddresses);
     
     // Identify addresses that have been minted (have mint transactions)
     // Note: TransactionRecord doesn't include bitcoinAddress, so we can't determine minted addresses from this source

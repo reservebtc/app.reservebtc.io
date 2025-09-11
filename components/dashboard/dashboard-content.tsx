@@ -146,14 +146,18 @@ export function DashboardContent() {
           
           if (currentUserData) {
             console.log('🔍 DASHBOARD DEBUG: Full Oracle user data:', currentUserData)
+            
+            // Cast to any to access fields not in TypeScript interface
+            const userDataAny = currentUserData as any
+            
             console.log('👤 DASHBOARD: Current user addresses:')
             console.log('  - ethAddress:', currentUserData.ethAddress?.substring(0, 10) + '...')
             console.log('  - bitcoinAddress:', currentUserData.bitcoinAddress)
             console.log('  - btcAddress:', currentUserData.btcAddress)
             console.log('  - btcAddresses:', currentUserData.btcAddresses)
-            console.log('  - bitcoinAddresses:', currentUserData.bitcoinAddresses)
-            console.log('  - processedBitcoinAddresses:', currentUserData.processedBitcoinAddresses)
-            console.log('  - allBitcoinAddresses:', currentUserData.allBitcoinAddresses)
+            console.log('  - bitcoinAddresses:', userDataAny.bitcoinAddresses)
+            console.log('  - processedBitcoinAddresses:', userDataAny.processedBitcoinAddresses)
+            console.log('  - allBitcoinAddresses:', userDataAny.allBitcoinAddresses)
             console.log('  - ALL ORACLE FIELDS:', Object.keys(currentUserData))
             
             // Collect ALL Bitcoin addresses from ALL possible fields for current user
@@ -197,9 +201,10 @@ export function DashboardContent() {
                 })
               }
               
-              if (currentUserData.bitcoinAddresses && Array.isArray(currentUserData.bitcoinAddresses)) {
-                console.log('  ✅ Found bitcoinAddresses array:', currentUserData.bitcoinAddresses)
-                currentUserData.bitcoinAddresses.forEach(addr => {
+              const userAny = currentUserData as any
+              if (userAny.bitcoinAddresses && Array.isArray(userAny.bitcoinAddresses)) {
+                console.log('  ✅ Found bitcoinAddresses array:', userAny.bitcoinAddresses)
+                userAny.bitcoinAddresses.forEach((addr: string) => {
                   if (addr && !addresses.has(addr)) {
                     addresses.add(addr)
                     addressData.push({
@@ -210,9 +215,9 @@ export function DashboardContent() {
                 })
               }
               
-              if (currentUserData.processedBitcoinAddresses && Array.isArray(currentUserData.processedBitcoinAddresses)) {
-                console.log('  ✅ Found processedBitcoinAddresses array:', currentUserData.processedBitcoinAddresses)
-                currentUserData.processedBitcoinAddresses.forEach(addr => {
+              if (userAny.processedBitcoinAddresses && Array.isArray(userAny.processedBitcoinAddresses)) {
+                console.log('  ✅ Found processedBitcoinAddresses array:', userAny.processedBitcoinAddresses)
+                userAny.processedBitcoinAddresses.forEach((addr: string) => {
                   if (addr && !addresses.has(addr)) {
                     addresses.add(addr)
                     addressData.push({
@@ -223,9 +228,9 @@ export function DashboardContent() {
                 })
               }
               
-              if (currentUserData.allBitcoinAddresses && Array.isArray(currentUserData.allBitcoinAddresses)) {
-                console.log('  ✅ Found allBitcoinAddresses array:', currentUserData.allBitcoinAddresses)
-                currentUserData.allBitcoinAddresses.forEach(addr => {
+              if (userAny.allBitcoinAddresses && Array.isArray(userAny.allBitcoinAddresses)) {
+                console.log('  ✅ Found allBitcoinAddresses array:', userAny.allBitcoinAddresses)
+                userAny.allBitcoinAddresses.forEach((addr: string) => {
                   if (addr && !addresses.has(addr)) {
                     addresses.add(addr)
                     addressData.push({

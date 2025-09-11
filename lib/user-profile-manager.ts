@@ -470,23 +470,34 @@ export class UserProfileManager {
       console.log('🔍 BTC ADDRESS (legacy):', oracleData.btcAddress)
       console.log('🔍 BTC ADDRESSES ARRAY:', oracleData.btcAddresses)
       
-      // ИСПРАВЛЕНИЕ: Priority bitcoinAddress (Professional Oracle) > btcAddress (Legacy) > btcAddresses (Array)
-      let bitcoinAddresses = []
-      
-      // Сначала проверяем Professional Oracle поле
+      // ИСПРАВЛЕНИЕ: Собираем ВСЕ адреса из всех источников
+      const bitcoinAddresses = [];
+
+      // Добавляем ВСЕ источники адресов:
       if (oracleData.bitcoinAddress) {
-        bitcoinAddresses = [oracleData.bitcoinAddress]
-      } 
-      // Затем Legacy поле
-      else if (oracleData.btcAddress) {
-        bitcoinAddresses = [oracleData.btcAddress]
+        bitcoinAddresses.push(oracleData.bitcoinAddress);
       }
-      // Затем массив
-      else if (oracleData.btcAddresses && Array.isArray(oracleData.btcAddresses)) {
-        bitcoinAddresses = oracleData.btcAddresses
+      if (oracleData.btcAddress && oracleData.btcAddress !== oracleData.bitcoinAddress) {
+        bitcoinAddresses.push(oracleData.btcAddress);
       }
+      if (oracleData.btcAddresses && Array.isArray(oracleData.btcAddresses)) {
+        bitcoinAddresses.push(...oracleData.btcAddresses);
+      }
+      const oracleDataAny = oracleData as any;
+      if (oracleDataAny.bitcoinAddresses && Array.isArray(oracleDataAny.bitcoinAddresses)) {
+        bitcoinAddresses.push(...oracleDataAny.bitcoinAddresses);
+      }
+      if (oracleDataAny.processedBitcoinAddresses && Array.isArray(oracleDataAny.processedBitcoinAddresses)) {
+        bitcoinAddresses.push(...oracleDataAny.processedBitcoinAddresses);
+      }
+      if (oracleDataAny.allBitcoinAddresses && Array.isArray(oracleDataAny.allBitcoinAddresses)) {
+        bitcoinAddresses.push(...oracleDataAny.allBitcoinAddresses);
+      }
+
+      // Убираем дубликаты
+      const uniqueAddresses = [...new Set(bitcoinAddresses)];
       
-      console.log('🔧 PROFILE: Resolved Bitcoin addresses:', bitcoinAddresses)
+      console.log('🔧 PROFILE: Resolved Bitcoin addresses:', uniqueAddresses)
       const lastSyncedBalance = oracleData.lastSyncedBalance || 0
       
       // ИСПРАВЛЕНИЕ: НЕ создаем фиктивные транзакции - только реальные пользовательские транзакции
@@ -544,7 +555,7 @@ export class UserProfileManager {
       const universalProfile: any = {
         userIdentity: {
           ethAddress: userAddress,
-          bitcoinAddresses: bitcoinAddresses,
+          bitcoinAddresses: uniqueAddresses,
           userHash: this.createUserHash(userAddress),
           profileCreatedAt: oracleData.registeredAt || new Date().toISOString(),
           lastActivityAt: new Date(oracleData.lastSyncTime || Date.now()).toISOString(),
@@ -584,7 +595,7 @@ export class UserProfileManager {
             averageSyncInterval: 86400000,
             syncSuccessRate: 100,
             lastSyncHash: oracleData.lastTxHash || 'oracle_registration',
-            totalBitcoinAddresses: bitcoinAddresses.length,
+            totalBitcoinAddresses: uniqueAddresses.length,
             autoDetected: oracleData.autoDetected || false
           },
           feeTransactions: [],
@@ -615,10 +626,10 @@ export class UserProfileManager {
         },
         walletInformation: {
           bitcoin: {
-            addresses: bitcoinAddresses,
-            primaryAddress: bitcoinAddresses[0] || null,
+            addresses: uniqueAddresses,
+            primaryAddress: uniqueAddresses[0] || null,
             totalBalance: (lastSyncedBalance / 100000000).toFixed(8),
-            addressTypes: bitcoinAddresses.map((addr: string) => 
+            addressTypes: uniqueAddresses.map((addr: string) => 
               addr.startsWith('bc1') ? 'bech32' : 
               addr.startsWith('tb1') ? 'bech32_testnet' :
               addr.startsWith('3') ? 'segwit' : 'legacy'
