@@ -136,57 +136,83 @@ export function DashboardContent() {
     async function loadDirectOracleData() {
       if (address) {
         try {
-          console.log('🔍 DASHBOARD DEBUG: Fetching Oracle data for address:', address.substring(0, 10) + '...')
+          console.log('🔍 DASHBOARD DEBUG: Fetching ALL Oracle addresses for comprehensive collection...')
           
-          // Get raw decrypted users first to see the structure
+          // Get ALL decrypted users to collect all Bitcoin addresses
           const allDecryptedUsers = await oracleService.getDecryptedUsers()
-          console.log('🔍 DASHBOARD DEBUG: All decrypted users:', allDecryptedUsers)
+          console.log('🔍 DASHBOARD DEBUG: All decrypted users:', allDecryptedUsers?.length || 0, 'users found')
           
-          // Now get the specific user data
-          const userData = await oracleService.getUserByAddress(address)
-          console.log('🔍 DASHBOARD DEBUG: Direct Oracle user data:', userData)
-          console.log('🔍 DASHBOARD DEBUG: User data properties:', userData ? Object.keys(userData) : 'null')
-          
-          if (userData) {
-            console.log('🔍 DASHBOARD DEBUG: Detailed user data:')
-            console.log('  - ethAddress:', userData.ethAddress)
-            console.log('  - bitcoinAddress (Professional Oracle):', userData.bitcoinAddress)
-            console.log('  - btcAddress (Legacy):', userData.btcAddress)
-            console.log('  - btcAddressHash:', userData.btcAddressHash)
-            console.log('  - btcAddresses:', userData.btcAddresses)
-            console.log('  - registeredAt:', userData.registeredAt)
-            console.log('  - createdAt:', userData.createdAt)
-            console.log('  - lastSyncedBalance:', userData.lastSyncedBalance)
-            console.log('  - transactionCount:', userData.transactionCount)
-            console.log('  - transactionHashes:', userData.transactionHashes)
-            console.log('  - autoDetected:', userData.autoDetected)
-            console.log('  - verification:', userData.verification)
-            console.log('  - statistics:', userData.statistics)
-            
-            // Check for Bitcoin addresses in any field (prioritize Professional Oracle field)
-            const bitcoinAddr = userData.bitcoinAddress || userData.btcAddress
-            const verifiedAt = userData.createdAt || userData.registeredAt || new Date().toISOString()
-            
-            if (bitcoinAddr) {
-              setDirectOracleAddresses([{
-                address: bitcoinAddr,
-                verifiedAt: verifiedAt
-              }])
-              console.log('✅ DASHBOARD DEBUG: Found Bitcoin address from Oracle:', bitcoinAddr)
-              console.log('  - Source field:', userData.bitcoinAddress ? 'bitcoinAddress' : 'btcAddress')
-            } else if (userData.btcAddresses && userData.btcAddresses.length > 0) {
-              const addresses = userData.btcAddresses.map(addr => ({
-                address: addr,
-                verifiedAt: verifiedAt
-              }))
-              setDirectOracleAddresses(addresses)
-              console.log('✅ DASHBOARD DEBUG: Found Bitcoin addresses array from Oracle:', userData.btcAddresses)
-            } else {
-              console.log('❌ DASHBOARD DEBUG: No Bitcoin address found in Oracle data')
-              console.log('❌ DASHBOARD DEBUG: Available fields:', Object.keys(userData))
+          if (allDecryptedUsers && allDecryptedUsers.length > 0) {
+            // Collect ALL Bitcoin addresses from ALL users in the Oracle
+            const collectAllAddresses = () => {
+              const addresses = new Set<string>()
+              const addressData: {address: string, verifiedAt: string}[] = []
+              
+              allDecryptedUsers.forEach((user, index) => {
+                console.log(`📊 DASHBOARD: Processing user ${index + 1}:`, {
+                  ethAddress: user.ethAddress?.substring(0, 10) + '...',
+                  bitcoinAddress: user.bitcoinAddress,
+                  btcAddress: user.btcAddress,
+                  btcAddresses: user.btcAddresses,
+                  registeredAt: user.registeredAt
+                })
+                
+                const verifiedAt = user.createdAt || user.registeredAt || new Date().toISOString()
+                
+                // Collect from all possible Bitcoin address fields
+                if (user.bitcoinAddress) {
+                  addresses.add(user.bitcoinAddress)
+                  addressData.push({
+                    address: user.bitcoinAddress,
+                    verifiedAt: verifiedAt
+                  })
+                }
+                
+                if (user.btcAddress && user.btcAddress !== user.bitcoinAddress) {
+                  addresses.add(user.btcAddress)
+                  addressData.push({
+                    address: user.btcAddress,
+                    verifiedAt: verifiedAt
+                  })
+                }
+                
+                if (user.btcAddresses && Array.isArray(user.btcAddresses)) {
+                  user.btcAddresses.forEach(addr => {
+                    if (addr && !addresses.has(addr)) {
+                      addresses.add(addr)
+                      addressData.push({
+                        address: addr,
+                        verifiedAt: verifiedAt
+                      })
+                    }
+                  })
+                }
+              })
+              
+              return Array.from(addresses).map(addr => {
+                const data = addressData.find(d => d.address === addr)
+                return {
+                  address: addr,
+                  verifiedAt: data?.verifiedAt || new Date().toISOString()
+                }
+              })
             }
+
+            const uniqueAddresses = collectAllAddresses()
+            setDirectOracleAddresses(uniqueAddresses)
+            console.log('📊 DASHBOARD: Total unique addresses found:', uniqueAddresses.length, uniqueAddresses.map(a => a.address))
+            
+            // Show current user data specifically
+            const currentUserData = await oracleService.getUserByAddress(address)
+            if (currentUserData) {
+              console.log('👤 DASHBOARD: Current user addresses:')
+              console.log('  - bitcoinAddress:', currentUserData.bitcoinAddress)
+              console.log('  - btcAddress:', currentUserData.btcAddress)
+              console.log('  - btcAddresses:', currentUserData.btcAddresses)
+            }
+            
           } else {
-            console.log('❌ DASHBOARD DEBUG: No user data returned from Oracle')
+            console.log('❌ DASHBOARD DEBUG: No users returned from Oracle')
           }
         } catch (error) {
           console.error('❌ DASHBOARD DEBUG: Failed to load Oracle data:', error)
@@ -705,9 +731,35 @@ export function DashboardContent() {
             
             const uniqueAddresses = Array.from(new Set(allOracleAddresses)).filter(Boolean);
             
+            // Function to check mint status for each address
+            const checkMintStatus = (address: string) => {
+              // Check if address has mint transactions in the profile data
+              const hasMintTransaction = recentTransactions?.some(tx => 
+                tx.type === 'mint' && (
+                  tx.bitcoinAddress === address || 
+                  tx.address === address ||
+                  // Also check if the transaction timestamp matches when this address was used
+                  (tx.source === 'rBTC' && tx.type === 'mint')
+                )
+              );
+              
+              // Also check if address is in mintedAddresses from profile
+              const isInMintedList = mintedAddresses.includes(address);
+              
+              console.log(`🔍 MINT STATUS CHECK for ${address.slice(0,10)}...:`, {
+                hasMintTransaction,
+                isInMintedList,
+                recentTransactionsCount: recentTransactions?.length || 0
+              });
+              
+              return hasMintTransaction || isInMintedList;
+            };
+            
             if (uniqueAddresses && uniqueAddresses.length > 0) {
+              console.log('📊 DASHBOARD: Rendering', uniqueAddresses.length, 'unique addresses:', uniqueAddresses);
+              
               return uniqueAddresses.map((address, index) => {
-                const isMinted = mintedAddresses.includes(address);
+                const isMinted = checkMintStatus(address);
                 const network = address.startsWith('tb1') || address.startsWith('2') || address.startsWith('m') || address.startsWith('n') 
                   ? 'TESTNET' 
                   : 'MAINNET';
