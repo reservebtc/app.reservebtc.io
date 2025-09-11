@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { CheckCircle, AlertCircle, Copy, Check, ChevronDown, ChevronUp, Info, ArrowRight, Rocket } from 'lucide-react'
 import { useAccount } from 'wagmi'
-// ИСПРАВЛЕНО: Используем BIP-322 библиотеку для native SegWit поддержки
-import { BIP322NativeValidator } from '@/lib/bip322-native-validator'
+// CRITICAL SECURITY FIX: Using secure Bitcoin signature validator
+import { SecureBitcoinValidator } from '@/lib/bitcoin-signature-secure-validator'
 import { useRouter } from 'next/navigation'
 // User data now handled by Professional Oracle only
 import { useUserVerification } from '@/hooks/useUserProfile'
@@ -259,69 +259,27 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
     }
   }, [bitcoinAddress, ethAddress])
 
-  // ✅ ИСПРАВЛЕНО: BIP-322 валидация с поддержкой native SegWit (tb1/bc1)
+  // 🔐 CRITICAL SECURITY FIX: Proper signature validation with address verification
   const verifyBitcoinSignature = async (address: string, message: string, signature: string): Promise<boolean> => {
-    console.log('🔐 BIP-322 VALIDATOR: Using native SegWit validation')
+    console.log('🔐 SECURE VALIDATOR: Starting secure signature verification')
     console.log(`   Address: ${address}`)
     console.log(`   Message length: ${message.length}`)
     console.log(`   Signature length: ${signature.length}`)
     
     try {
-      // Используем BIP-322 валидатор с поддержкой native SegWit
-      const result = BIP322NativeValidator.verify(address, message, signature)
+      // КРИТИЧНО: Убираем все временные решения и используем только SECURE валидатор
+      const isValid = SecureBitcoinValidator.verify(address, message, signature)
       
-      if (result.valid) {
-        console.log('✅ BIP-322 signature validation successful')
-        console.log(`   Method: ${result.method}`)
-        console.log(`   Address type: ${result.addressType}`)
-        
-        if (result.isTemporary) {
-          console.log('   ⚠️ Using temporary validation (format check)')
-        }
-        
+      if (isValid) {
+        console.log('✅ SECURE: Signature verified for correct address')
         return true
       } else {
-        console.error('❌ BIP-322 signature validation failed')
-        console.log(`   Address type: ${result.addressType}`)
-        console.log(`   Error: ${result.error}`)
-        
-        // ВРЕМЕННОЕ РЕШЕНИЕ: Для продолжения тестирования системы
-        if (process.env.NODE_ENV === 'development' || address.startsWith('tb1')) {
-          console.log('🔧 TEMPORARY: Checking basic signature format for development...')
-          
-          try {
-            const sigBuffer = Buffer.from(signature, 'base64')
-            const isValidFormat = sigBuffer.length === 65 && signature.length > 80
-            
-            if (isValidFormat && address.startsWith('tb1')) {
-              console.warn('⚠️ TEMPORARY: Accepting testnet signature based on format check only')
-              console.log('   This is a temporary solution for development testing')
-              return true
-            }
-          } catch (e) {
-            console.log('   Format check also failed:', e instanceof Error ? e.message : 'Unknown error')
-          }
-        }
-        
+        console.error('❌ SECURITY: Invalid signature - address/signature mismatch')
         return false
       }
       
     } catch (error) {
-      console.error('❌ BIP-322 signature validation error:', error)
-      
-      // КРАЙНИЙ FALLBACK для разработки
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('🚨 DEVELOPMENT FALLBACK: Accepting any valid base64 signature')
-        try {
-          const sigBuffer = Buffer.from(signature, 'base64')
-          if (sigBuffer.length === 65) {
-            return true
-          }
-        } catch (e) {
-          console.error('Even fallback failed:', e)
-        }
-      }
-      
+      console.error('❌ SECURE VALIDATOR: Signature validation error:', error)
       return false
     }
   }
@@ -369,8 +327,9 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
       if (!isValid) {
         setVerificationResult({
           success: false,
-          message: 'Invalid BIP-322 signature. Please sign the message with the correct Bitcoin address.'
+          message: 'Invalid signature. The signature does not match the Bitcoin address.'
         })
+        console.error('Signature validation failed - address/signature mismatch')
         setIsVerifying(false)
         return
       }
