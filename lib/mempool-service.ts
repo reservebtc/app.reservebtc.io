@@ -8,7 +8,7 @@ import { professionalLogger } from './professional-logger'
 
 export interface AddressBalance {
   address: string
-  balance: number // в BTC
+  balance: number // in BTC
   network: 'mainnet' | 'testnet'
   transactions: number
   lastUpdated: string
@@ -48,7 +48,7 @@ interface BitcoinAddressBalance {
 
 class MempoolService {
   private cache = new Map<string, { data: AddressBalance; timestamp: number }>()
-  private readonly CACHE_TTL = 30000 // 30 секунд
+  private readonly CACHE_TTL = 30000 // 30 seconds
   private readonly MAINNET_URL = 'https://mempool.space/api'
   private readonly TESTNET_URL = 'https://mempool.space/testnet/api'
 
@@ -60,16 +60,16 @@ class MempoolService {
     return 'mainnet'
   }
 
-  // ИСПРАВЛЕНИЕ: Добавить валидацию Bitcoin адресов
+  // FIXED: Add Bitcoin address validation
   private validateBitcoinAddress(address: string): boolean {
-    // Базовая валидация формата
+    // Basic format validation
     if (!address || typeof address !== 'string') {
       return false
     }
     
-    // Testnet адреса
+    // Testnet addresses
     if (address.startsWith('tb1')) {
-      // Bech32 testnet должен быть 42 символа для обычных адресов
+      // Bech32 testnet should be 42 characters for regular addresses
       return address.length >= 42 && address.length <= 62 && /^tb1[ac-hj-np-z02-9]{39,59}$/.test(address)
     }
     
@@ -78,7 +78,7 @@ class MempoolService {
       return address.length >= 42 && address.length <= 62 && /^bc1[ac-hj-np-z02-9]{39,59}$/.test(address)
     }
     
-    // Legacy адреса (P2PKH, P2SH)
+    // Legacy addresses (P2PKH, P2SH)
     if (/^[13mn2][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(address)) {
       return true
     }
@@ -98,9 +98,9 @@ class MempoolService {
 
   async getAddressBalance(address: string): Promise<any> {
     try {
-      // Список известных фиктивных адресов (только реально невалидные)
+      // List of known fake addresses (only truly invalid ones)
       const fakeAddresses: string[] = [
-        // Оставляем пустым - убираем реальные тестовые адреса
+        // Keep empty - remove real test addresses
       ];
       
       if (fakeAddresses.includes(address)) {
@@ -112,7 +112,7 @@ class MempoolService {
         };
       }
       
-      // Обычная логика для реальных адресов
+      // Normal logic for real addresses
       const network = address.startsWith('tb1') || address.startsWith('2') ? 'testnet' : 'mainnet';
       const baseUrl = network === 'testnet' ? 
         'https://mempool.space/testnet/api' : 
@@ -121,7 +121,7 @@ class MempoolService {
       const response = await fetch(`${baseUrl}/address/${address}`);
       
       if (!response.ok) {
-        // Не крашимся на ошибках
+        // Don't crash on errors
         console.warn(`Mempool API error for ${address}: ${response.status}`);
         return { balance: 0, network, error: true };
       }

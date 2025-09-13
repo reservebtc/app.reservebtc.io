@@ -22,8 +22,8 @@ const ENCRYPTION_KEY = Buffer.from('3fc8e1758b839719ebebe4853c9ee20f7ff2d91ca0e5
 export interface UserProfile {
   userId: string;
   ethAddress: string;
-  bitcoinAddress?: string; // LEGACY: для совместимости
-  bitcoinAddresses?: string[]; // ИСПРАВЛЕНИЕ: поддержка массива адресов
+  bitcoinAddress?: string; // LEGACY: for compatibility
+  bitcoinAddresses?: string[]; // FIXED: support for address array
   signature?: string;
   source: string;
   createdAt: string;
@@ -167,16 +167,16 @@ async function makeOracleRequest(endpoint: string, options: RequestInit = {}): P
 /**
  * Register new user via verification (automatic user creation)
  */
-// ИСПРАВЛЕНИЕ: Добать валидацию Bitcoin адреса
+// FIXED: Add Bitcoin address validation
 function isValidBitcoinAddress(address: string): boolean {
   if (!address || typeof address !== 'string') return false
-  // Базовая проверка длины и формата
+  // Basic check of length and format
   return address.length >= 26 && address.length <= 62 && /^[a-zA-Z0-9]+$/.test(address)
 }
 
 /**
- * ИСПРАВЛЕНИЕ: Поддержка массива Bitcoin адресов
- * Добавляет новый адрес к существующему пользователю или создает нового
+ * FIXED: Support for Bitcoin address array
+ * Adds new address to existing user or creates new one
  */
 export async function registerUserViaOracleVerification(
   ethAddress: string,
@@ -189,7 +189,7 @@ export async function registerUserViaOracleVerification(
     console.log(`   ETH: ${ethAddress}`);
     console.log(`   BTC: ${bitcoinAddress || 'pending'}`);
     
-    // ИСПРАВЛЕНИЕ: Проверить валидность адреса перед сохранением
+    // FIXED: Check address validity before saving
     if (bitcoinAddress && !isValidBitcoinAddress(bitcoinAddress)) {
       console.error('❌ INVALID BITCOIN ADDRESS:', bitcoinAddress);
       return {
@@ -198,14 +198,14 @@ export async function registerUserViaOracleVerification(
       };
     }
     
-    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Отправляем массив адресов вместо одного
+    // CRITICAL FIX: Send address array instead of single address
     const payload = {
       ethAddress,
-      bitcoinAddresses: bitcoinAddress ? [bitcoinAddress] : [], // массив
+      bitcoinAddresses: bitcoinAddress ? [bitcoinAddress] : [], // array
       signature,
       status: 'verified',
       verificationType,
-      operation: 'add_address' // указываем что добавляем адрес
+      operation: 'add_address' // specify that we're adding an address
     };
     console.log('🔍 ORACLE REQUEST PAYLOAD (FIXED FOR ARRAYS):', JSON.stringify(payload, null, 2));
     
@@ -264,7 +264,7 @@ export async function getOracleStatus(): Promise<OracleStatus | null> {
 }
 
 /**
- * НОВАЯ ФУНКЦИЯ: Добавить дополнительный Bitcoin адрес к существующему пользователю
+ * NEW FUNCTION: Add additional Bitcoin address to existing user
  */
 export async function addBitcoinAddressToUser(
   ethAddress: string,
@@ -276,7 +276,7 @@ export async function addBitcoinAddressToUser(
     console.log(`   ETH: ${ethAddress}`);
     console.log(`   New BTC: ${newBitcoinAddress}`);
     
-    // Валидация адреса
+    // Address validation
     if (!isValidBitcoinAddress(newBitcoinAddress)) {
       return {
         success: false,
@@ -324,14 +324,14 @@ export async function addBitcoinAddressToUser(
 }
 
 /**
- * Get all users from Oracle (encrypted) - ОБНОВЛЕНО для поддержки массивов
+ * Get all users from Oracle (encrypted) - UPDATED for array support
  */
 export async function getAllUsersFromOracle(): Promise<{
   totalUsers: number;
   users: Array<{
     ethAddress: string;
-    bitcoinAddress?: string; // LEGACY: для совместимости
-    bitcoinAddresses?: string[]; // ИСПРАВЛЕНИЕ: массив адресов
+    bitcoinAddress?: string; // LEGACY: for compatibility
+    bitcoinAddresses?: string[]; // FIXED: address array
     lastSyncedBalance: string;
     transactionCount: number;
     registeredAt: string;
@@ -525,7 +525,7 @@ export async function checkOracleHealth(): Promise<boolean> {
 
 export default {
   registerUserViaOracleVerification,
-  addBitcoinAddressToUser, // НОВАЯ ФУНКЦИЯ
+  addBitcoinAddressToUser, // NEW FUNCTION
   getOracleStatus,
   getAllUsersFromOracle,
   getUserFromOracle,

@@ -202,6 +202,9 @@ contracts/broadcast/
 contracts/cache/
 
 # Test scripts - not for GitHub
+scripts/test-mint-system.js
+scripts/test-real-mint.js
+scripts/test-rpc-connection.js
 test-dashboard-transactions.js
 debug-user-bitcoin-sync.js
 test-fee-vault-topup.js
@@ -321,6 +324,9 @@ debug-oracle-*.js
 debug-oracle-user-verification.js
 debug-oracle-create-profile.js
 
+# Mint flow test script
+test-mint-flow.js
+
 # Technical documentation - INTERNAL USE ONLY
 HASH_SYSTEM_TECHNICAL_DOCUMENTATION.md
 clean-oracle-db.js
@@ -346,6 +352,15 @@ fix-oracle-mock-sync.js
 oracle-production.js
 *.test.js
 
+# Mint mechanism discovery script - PRIVATE INTERNAL USE ONLY
+scripts/discover-mint-mechanism.js
+
+# Oracle API testing script - PRIVATE INTERNAL USE ONLY
+scripts/test-oracle-api.js
+
+# Contract analysis script - PRIVATE INTERNAL USE ONLY
+scripts/analyze-contracts.js
+
 # SECURITY TEST SCRIPTS - CRITICAL - NEVER COMMIT
 scripts/bip322-security-test.js
 scripts/*-security-*.js
@@ -361,3 +376,5 @@ oracle-production.js
 **/oracle-production.js
 **/*encryption*.js
 **/*oracle*.test.js
+test-oracle-user-data.js
+app/test-cron/

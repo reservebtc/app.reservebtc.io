@@ -208,3 +208,67 @@ export async function needsOracleRegistration(userAddress: string): Promise<bool
   
   return !apiUser && !contractUser.registered;
 }
+
+/**
+ * Check mint status from Oracle system with timeout
+ */
+export async function checkMintStatusFromOracle(bitcoinAddress: string): Promise<boolean> {
+  console.log('🔍 checkMintStatusFromOracle called for:', bitcoinAddress);
+  
+  try {
+    // Add 3 second timeout
+    const timeoutPromise = new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error('Oracle timeout after 3 seconds')), 3000)
+    );
+    
+    const checkPromise = async (): Promise<boolean> => {
+      console.log('📡 Starting Oracle data fetch...');
+      
+      // Try to get Oracle data using the service
+      const { oracleService } = await import('./oracle-service');
+      const allUsers = await oracleService.getDecryptedUsers();
+      
+      console.log('📊 Oracle userData received:', allUsers ? allUsers.length : 0, 'users');
+      
+      if (!allUsers || allUsers.length === 0) {
+        console.log('❌ No user data found');
+        return false;
+      }
+      
+      // Check if any user has this Bitcoin address with mint status
+      const userWithMintedAddress = allUsers.find((u: any) => {
+        const userAddresses = [
+          u.bitcoinAddress,
+          u.btcAddress,
+          ...(u.mintedAddresses || []),
+          ...(u.monitoredAddresses || []),
+          ...(u.btcAddresses || []),
+          ...(u.bitcoinAddresses || [])
+        ].filter(Boolean);
+        
+        return userAddresses.some(addr => 
+          addr?.toLowerCase() === bitcoinAddress.toLowerCase()
+        );
+      });
+      
+      console.log('📋 Checked addresses, found match:', !!userWithMintedAddress);
+      
+      if (userWithMintedAddress) {
+        console.log('🚫 MINT PROTECTION: Address already being monitored:', bitcoinAddress.substring(0, 8) + '...');
+        return true;
+      }
+      
+      console.log('✅ MINT PROTECTION: Address can mint:', bitcoinAddress.substring(0, 8) + '...');
+      return false;
+    };
+    
+    // Race between check and timeout
+    const result = await Promise.race([checkPromise(), timeoutPromise]);
+    console.log('✅ checkMintStatusFromOracle result:', result);
+    return result;
+    
+  } catch (error) {
+    console.error('❌ checkMintStatusFromOracle error:', error);
+    return false; // Default to not minted
+  }
+}

@@ -1,6 +1,6 @@
 /**
- * ТЕСТ: Проверка исправления массивов Bitcoin адресов
- * Этот endpoint тестирует что Oracle теперь поддерживает массивы адресов
+ * TEST: Check Bitcoin address array fix
+ * This endpoint tests that Oracle now supports address arrays
  */
 import { oracleService } from '@/lib/oracle-service'
 
@@ -8,7 +8,7 @@ export async function GET() {
   try {
     console.log('🧪 TESTING ARRAY FIX: Testing Bitcoin address array support...')
     
-    // Получаем всех пользователей из Oracle
+    // Get all users from Oracle
     const users = await oracleService.getDecryptedUsers()
     
     if (!users || users.length === 0) {
@@ -19,11 +19,11 @@ export async function GET() {
       })
     }
 
-    // Анализируем каждого пользователя на поддержку массивов
+    // Analyze each user for array support
     const analysis = users.map((user, index) => {
       const userAny = user as any
       
-      // Собираем все возможные Bitcoin адреса
+      // Collect all possible Bitcoin addresses
       const allAddresses = [
         ...(user.btcAddresses || []),
         ...(userAny.bitcoinAddresses || []),
@@ -37,7 +37,7 @@ export async function GET() {
         ethAddress: user.ethAddress ? 
           `${user.ethAddress.slice(0, 8)}...${user.ethAddress.slice(-6)}` : null,
         
-        // Детальная диагностика полей
+        // Detailed field diagnostics
         fieldAnalysis: {
           hasSingleBitcoinAddress: !!user.bitcoinAddress,
           hasSingleBtcAddress: !!user.btcAddress,
@@ -46,26 +46,26 @@ export async function GET() {
           hasBitcoin_addressesArray: !!(userAny.bitcoin_addresses?.length)
         },
         
-        // Количество адресов в массивах
+        // Number of addresses in arrays
         arrayCounts: {
           btcAddresses: user.btcAddresses?.length || 0,
           bitcoinAddresses: userAny.bitcoinAddresses?.length || 0,
           bitcoin_addresses: userAny.bitcoin_addresses?.length || 0
         },
         
-        // Общая статистика
+        // General statistics
         totalUniqueAddresses: allAddresses.length,
         processedAddresses: allAddresses.map(addr => 
           `${addr.slice(0, 12)}...${addr.slice(-8)}`
         ),
         
-        // Все доступные поля в user object
+        // All available fields in user object
         availableFields: Object.keys(user),
         totalFields: Object.keys(user).length
       }
     })
 
-    // Общая статистика исправления
+    // General fix statistics
     const fixAnalysis = {
       totalUsers: users.length,
       usersWithSingleAddressesOnly: analysis.filter(u => 
@@ -81,7 +81,7 @@ export async function GET() {
       totalAddressesProcessed: analysis.reduce((sum, u) => sum + u.totalUniqueAddresses, 0)
     }
 
-    // Статус исправления
+    // Fix status
     const isFixed = fixAnalysis.usersWithArraySupport > 0
     const needsMigration = fixAnalysis.usersWithSingleAddressesOnly > 0 && fixAnalysis.usersWithArraySupport === 0
 
@@ -90,18 +90,18 @@ export async function GET() {
       timestamp: new Date().toISOString(),
       test: 'bitcoin_address_array_support',
       
-      // Результат теста
+      // Test result
       testResult: {
         isArraySupportWorking: isFixed,
         needsOracleServerMigration: needsMigration,
         status: isFixed ? 'FIXED' : needsMigration ? 'NEEDS_ORACLE_SERVER_UPDATE' : 'UNKNOWN'
       },
       
-      // Детальный анализ
+      // Detailed analysis
       fixAnalysis,
       userAnalysis: analysis,
       
-      // Рекомендации
+      // Recommendations
       recommendations: {
         nextSteps: isFixed 
           ? ['✅ Array support is working!', 'Test adding multiple addresses to one user']

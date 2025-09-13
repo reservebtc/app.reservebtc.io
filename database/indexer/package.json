@@ -1,0 +1,23 @@
+{
+  "name": "reservebtc-indexer",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "ethers": "^6.9.0",
+    "pg": "^8.11.3",
+    "node-cron": "^3.0.3",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@types/pg": "^8.10.9",
+    "@types/node-cron": "^3.0.11",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2"
+  }
+}

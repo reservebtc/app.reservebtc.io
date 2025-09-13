@@ -176,7 +176,7 @@ export async function getUserTransactionHistory(
         console.log('🔍 TRANSACTION DEBUG: All userData keys:', Object.keys(userData))
         console.log('🔍 TRANSACTION DEBUG: UserData structure exists:', !!userData)
         
-        // Проверяем каждое ключевое поле отдельно
+        // Check each key field separately
         console.log('🔍 FIELD CHECK: btcAddress exists:', !!userData.btcAddress)
         console.log('🔍 FIELD CHECK: ethAddress exists:', !!userData.ethAddress)
         console.log('🔍 FIELD CHECK: lastSyncedBalance =', (userData.lastSyncedBalance || 0))

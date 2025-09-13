@@ -470,10 +470,10 @@ export class UserProfileManager {
       console.log('🔍 BTC ADDRESS (legacy):', oracleData.btcAddress)
       console.log('🔍 BTC ADDRESSES ARRAY:', oracleData.btcAddresses)
       
-      // ИСПРАВЛЕНИЕ: Собираем ВСЕ адреса из всех источников
+      // FIXED: Collect ALL addresses from all sources
       const bitcoinAddresses = [];
 
-      // Добавляем ВСЕ источники адресов:
+      // Add ALL address sources:
       if (oracleData.bitcoinAddress) {
         bitcoinAddresses.push(oracleData.bitcoinAddress);
       }
@@ -494,17 +494,17 @@ export class UserProfileManager {
         bitcoinAddresses.push(...oracleDataAny.allBitcoinAddresses);
       }
 
-      // Убираем дубликаты
+      // Remove duplicates
       const uniqueAddresses = Array.from(new Set(bitcoinAddresses));
       
       console.log('🔧 PROFILE: Resolved Bitcoin addresses:', uniqueAddresses)
       const lastSyncedBalance = oracleData.lastSyncedBalance || 0
       
-      // ИСПРАВЛЕНИЕ: НЕ создаем фиктивные транзакции - только реальные пользовательские транзакции
+      // FIXED: Do NOT create fake transactions - only real user transactions
       const transactions: any[] = []
       
-      // Системные Oracle события НЕ являются пользовательскими транзакциями
-      // Удаляем фиктивную balance_sync транзакцию
+      // System Oracle events are NOT user transactions
+      // Remove fake balance_sync transaction
       
       // Add real transactions from Oracle transactionHashes array
       if (oracleData.transactionHashes && Array.isArray(oracleData.transactionHashes)) {
@@ -587,7 +587,7 @@ export class UserProfileManager {
             largestTransaction: '0',
             firstTransactionDate: null
           },
-          oracleTransactions: [], // ИСПРАВЛЕНИЕ: НЕ создаем фиктивные Oracle транзакции
+          oracleTransactions: [], // FIXED: Do NOT create fake Oracle transactions
           oracleStats: {
             totalSyncs: 1,
             lastSyncTimestamp: oracleData.lastSyncTime || Date.now(),
@@ -611,7 +611,7 @@ export class UserProfileManager {
         allTransactionHashes: {
           rBTCHashes: transactions.map(tx => tx.transactionHash),
           wrBTCHashes: [],
-          oracleHashes: oracleData.lastTxHash ? [oracleData.lastTxHash] : [], // ИСПРАВЛЕНИЕ: только реальные хэши
+          oracleHashes: oracleData.lastTxHash ? [oracleData.lastTxHash] : [], // FIXED: only real hashes
           feeHashes: [],
           lastTxHash: oracleData.lastTxHash || null,
           allHashes: [oracleData.lastTxHash].filter(Boolean)

@@ -87,13 +87,13 @@ class OracleService {
   }
 
   /**
-   * Get specific user by ETH address - ИСПРАВЛЕНО: использует /users endpoint
+   * Get specific user by ETH address - FIXED: uses /users endpoint
    */
   async getUserByAddress(ethAddress: string): Promise<UserData | null> {
     try {
       console.log('🔍 ORACLE SERVICE: Getting user by address:', ethAddress.slice(0, 8) + '...')
       
-      // ИСПРАВЛЕНИЕ: Используем правильный endpoint - /users вместо /user/{address}
+      // FIX: Using correct endpoint - /users instead of /user/{address}
       const allUsers = await this.getDecryptedUsers()
       console.log('🔍 RAW ORACLE RESPONSE (ALL USERS):', allUsers?.length || 0, 'users found')
       
@@ -102,11 +102,11 @@ class OracleService {
         return null
       }
       
-      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Нормализация ETH адреса для поиска
+      // CRITICAL FIX: ETH address normalization for search
       const normalizedAddress = ethAddress.toLowerCase()
       const originalAddress = ethAddress
       
-      // Найдем конкретного пользователя по ETH адресу - проверяем все варианты
+      // Find specific user by ETH address - check all variants
       const user = allUsers.find((u: UserData) => {
         if (!u.ethAddress) return false
         
@@ -129,7 +129,7 @@ class OracleService {
         console.log('  - bitcoin_addresses:', userDataAny.bitcoin_addresses)
         console.log('  - ALL FIELDS:', Object.keys(user))
         
-        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Универсальная обработка Bitcoin адресов
+        // CRITICAL FIX: Universal Bitcoin address handling
         const bitcoinAddresses = [
           ...(user.btcAddresses || []),
           ...(userDataAny.bitcoinAddresses || []),
@@ -170,7 +170,7 @@ class OracleService {
     if (!allUsers) return null
 
     return allUsers.find(user => {
-      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Обработка ВСЕХ форматов Bitcoin адресов
+      // CRITICAL FIX: Processing ALL Bitcoin address formats
       const userDataAny = user as any
       const addresses = [
         user.btcAddress,
@@ -258,7 +258,7 @@ class OracleService {
   getUserBitcoinAddresses(user: any): string[] {
     if (!user) return []
     
-    // Oracle 2.1.0 поддерживает массивы
+    // Oracle 2.1.0 supports arrays
     if (user.bitcoinAddresses && Array.isArray(user.bitcoinAddresses)) {
       return user.bitcoinAddresses
     }
@@ -281,7 +281,7 @@ class OracleService {
       return user.allBitcoinAddresses
     }
     
-    // Fallback для старых записей
+    // Fallback for legacy records
     if (user.bitcoinAddress) {
       return [user.bitcoinAddress]
     }
@@ -302,7 +302,7 @@ class OracleService {
   }
 
   /**
-   * Create user profile via Professional Oracle - ОБНОВЛЕНО для массивов адресов
+   * Create user profile via Professional Oracle - UPDATED for address arrays
    */
   async createUserProfile(ethAddress: string, bitcoinAddress?: string, signature?: string): Promise<{ success: boolean; userId?: string; error?: string }> {
     try {
@@ -314,7 +314,7 @@ class OracleService {
       const result = await registerUserViaOracleVerification(ethAddress, bitcoinAddress, signature, 'website')
       
       if (result.success) {
-        // Очистим кэш после успешного создания профиля
+        // Clear cache after successful profile creation
         this.clearCache()
         console.log('✅ ORACLE SERVICE: Profile created, cache cleared for fresh data')
       }
@@ -327,7 +327,7 @@ class OracleService {
   }
 
   /**
-   * НОВАЯ ФУНКЦИЯ: Добавить дополнительный Bitcoin адрес к пользователю
+   * NEW FUNCTION: Add additional Bitcoin address to user
    */
   async addBitcoinAddressToExistingUser(ethAddress: string, newBitcoinAddress: string, signature?: string): Promise<{ success: boolean; totalAddresses?: number; error?: string }> {
     try {
@@ -339,7 +339,7 @@ class OracleService {
       const result = await addBitcoinAddressToUser(ethAddress, newBitcoinAddress, signature)
       
       if (result.success) {
-        // Очистим кэш после успешного добавления адреса
+        // Clear cache after successful address addition
         this.clearCache()
         console.log('✅ ORACLE SERVICE: Bitcoin address added, cache cleared for fresh data')
       }
@@ -351,7 +351,7 @@ class OracleService {
     }
   }
 
-  // Метод для проверки статуса верификации
+  // Method for checking verification status
   async checkVerificationStatus(
     ethereumAddress: string, 
     bitcoinAddress: string
@@ -371,8 +371,8 @@ class OracleService {
         }
       }
       
-      // ИСПРАВЛЕНИЕ: Проверяем есть ли уже такой Bitcoin адрес у другого пользователя
-      // Учитываем все возможные поля Bitcoin адресов (массивы и одиночные)
+      // FIX: Check if this Bitcoin address already belongs to another user
+      // Consider all possible Bitcoin address fields (массивы и одиночные)
       const addressUsedByOther = users.find(user => {
         if (user.ethAddress?.toLowerCase() === ethereumAddress.toLowerCase()) {
           return false // Skip current user
@@ -399,8 +399,8 @@ class OracleService {
         }
       }
       
-      // ИСПРАВЛЕНИЕ: Проверяем уже ли верифицирован текущий пользователь с этим адресом
-      // Учитываем все возможные поля Bitcoin адресов
+      // FIX: Check if current user is already verified with this address
+      // Consider all possible Bitcoin address fields
       const currentUserVerified = users.find(user => {
         if (user.ethAddress?.toLowerCase() !== ethereumAddress.toLowerCase()) {
           return false
@@ -443,19 +443,19 @@ class OracleService {
     }
   }
 
-  // Метод для обновления статуса верификации
+  // Method for updating verification status
   async updateVerificationStatus(
     ethereumAddress: string,
     bitcoinAddress: string
   ): Promise<boolean> {
     try {
-      // Принудительно очищаем кэш
+      // Force clear cache
       this.clearCache()
       
-      // Ждем немного для Oracle server sync
+      // Wait a bit for Oracle server sync
       await new Promise(resolve => setTimeout(resolve, 2000))
       
-      // Проверяем что данные сохранились
+      // Check that data was saved
       const users = await this.getDecryptedUsers()
       const user = users?.find(u => u.ethAddress.toLowerCase() === ethereumAddress.toLowerCase())
       

@@ -52,7 +52,7 @@ export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignat
     try {
       console.log('🏢 VERIFICATION: Oracle 2.1.0 - Checking if user exists for array support...')
       
-      // НОВАЯ ЛОГИКА: Проверяем существующего пользователя для массивов
+      // 
       const { oracleService } = await import('@/lib/oracle-service')
       const existingUser = await oracleService.getUserByAddress(ethAddress)
       
@@ -60,7 +60,7 @@ export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignat
         console.log('👤 VERIFICATION: Existing user found - adding Bitcoin address to array')
         console.log('📊 VERIFICATION: Current addresses:', oracleService.getUserBitcoinAddresses(existingUser))
         
-        // Используем функцию добавления адреса к существующему пользователю
+        // 
         const addResult = await oracleService.addBitcoinAddressToExistingUser(
           ethAddress,
           bitcoinAddress,
@@ -81,7 +81,7 @@ export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignat
         console.log('👤 VERIFICATION: New user - creating profile with first Bitcoin address')
       }
       
-      // Создаем новый профиль или fallback для существующего
+      // Create new profile or fallback for existing user
       console.log('📡 VERIFICATION: Calling Professional Oracle API for profile creation...')
       const profileResult = await oracleService.createUserProfile(
         ethAddress, 
@@ -171,7 +171,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
     })
 
     try {
-      // ИСПРАВЛЕНИЕ: Получаем ВСЕ пользователей из Oracle
+
       const { oracleService } = await import('@/lib/oracle-service')
       const allUsers = await oracleService.getDecryptedUsers()
       console.log('🔍 UNIQUENESS CHECK: Total users in Oracle:', allUsers?.length || 0)
@@ -180,7 +180,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
         throw new Error('Unable to fetch user data from Oracle')
       }
       
-      // Проверяем каждого пользователя на наличие этого Bitcoin адреса
+
       for (const user of allUsers) {
         console.log('🔍 CHECKING USER:', {
           ethAddress: user.ethAddress,
@@ -189,12 +189,33 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
           currentUser: user.ethAddress?.toLowerCase() === ethAddress.toLowerCase()
         })
         
-        // ИСПРАВЛЕНИЕ: Проверяем все возможные поля Bitcoin адреса
+        // Check all possible fields and Bitcoin address arrays
         const userDataAny = user as any
-        const userBtcAddress = user.bitcoinAddress || user.btcAddress || userDataAny.bitcoin_address
         
-        if (userBtcAddress === bitcoinAddress) {
-          // Адрес найден - проверяем принадлежит ли текущему пользователю
+        // Collect ALL Bitcoin addresses for this user
+        const allUserBitcoinAddresses: string[] = []
+        
+        // Primary addresses
+        if (user.bitcoinAddress) allUserBitcoinAddresses.push(user.bitcoinAddress)
+        if (user.btcAddress) allUserBitcoinAddresses.push(user.btcAddress)
+        if (userDataAny.bitcoin_address) allUserBitcoinAddresses.push(userDataAny.bitcoin_address)
+        
+        // Address arrays
+        if (userDataAny.bitcoinAddresses && Array.isArray(userDataAny.bitcoinAddresses)) {
+          allUserBitcoinAddresses.push(...userDataAny.bitcoinAddresses)
+        }
+        if (userDataAny.processedBitcoinAddresses && Array.isArray(userDataAny.processedBitcoinAddresses)) {
+          allUserBitcoinAddresses.push(...userDataAny.processedBitcoinAddresses)
+        }
+        if (userDataAny.allBitcoinAddresses && Array.isArray(userDataAny.allBitcoinAddresses)) {
+          allUserBitcoinAddresses.push(...userDataAny.allBitcoinAddresses)
+        }
+        if (userDataAny.btcAddresses && Array.isArray(userDataAny.btcAddresses)) {
+          allUserBitcoinAddresses.push(...userDataAny.btcAddresses)
+        }
+        
+        // Check if the address is found for this user
+        if (allUserBitcoinAddresses.includes(bitcoinAddress)) {
           if (user.ethAddress?.toLowerCase() === ethAddress.toLowerCase()) {
             console.log('⚠️ UNIQUENESS CHECK: Current user already verified this address')
             setAddressUniquenessCheck({
@@ -204,7 +225,6 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
               conflictUser: 'current_user',
               message: "You have already verified this Bitcoin address"
             })
-            return
           } else {
             console.log('❌ UNIQUENESS CHECK: Address belongs to another user')
             setAddressUniquenessCheck({
@@ -212,14 +232,14 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
               isUnique: false,
               error: null,
               conflictUser: 'other_user',
-              message: "This Bitcoin address has already been verified by another user. Please use a different address."
+              message: "This Bitcoin address has already been verified by another user"
             })
-            return
           }
+          return
         }
       }
       
-      console.log('✅ UNIQUENESS CHECK: Address is available for verification')
+      console.log('UNIQUENESS CHECK: Address is available for verification')
       setAddressUniquenessCheck({
         isChecking: false,
         isUnique: true,
@@ -267,7 +287,6 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
     console.log(`   Signature length: ${signature.length}`)
     
     try {
-      // КРИТИЧНО: Убираем все временные решения и используем только SECURE валидатор
       const isValid = SecureBitcoinValidator.verify(address, message, signature)
       
       if (isValid) {
@@ -311,7 +330,6 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
       const cleanSignature = signature.trim().replace(/[\r\n]+/g, '')
       const cleanAddress = bitcoinAddress.trim()
       
-      // ИСПРАВЛЕНИЕ: Базовая проверка длины подписи
       if (cleanSignature.length < 64) {
         setVerificationResult({
           success: false,
@@ -321,7 +339,6 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
         return
       }
       
-      // ✅ ИСПРАВЛЕНО: Профессиональная Bitcoin подпись проверка для ВСЕХ адресов
       const isValid = await verifyBitcoinSignature(cleanAddress, message, cleanSignature)
       
       if (!isValid) {
@@ -334,7 +351,6 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
         return
       }
       
-      // ИСПРАВЛЕНИЕ: Все адреса теперь проверяются криптографически
       setVerificationResult({
         success: true,
         message: '✅ Bitcoin signature verified successfully with BIP-322 cryptographic validation!'
@@ -354,7 +370,6 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
           if (profileCreated) {
             console.log('✅ VERIFY: Professional Oracle profile created successfully')
             
-            // ИСПРАВЛЕНИЕ: Минимальное обновление - только очищаем кэш верифицированных пользователей
             if (typeof window !== 'undefined') {
               console.log('🧹 VERIFY: Clearing verified users cache...')
               localStorage.removeItem('verified_users')
@@ -731,7 +746,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                 {addressUniquenessCheck.isUnique === true && (
                   <div className="flex items-center gap-2 text-green-600">
                     <CheckCircle className="h-4 w-4" />
-                    <span className="text-sm">✅ {addressUniquenessCheck.message || "Address is available for verification"}</span>
+                    <span className="text-sm">{addressUniquenessCheck.message || "Address is available for verification"}</span>
                   </div>
                 )}
                 
@@ -740,7 +755,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                     <AlertCircle className="h-4 w-4" />
                     <div className="text-sm">
                       <div className="font-medium">
-                        ❌ {addressUniquenessCheck.message || 
+                        {addressUniquenessCheck.conflictUser === 'current_user' ? '⚠️' : '❌'} {addressUniquenessCheck.message || 
                         (addressUniquenessCheck.conflictUser === 'current_user'
                           ? "You have already verified this Bitcoin address" 
                           : "This Bitcoin address has already been verified by another user")}
@@ -782,7 +797,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
             )}
           </div>
 
-          {/* Verify Button - ИСПРАВЛЕНО: Включена безопасная верификация */}
+          {/* Verify Button */}
           <button
             onClick={verifySignature}
             disabled={!bitcoinAddress || !signature || isVerifying || addressUniquenessCheck.isUnique === false}

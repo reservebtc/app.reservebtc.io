@@ -7,7 +7,7 @@ import { sha256 } from '@noble/hashes/sha2'
 import { bech32 } from 'bech32'
 import bs58check from 'bs58check'
 
-// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Строгая валидация Bitcoin адресов
+// CRITICAL FIX: Strict Bitcoin address validation
 export function validateBitcoinAddressFormat(address: string): { valid: boolean; type?: string; network?: string } {
   try {
     // Bech32 (SegWit v0)
@@ -42,7 +42,7 @@ export function validateBitcoinAddressFormat(address: string): { valid: boolean;
   }
 }
 
-// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Правильная BIP-322 валидация
+// CRITICAL FIX: Proper BIP-322 validation
 export function validateBIP322Signature(
   address: string, 
   message: string, 
@@ -54,7 +54,7 @@ export function validateBIP322Signature(
   console.log(`   Signature length: ${signature.length}`)
   
   try {
-    // ЭТАП 1: Валидация формата адреса
+    // STEP 1: Address format validation
     const addressValidation = validateBitcoinAddressFormat(address)
     if (!addressValidation.valid) {
       console.error('❌ SECURITY: Invalid address format')
@@ -63,10 +63,10 @@ export function validateBIP322Signature(
     
     console.log(`✅ SECURITY: Address valid - Type: ${addressValidation.type}, Network: ${addressValidation.network}`)
     
-    // ЭТАП 2: Проверка подписи
+    // STEP 2: Signature verification
     const cleanSignature = signature.trim().replace(/[\r\n\s]+/g, '')
     
-    // КРИТИЧНО: Декодируем подпись и проверяем формат
+    // CRITICAL: Decode signature and check format
     let signatureBuffer: Buffer
     try {
       signatureBuffer = Buffer.from(cleanSignature, 'base64')
@@ -79,7 +79,7 @@ export function validateBIP322Signature(
       return { valid: false, error: 'Invalid base64 signature' }
     }
     
-    // ЭТАП 3: КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ - Создаем message hash по Bitcoin стандарту
+    // STEP 3: CRITICAL FIX - Create message hash per Bitcoin standard
     const messagePrefix = Buffer.from('Bitcoin Signed Message:\n', 'utf8')
     const messageBuffer = Buffer.from(message, 'utf8')
     const messageLength = Buffer.from([messageBuffer.length])
@@ -94,7 +94,7 @@ export function validateBIP322Signature(
     const messageHash = sha256(sha256(fullMessage))
     console.log('🔒 SECURITY: Message hash created')
     
-    // ЭТАП 4: КРИТИЧНО - Извлекаем данные подписи
+    // STEP 4: CRITICAL - Extract signature data
     const recoveryFlag = signatureBuffer[0]
     const r = signatureBuffer.slice(1, 33)
     const s = signatureBuffer.slice(33, 65)
@@ -111,13 +111,13 @@ export function validateBIP322Signature(
       }
     }
     
-    // ЭТАП 6: БЕЗОПАСНАЯ ВАЛИДАЦИЯ - Уязвимость исправлена
+    // STEP 6: SECURE VALIDATION - Vulnerability fixed
     console.log('✅ SECURITY: Using secure BIP-322 validation (vulnerability fixed)')
     
-    // Для legacy адресов можно продолжить (с осторожностью)
+    // For legacy addresses can continue (with caution)
     if (addressValidation.type === 'p2pkh' || addressValidation.type === 'p2sh') {
       console.log('⚠️ SECURITY: Legacy address validation - proceeding with caution')
-      // Здесь была бы нормальная проверка подписи, но пока отключаем для безопасности
+      // Normal signature verification would be here, but disabled for security
       return { 
         valid: false, 
         error: 'BIP-322 validation still under security review - please use testnet for testing',
@@ -129,7 +129,7 @@ export function validateBIP322Signature(
       }
     }
     
-    // Для всех остальных типов адресов
+    // For all other address types
     return { 
       valid: false, 
       error: 'Address type not yet supported in secure validator',
@@ -150,21 +150,21 @@ export function validateBIP322Signature(
   }
 }
 
-// ИСПРАВЛЕНИЕ: Функция для тестирования уязвимости
+// FIX: Function for vulnerability testing
 export function testSignatureVulnerability() {
   console.log('🚨 TESTING BIP-322 SECURITY VULNERABILITY')
   
   const testCases = [
     {
       name: "VULNERABILITY TEST - Different address with same signature",
-      address: "tb1qtkj7hlhv9drfwe2mupq0yt9m6fsungkjjv5lr7", // НЕПРАВИЛЬНЫЙ адрес
-      signature: "Hwto0J1mi7Q/EzZTMVlgMSsyA3W4qFZCwoB3Rp31cRL7f7p5xB6tC0DqKHtWjADwLS9yYa586DgoHnv+ubFST70=", // от другого адреса
+      address: "tb1qtkj7hlhv9drfwe2mupq0yt9m6fsungkjjv5lr7", // WRONG address
+      signature: "Hwto0J1mi7Q/EzZTMVlgMSsyA3W4qFZCwoB3Rp31cRL7f7p5xB6tC0DqKHtWjADwLS9yYa586DgoHnv+ubFST70=", // from another address
       shouldPass: false
     },
     {
       name: "CORRECT TEST - Proper address with signature",
-      address: "tb1qtkj7hlhv9drfwe2mupq0yt9m6fsungkjjv5lr4", // ПРАВИЛЬНЫЙ адрес
-      signature: "Hwto0J1mi7Q/EzZTMVlgMSsyA3W4qFZCwoB3Rp31cRL7f7p5xB6tC0DqKHtWjADwLS9yYa586DgoHnv+ubFST70=", // от этого адреса
+      address: "tb1qtkj7hlhv9drfwe2mupq0yt9m6fsungkjjv5lr4", // CORRECT address
+      signature: "Hwto0J1mi7Q/EzZTMVlgMSsyA3W4qFZCwoB3Rp31cRL7f7p5xB6tC0DqKHtWjADwLS9yYa586DgoHnv+ubFST70=", // from this address
       shouldPass: true
     }
   ]
