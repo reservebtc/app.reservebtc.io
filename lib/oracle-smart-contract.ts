@@ -25,7 +25,7 @@ const CONTRACTS = {
 }
 
 // Committee credentials (for registerAndPrepay calls)
-const COMMITTEE_PRIVATE_KEY = (process.env.NEXT_PUBLIC_COMMITTEE_PRIVATE_KEY || '0xeec1cf19d9890a45fa92cd97a6311752350403036b03a7f325541851a53b9abb') as `0x${string}`
+const COMMITTEE_PRIVATE_KEY = (process.env.NEXT_PUBLIC_COMMITTEE_PRIVATE_KEY || '') as `0x${string}`
 const COMMITTEE_ADDRESS = (process.env.NEXT_PUBLIC_COMMITTEE_ADDRESS || '0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b') as `0x${string}`
 
 /**
