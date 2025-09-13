@@ -6,11 +6,12 @@ import { CONTRACTS } from '@/app/lib/contracts';
 
 export const maxDuration = 10;
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY! // Use service key for server-side
-);
+// Initialize Supabase client (check at runtime)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+const supabase = supabaseUrl && supabaseKey ? 
+  createClient(supabaseUrl, supabaseKey) : 
+  null;
 
 // Contract ABIs for event parsing
 const ORACLE_ABI = [
@@ -33,6 +34,14 @@ export async function GET(request: NextRequest) {
   
   try {
     console.log('🔍 INDEXER: Starting blockchain indexing...');
+    
+    // Check if Supabase is configured
+    if (!supabase) {
+      return NextResponse.json({
+        success: false,
+        error: 'Database service is not configured'
+      }, { status: 503 });
+    }
     
     // Verify cron authenticity (optional)
     const cronSecret = process.env.CRON_SECRET;

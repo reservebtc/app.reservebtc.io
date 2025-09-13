@@ -6,9 +6,6 @@ import { megaeth } from '@/lib/chains/megaeth'
 
 // Oracle committee credentials
 const ORACLE_PRIVATE_KEY = process.env.ORACLE_PRIVATE_KEY
-if (!ORACLE_PRIVATE_KEY) {
-  throw new Error('ORACLE_PRIVATE_KEY environment variable is not set')
-}
 
 interface MonitoringRequest {
   userAddress: string
@@ -31,6 +28,9 @@ let clientCache: {
 
 function getOrCreateClients() {
   if (!clientCache) {
+    if (!ORACLE_PRIVATE_KEY) {
+      throw new Error('Oracle service is not configured')
+    }
     const account = privateKeyToAccount(ORACLE_PRIVATE_KEY as `0x${string}`)
     const publicClient = createPublicClient({
       chain: megaeth,
@@ -49,6 +49,14 @@ function getOrCreateClients() {
 
 export async function POST(request: NextRequest): Promise<NextResponse<MonitoringResponse>> {
   try {
+    // Check Oracle credentials at runtime
+    if (!ORACLE_PRIVATE_KEY) {
+      return NextResponse.json({
+        success: false,
+        error: 'Oracle service is not configured'
+      }, { status: 503 })
+    }
+
     const body: MonitoringRequest = await request.json()
     const { userAddress, bitcoinAddress, initialBalance } = body
 
