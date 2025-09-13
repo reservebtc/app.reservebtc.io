@@ -9,7 +9,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 
 // Production encryption key
-const ENCRYPTION_KEY = Buffer.from('3fc8e1758b839719ebebe4853c9ee20f7ff2d91ca0e53357ec269f300ef873db', 'hex');
+const ENCRYPTION_KEY = Buffer.from(process.env.ORACLE_ENCRYPTION_KEY || '', 'hex');
 
 // User to add (the one who completed verification)
 const MISSING_USER = {

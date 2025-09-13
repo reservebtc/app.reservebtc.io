@@ -6,7 +6,7 @@
 const crypto = require('crypto');
 
 // Production encryption key (same as professional Oracle)
-const ENCRYPTION_KEY = Buffer.from('3fc8e1758b839719ebebe4853c9ee20f7ff2d91ca0e53357ec269f300ef873db', 'hex');
+const ENCRYPTION_KEY = Buffer.from(process.env.ORACLE_ENCRYPTION_KEY || '', 'hex');
 
 // New user who just verified
 const NEW_USER = '0xb28224cAb7a4e6F0e8F7a61EF74672782b2e6324';
