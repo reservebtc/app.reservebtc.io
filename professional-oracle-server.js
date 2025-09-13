@@ -15,6 +15,8 @@
  * - Automatic data backup and recovery
  */
 
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
