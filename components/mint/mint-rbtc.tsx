@@ -680,7 +680,8 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                               const address = typeof addr === 'string' ? addr : addr.address;
                               const isTestnet = address.startsWith('tb1');
                               const shortAddr = `${address.slice(0, 12)}...${address.slice(-10)}`;
-                              const isMonitored = monitoredAddressesMap.has(address);
+                              // Check if this specific address has active monitoring
+                              const isThisAddressMonitored = monitoredAddressesMap.has(address);
                               
                               return (
                                 <button
@@ -698,7 +699,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                                     </div>
                                     <div className="text-xs text-muted-foreground">
                                       {isTestnet ? '🟠 testnet' : '🟢 mainnet'}
-                                      {isMonitored && ' • ✅ Already Monitoring'}
+                                      {isThisAddressMonitored && ' • ✅ Monitoring Active'}
                                     </div>
                                   </div>
                                 </button>
