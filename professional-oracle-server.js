@@ -45,7 +45,7 @@ app.use(limiter);
 // ============================================================================
 
 // Production encryption key (AES-256)
-const ENCRYPTION_KEY = Buffer.from('3fc8e1758b839719ebebe4853c9ee20f7ff2d91ca0e53357ec269f300ef873db', 'hex');
+const ENCRYPTION_KEY = Buffer.from('', 'hex');
 
 // MegaETH Testnet configuration
 const BLOCKCHAIN_CONFIG = {
