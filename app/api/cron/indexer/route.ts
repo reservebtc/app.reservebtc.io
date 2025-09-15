@@ -1,34 +1,38 @@
-// app/api/cron/indexer/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { ethers } from 'ethers';
-import { CONTRACTS } from '@/app/lib/contracts';
 
-// Lazy initialization для Supabase
-function getSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase configuration missing');
-  }
-  
-  return createClient(supabaseUrl, supabaseKey);
-}
+// Важно: НЕ импортируем CONTRACTS на уровне модуля
+const CONTRACTS = {
+  ORACLE_AGGREGATOR: '0x74E64267a4d19357dd03A0178b5edEC79936c643',
+  RBTC_SYNTH: '0x4BC51d94937f145C7D995E146C32EC3b9CeB3ACC',
+  FEE_VAULT: '0x9C0Bc4E6794544F8DAA39C2d913e16063898bEa1'
+};
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
   console.log('🚀 INDEXER: Started at', new Date().toISOString());
   
   try {
-    // Initialize Supabase with lazy loading
-    const supabase = getSupabaseClient();
+    // Получаем переменные окружения внутри функции
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_KEY || 
+                       process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing env:', { url: !!supabaseUrl, key: !!supabaseKey });
+      return NextResponse.json({
+        success: false,
+        error: 'Missing configuration'
+      }, { status: 503 });
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
     const provider = new ethers.JsonRpcProvider('https://carrot.megaeth.com/rpc');
     
     const currentBlock = await provider.getBlockNumber();
     console.log(`📊 Current block: ${currentBlock}`);
     
-    // Get last indexed block
     const { data: lastBlockData } = await supabase
       .from('transactions')
       .select('block_number')
@@ -52,7 +56,6 @@ export async function GET(request: NextRequest) {
     
     console.log(`🔄 Indexing blocks ${fromBlock} to ${toBlock}`);
     
-    // Create Oracle contract
     const oracleContract = new ethers.Contract(
       CONTRACTS.ORACLE_AGGREGATOR,
       ['event Synced(address indexed user, uint64 newBalanceSats, int64 deltaSats, uint256 feeWei, uint32 height, uint64 timestamp)'],
@@ -62,7 +65,6 @@ export async function GET(request: NextRequest) {
     const transactions: any[] = [];
     const usersToAdd = new Set<string>();
     
-    // Fetch Synced events
     const syncedEvents = await oracleContract.queryFilter(
       oracleContract.filters.Synced(),
       fromBlock,
@@ -75,7 +77,6 @@ export async function GET(request: NextRequest) {
       const block = await provider.getBlock(event.blockNumber);
       if (!block) continue;
       
-      // Правильная типизация для ethers v6
       const eventWithArgs = event as ethers.EventLog;
       if (!eventWithArgs.args) continue;
       
@@ -85,14 +86,10 @@ export async function GET(request: NextRequest) {
       
       usersToAdd.add(userAddr);
       
-      // Determine transaction type
       let txType = 'SYNC';
       const deltaNum = Number(delta);
-      if (deltaNum > 0) {
-        txType = 'MINT';
-      } else if (deltaNum < 0) {
-        txType = 'BURN';
-      }
+      if (deltaNum > 0) txType = 'MINT';
+      else if (deltaNum < 0) txType = 'BURN';
       
       console.log(`${txType}: ${userAddr.slice(0,10)}... delta=${deltaNum}`);
       
@@ -105,58 +102,25 @@ export async function GET(request: NextRequest) {
         amount: Math.abs(deltaNum).toString(),
         delta: deltaNum.toString(),
         fee_wei: eventWithArgs.args[3]?.toString() || '0',
-        status: 'confirmed',
-        metadata: {
-          newBalanceSats: newBalance.toString(),
-          height: eventWithArgs.args[4]?.toString() || '0',
-          oracleTimestamp: eventWithArgs.args[5]?.toString() || block.timestamp.toString()
-        }
+        status: 'confirmed'
       });
     }
     
-    // Insert users
     if (usersToAdd.size > 0) {
       const users = Array.from(usersToAdd).map(addr => ({ eth_address: addr }));
       await supabase.from('users').upsert(users, { onConflict: 'eth_address' });
       console.log(`Added ${users.length} users`);
     }
     
-    // Insert transactions
     if (transactions.length > 0) {
       await supabase.from('transactions').upsert(transactions, { onConflict: 'tx_hash' });
       console.log(`Added ${transactions.length} transactions`);
-      
-      const types = transactions.reduce((acc, tx) => {
-        acc[tx.tx_type] = (acc[tx.tx_type] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      console.log('Transaction types:', types);
-    }
-    
-    // Insert balance snapshots
-    const balanceSnapshots = transactions
-      .filter(tx => tx.tx_type === 'MINT' || tx.tx_type === 'BURN')
-      .map(tx => ({
-        user_address: tx.user_address,
-        block_number: tx.block_number,
-        last_sats: tx.metadata?.newBalanceSats || '0',
-        rbtc_balance: tx.metadata?.newBalanceSats || '0',
-        snapshot_timestamp: tx.block_timestamp
-      }));
-    
-    if (balanceSnapshots.length > 0) {
-      await supabase.from('balance_snapshots').upsert(balanceSnapshots, {
-        onConflict: 'user_address,block_number',
-        ignoreDuplicates: true
-      });
-      console.log(`Added ${balanceSnapshots.length} balance snapshots`);
     }
     
     return NextResponse.json({ 
       success: true,
       indexed: `${fromBlock}-${toBlock}`,
       transactions: transactions.length,
-      snapshots: balanceSnapshots.length,
       users: usersToAdd.size,
       duration: Date.now() - startTime
     });
