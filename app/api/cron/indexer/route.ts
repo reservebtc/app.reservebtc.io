@@ -1,26 +1,21 @@
+// app/api/cron/indexer/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { ethers } from 'ethers';
 
-// Важно: НЕ импортируем CONTRACTS на уровне модуля
-const CONTRACTS = {
-  ORACLE_AGGREGATOR: '0x74E64267a4d19357dd03A0178b5edEC79936c643',
-  RBTC_SYNTH: '0x4BC51d94937f145C7D995E146C32EC3b9CeB3ACC',
-  FEE_VAULT: '0x9C0Bc4E6794544F8DAA39C2d913e16063898bEa1'
-};
-
 export async function GET(request: NextRequest) {
+  // NO AUTHENTICATION CHECKS - Vercel handles protection
+  // For manual testing use: ?x-vercel-protection-bypass=your_token
+  
   const startTime = Date.now();
   console.log('🚀 INDEXER: Started at', new Date().toISOString());
   
   try {
-    // Получаем переменные окружения внутри функции
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_KEY || 
                        process.env.SUPABASE_SERVICE_ROLE_KEY;
     
     if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing env:', { url: !!supabaseUrl, key: !!supabaseKey });
       return NextResponse.json({
         success: false,
         error: 'Missing configuration'
@@ -56,8 +51,9 @@ export async function GET(request: NextRequest) {
     
     console.log(`🔄 Indexing blocks ${fromBlock} to ${toBlock}`);
     
+    const ORACLE_CONTRACT = '0x74E64267a4d19357dd03A0178b5edEC79936c643';
     const oracleContract = new ethers.Contract(
-      CONTRACTS.ORACLE_AGGREGATOR,
+      ORACLE_CONTRACT,
       ['event Synced(address indexed user, uint64 newBalanceSats, int64 deltaSats, uint256 feeWei, uint32 height, uint64 timestamp)'],
       provider
     );
