@@ -47,6 +47,115 @@ function getOrCreateClients() {
   return clientCache
 }
 
+// Helper function to sync data to Supabase
+async function syncToSupabase(
+  eventType: string,
+  userAddress: string,
+  transactionHash: string,
+  bitcoinAddress: string,
+  amount: string,
+  blockNumber?: number
+) {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.log('⚠️ Supabase not configured, skipping sync')
+      return
+    }
+
+    // Direct API calls to Supabase REST API
+    const headers = {
+      'apikey': supabaseKey,
+      'Authorization': `Bearer ${supabaseKey}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    }
+
+    // 1. Ensure user exists
+    const userCheckResponse = await fetch(
+      `${supabaseUrl}/rest/v1/users?eth_address=eq.${userAddress.toLowerCase()}`,
+      { headers }
+    )
+    
+    if (userCheckResponse.ok) {
+      const users = await userCheckResponse.json()
+      if (users.length === 0) {
+        // Create user
+        await fetch(`${supabaseUrl}/rest/v1/users`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            eth_address: userAddress.toLowerCase(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+        })
+        console.log('✅ User created in Supabase')
+      }
+    }
+
+    // 2. Insert transaction
+    await fetch(`${supabaseUrl}/rest/v1/transactions`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        tx_hash: transactionHash,
+        block_number: blockNumber || 0,
+        block_timestamp: new Date().toISOString(),
+        user_address: userAddress.toLowerCase(),
+        tx_type: eventType,
+        amount: amount,
+        delta: amount,
+        fee_wei: '1400000000000000', // Standard fee
+        bitcoin_address: bitcoinAddress,
+        status: 'confirmed',
+        created_at: new Date().toISOString()
+      })
+    })
+    console.log('✅ Transaction saved to Supabase')
+
+    // 3. Upsert Bitcoin address
+    await fetch(`${supabaseUrl}/rest/v1/bitcoin_addresses`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({
+        eth_address: userAddress.toLowerCase(),
+        bitcoin_address: bitcoinAddress,
+        network: bitcoinAddress.startsWith('tb1') ? 'testnet' : 'mainnet',
+        verified_at: new Date().toISOString(),
+        monitoring_started_at: new Date().toISOString(),
+        is_monitoring: true,
+        created_at: new Date().toISOString()
+      })
+    })
+    console.log('✅ Bitcoin address saved to Supabase')
+
+    // 4. Create balance snapshot
+    await fetch(`${supabaseUrl}/rest/v1/balance_snapshots`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        user_address: userAddress.toLowerCase(),
+        block_number: blockNumber || 0,
+        rbtc_balance: amount,
+        last_sats: amount,
+        snapshot_timestamp: new Date().toISOString(),
+        created_at: new Date().toISOString()
+      })
+    })
+    console.log('✅ Balance snapshot saved to Supabase')
+
+  } catch (error) {
+    console.error('⚠️ Supabase sync failed (non-critical):', error)
+    // Don't throw - this is non-critical functionality
+  }
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse<MonitoringResponse>> {
   try {
     // Check Oracle credentials at runtime
@@ -205,6 +314,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<Monitorin
         console.log('✅ ORACLE MINT: Sync successful!')
         console.log(`   Transaction: ${syncHash}`)
         
+        // Get block number from receipt
+        const blockNumber = Number(syncReceipt.blockNumber)
+        
         // Verify the mint was successful
         const newLastSats = await publicClient.readContract({
           address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
@@ -223,6 +335,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<Monitorin
         
         console.log(`   New lastSats: ${newLastSats}`)
         console.log('   Oracle monitoring activated successfully!')
+        
+        // Sync to Supabase database
+        await syncToSupabase(
+          'MINT',
+          userAddress,
+          syncHash,
+          bitcoinAddress,
+          initialBalance.toString(),
+          blockNumber
+        )
 
         return NextResponse.json({
           success: true,

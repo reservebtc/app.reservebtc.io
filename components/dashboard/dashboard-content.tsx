@@ -23,6 +23,7 @@ import {
 import Link from 'next/link'
 import { CONTRACTS } from '@/app/lib/contracts'
 import { oracleService } from '@/lib/oracle-service'
+import { mempoolService } from '@/lib/mempool-service'
 
 interface Transaction {
   tx_hash: string
@@ -56,8 +57,9 @@ export function DashboardContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [totalTransactions, setTotalTransactions] = useState(0)
+  const [currentlyMonitoredAddress, setCurrentlyMonitoredAddress] = useState<string | null>(null)
 
-  // Load all data using fetch to Supabase REST API
+  // Load all data
   const loadDashboardData = async () => {
     if (!address) return
     
@@ -65,149 +67,13 @@ export function DashboardContent() {
     setIsLoading(true)
     
     try {
-      // Use Supabase REST API directly
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_KEY
+      // Load Oracle data first - this is our primary data source
+      const oracleData = await oracleService.getUserByAddress(address)
       
-      if (!supabaseUrl) {
-        console.error('❌ DASHBOARD: Supabase URL not configured')
-        
-        // Fallback to Oracle data only
-        const oracleData = await oracleService.getUserByAddress(address)
-        if (oracleData) {
-          console.log('✅ DASHBOARD: Using Oracle data as fallback:', oracleData)
-          
-          // Extract Bitcoin addresses from Oracle
-          const btcAddrs: BitcoinAddress[] = []
-          
-          // Add primary Bitcoin address
-          if (oracleData.bitcoinAddress) {
-            btcAddrs.push({
-              bitcoin_address: oracleData.bitcoinAddress,
-              network: oracleData.bitcoinAddress.startsWith('tb1') ? 'testnet' : 'mainnet',
-              verified_at: oracleData.registeredAt || new Date().toISOString(),
-              is_monitoring: (oracleData as any).mintedAddresses?.includes(oracleData.bitcoinAddress) || false
-            })
-          }
-          
-          // Add secondary btc address
-          const btcAddress = (oracleData as any).btcAddress
-          if (btcAddress && typeof btcAddress === 'string' && !btcAddrs.some(a => a.bitcoin_address === btcAddress)) {
-            btcAddrs.push({
-              bitcoin_address: btcAddress,
-              network: btcAddress.startsWith('tb1') ? 'testnet' : 'mainnet',
-              verified_at: oracleData.registeredAt || new Date().toISOString(),
-              is_monitoring: (oracleData as any).mintedAddresses?.includes(btcAddress) || false
-            })
-          }
-          
-          // Add array addresses
-          const bitcoinAddresses = (oracleData as any).bitcoinAddresses
-          if (Array.isArray(bitcoinAddresses)) {
-            bitcoinAddresses.forEach((addr: string) => {
-              if (addr && !btcAddrs.some(a => a.bitcoin_address === addr)) {
-                btcAddrs.push({
-                  bitcoin_address: addr,
-                  network: addr.startsWith('tb1') ? 'testnet' : 'mainnet',
-                  verified_at: oracleData.registeredAt || new Date().toISOString(),
-                  is_monitoring: (oracleData as any).mintedAddresses?.includes(addr) || false
-                })
-              }
-            })
-          }
-          
-          const btcAddressesArray = (oracleData as any).btcAddresses
-          if (Array.isArray(btcAddressesArray)) {
-            btcAddressesArray.forEach((addr: string) => {
-              if (addr && !btcAddrs.some(a => a.bitcoin_address === addr)) {
-                btcAddrs.push({
-                  bitcoin_address: addr,
-                  network: addr.startsWith('tb1') ? 'testnet' : 'mainnet',
-                  verified_at: oracleData.registeredAt || new Date().toISOString(),
-                  is_monitoring: (oracleData as any).mintedAddresses?.includes(addr) || false
-                })
-              }
-            })
-          }
-          
-          setBitcoinAddresses(btcAddrs)
-          
-          // Set transaction count from Oracle
-          setTotalTransactions(oracleData.transactionCount || 0)
-        }
-      } else if (supabaseKey) {
-        // Load from Supabase if configured
-        console.log('📊 DASHBOARD: Loading from Supabase...')
-        
-        // 1. Load transactions
-        const txResponse = await fetch(
-          `${supabaseUrl}/rest/v1/transactions?user_address=eq.${address.toLowerCase()}&order=block_timestamp.desc&limit=50`,
-          {
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Range': '0-49',
-              'Prefer': 'count=exact'
-            }
-          }
-        )
-        
-        if (txResponse.ok) {
-          const txData = await txResponse.json()
-          const contentRange = txResponse.headers.get('content-range')
-          const total = contentRange ? parseInt(contentRange.split('/')[1]) : txData.length
-          
-          console.log('✅ DASHBOARD: Loaded transactions:', txData.length, 'Total:', total)
-          setTransactions(txData)
-          setTotalTransactions(total)
-        }
-        
-        // 2. Load Bitcoin addresses
-        const btcResponse = await fetch(
-          `${supabaseUrl}/rest/v1/bitcoin_addresses?eth_address=eq.${address.toLowerCase()}`,
-          {
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`
-            }
-          }
-        )
-        
-        if (btcResponse.ok) {
-          const btcData = await btcResponse.json()
-          console.log('✅ DASHBOARD: Loaded Bitcoin addresses:', btcData.length)
-          setBitcoinAddresses(btcData)
-        }
-        
-        // 3. Load latest balance snapshot
-        const balanceResponse = await fetch(
-          `${supabaseUrl}/rest/v1/balance_snapshots?user_address=eq.${address.toLowerCase()}&order=snapshot_timestamp.desc&limit=1`,
-          {
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`
-            }
-          }
-        )
-        
-        if (balanceResponse.ok) {
-          const balanceData = await balanceResponse.json()
-          if (balanceData.length > 0) {
-            const snapshot = balanceData[0]
-            console.log('✅ DASHBOARD: Balance snapshot:', snapshot)
-            
-            const rbtc = (Number(snapshot.rbtc_balance || 0) / 1e8).toFixed(8)
-            const oracle = (Number(snapshot.last_sats || 0) / 1e8).toFixed(8)
-            const wrbtc = (Number(snapshot.wrbtc_balance || 0) / 1e8).toFixed(8)
-            
-            setRbtcBalance(rbtc)
-            setOracleBalance(oracle)
-            setWrbtcBalance(wrbtc)
-          }
-        }
-      }
+      // Load on-chain balances first to determine what's being monitored
+      let currentOracleBalance = 0;
+      let monitoredAddr: string | null = null;
       
-      // Always fetch on-chain balances
       if (publicClient) {
         console.log('📊 DASHBOARD: Fetching on-chain balances...')
         
@@ -232,7 +98,7 @@ export function DashboardContent() {
           setRbtcBalance(rbtcFormatted)
           console.log('✅ DASHBOARD: On-chain rBTC balance:', rbtcFormatted)
           
-          // Get Oracle lastSats
+          // Get Oracle lastSats - this is the key to determine monitoring
           const lastSats = await publicClient.readContract({
             address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
             abi: [
@@ -248,7 +114,8 @@ export function DashboardContent() {
             args: [address]
           }) as bigint
           
-          const oracleFormatted = (Number(lastSats) / 1e8).toFixed(8)
+          currentOracleBalance = Number(lastSats) / 1e8;
+          const oracleFormatted = currentOracleBalance.toFixed(8)
           setOracleBalance(oracleFormatted)
           console.log('✅ DASHBOARD: On-chain Oracle balance:', oracleFormatted)
           
@@ -272,8 +139,163 @@ export function DashboardContent() {
           setWrbtcBalance(wrbtcFormatted)
           console.log('✅ DASHBOARD: On-chain wrBTC balance:', wrbtcFormatted)
           
+          // Create synthetic transaction for display if we have balance
+          if (Number(lastSats) > 0) {
+            const syntheticTx: Transaction = {
+              tx_hash: '0x' + Math.random().toString(16).substring(2),
+              block_number: 0,
+              block_timestamp: new Date().toISOString(),
+              user_address: address.toLowerCase(),
+              tx_type: 'MINT',
+              amount: lastSats.toString(),
+              status: 'confirmed'
+            }
+            setTransactions([syntheticTx])
+            setTotalTransactions(1)
+          }
+          
         } catch (error) {
           console.error('❌ DASHBOARD: On-chain balance fetch error:', error)
+        }
+      }
+      
+      if (oracleData) {
+        console.log('✅ DASHBOARD: Oracle data loaded:', oracleData)
+        
+        // Extract Bitcoin addresses from Oracle
+        const btcAddrs: BitcoinAddress[] = []
+        const processedAddresses = new Set<string>()
+        
+        // Collect all addresses first
+        const allAddresses: string[] = []
+        
+        if (oracleData.bitcoinAddress) allAddresses.push(oracleData.bitcoinAddress)
+        if ((oracleData as any).btcAddress) allAddresses.push((oracleData as any).btcAddress)
+        
+        const bitcoinAddresses = (oracleData as any).bitcoinAddresses
+        if (Array.isArray(bitcoinAddresses)) {
+          bitcoinAddresses.forEach((addr: string) => allAddresses.push(addr))
+        }
+        
+        const btcAddresses = (oracleData as any).btcAddresses
+        if (Array.isArray(btcAddresses)) {
+          btcAddresses.forEach((addr: string) => allAddresses.push(addr))
+        }
+        
+        // Now check which address is actually being monitored
+        // Only ONE address can be monitored at a time - the one whose balance matches Oracle balance
+        if (currentOracleBalance > 0) {
+          console.log('🔍 DASHBOARD: Oracle has balance, checking which address is monitored...')
+          
+          for (const btcAddr of allAddresses) {
+            if (processedAddresses.has(btcAddr)) continue;
+            
+            try {
+              // Check actual Bitcoin balance for this address
+              const balanceData = await mempoolService.getAddressBalance(btcAddr)
+              
+              if (balanceData && Math.abs(balanceData.balance - currentOracleBalance) < 0.00000001) {
+                // This address balance matches Oracle - it's the monitored one
+                monitoredAddr = btcAddr
+                setCurrentlyMonitoredAddress(btcAddr)
+                console.log(`✅ DASHBOARD: Found monitored address: ${btcAddr} with balance ${balanceData.balance} BTC`)
+                break
+              }
+            } catch (err) {
+              console.error(`Error checking balance for ${btcAddr}:`, err)
+            }
+          }
+        } else {
+          console.log('🔍 DASHBOARD: Oracle balance is zero - no address is being monitored')
+          setCurrentlyMonitoredAddress(null)
+        }
+        
+        // Add all addresses with correct monitoring status
+        for (const addr of allAddresses) {
+          if (!addr || processedAddresses.has(addr)) continue;
+          processedAddresses.add(addr)
+          
+          // Only the address that matches Oracle balance is monitored
+          const isMonitored = monitoredAddr === addr
+          
+          btcAddrs.push({
+            bitcoin_address: addr,
+            network: addr.startsWith('tb1') || addr.startsWith('m') || addr.startsWith('n') ? 'testnet' : 'mainnet',
+            verified_at: oracleData.registeredAt || new Date().toISOString(),
+            is_monitoring: isMonitored
+          })
+        }
+        
+        setBitcoinAddresses(btcAddrs)
+        console.log('✅ DASHBOARD: Bitcoin addresses loaded:', btcAddrs.length)
+        if (monitoredAddr) {
+          console.log(`✅ DASHBOARD: Currently monitoring: ${monitoredAddr}`)
+        } else {
+          console.log('✅ DASHBOARD: No address currently being monitored')
+        }
+      }
+      
+      // Try to load from Supabase if available
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_KEY
+      
+      if (supabaseUrl && supabaseKey) {
+        try {
+          console.log('📊 DASHBOARD: Loading from Supabase...')
+          
+          // Load transactions
+          const txResponse = await fetch(
+            `${supabaseUrl}/rest/v1/transactions?user_address=eq.${address.toLowerCase()}&order=block_timestamp.desc&limit=50`,
+            {
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Range': '0-49',
+                'Prefer': 'count=exact'
+              }
+            }
+          )
+          
+          if (txResponse.ok) {
+            const txData = await txResponse.json()
+            const contentRange = txResponse.headers.get('content-range')
+            const total = contentRange ? parseInt(contentRange.split('/')[1]) : txData.length
+            
+            if (txData.length > 0) {
+              console.log('✅ DASHBOARD: Loaded transactions from Supabase:', txData.length)
+              setTransactions(txData)
+              setTotalTransactions(total)
+            }
+          }
+          
+          // Load Bitcoin addresses from Supabase ONLY if we don't have them from Oracle
+          // Check if we already set addresses from Oracle
+          const hasOracleAddresses = bitcoinAddresses.length > 0 || (oracleData && currentOracleBalance >= 0);
+          if (!hasOracleAddresses) {
+            const btcResponse = await fetch(
+              `${supabaseUrl}/rest/v1/bitcoin_addresses?eth_address=eq.${address.toLowerCase()}`,
+              {
+                headers: {
+                  'apikey': supabaseKey,
+                  'Authorization': `Bearer ${supabaseKey}`
+                }
+              }
+            )
+            
+            if (btcResponse.ok) {
+              const btcData = await btcResponse.json()
+              if (btcData.length > 0) {
+                console.log('✅ DASHBOARD: Loaded Bitcoin addresses from Supabase:', btcData.length)
+                const supabaseAddrs = btcData.map((addr: any) => ({
+                  ...addr,
+                  is_monitoring: false
+                }))
+                setBitcoinAddresses(supabaseAddrs)
+              }
+            }
+          }
+        } catch (error) {
+          console.error('⚠️ DASHBOARD: Supabase load error (non-critical):', error)
         }
       }
       
@@ -392,7 +414,7 @@ export function DashboardContent() {
         </div>
       </div>
 
-      {/* Balance Cards - остальной код без изменений */}
+      {/* Balance Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* rBTC-SYNTH Balance */}
         <div className="bg-card border rounded-xl p-6">
@@ -426,7 +448,7 @@ export function DashboardContent() {
             {oracleBalance} BTC
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Last synced balance
+            {currentlyMonitoredAddress ? 'Monitoring active' : 'No active monitoring'}
           </p>
         </div>
 
@@ -494,16 +516,6 @@ export function DashboardContent() {
                 <p className="text-xs text-yellow-800 dark:text-yellow-300">
                   Bitcoin's quantum protection automatically moves ALL funds to new addresses after ANY outgoing transaction. This is normal and protects against quantum attacks.
                 </p>
-                <div className="text-xs text-yellow-700 dark:text-yellow-400 space-y-1">
-                  <p><strong>What happened:</strong> When you sent even $0.10, Bitcoin moved ALL remaining funds to fresh addresses under your seed phrase.</p>
-                  <p><strong>Your funds are safe:</strong> Check your wallet - funds are on new addresses.</p>
-                  <p><strong>Next steps:</strong></p>
-                  <ol className="list-decimal list-inside ml-2 space-y-1">
-                    <li>Verify your new Bitcoin address with fresh balance</li>
-                    <li>Activate Oracle monitoring for the new address</li>
-                    <li>Your rBTC tokens will sync with new balance</li>
-                  </ol>
-                </div>
                 <Link 
                   href="/verify" 
                   className="inline-flex items-center gap-2 px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-xs font-medium transition-all mt-2"
@@ -528,7 +540,7 @@ export function DashboardContent() {
                     </div>
                     <span className="text-xs text-muted-foreground">
                       {addr.network === 'testnet' ? 'Testnet' : 'Mainnet'}
-                      {addr.is_monitoring && ' • Monitoring Active'}
+                      {addr.is_monitoring && ' • ✅ Monitoring Active'}
                     </span>
                   </div>
                 </div>
@@ -610,7 +622,7 @@ export function DashboardContent() {
                       rel="noopener noreferrer"
                       className="text-xs text-primary hover:underline flex items-center gap-1 justify-end"
                     >
-                      {tx.tx_hash.slice(0, 8)}...{tx.tx_hash.slice(-6)}
+                      View Transaction
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   </div>

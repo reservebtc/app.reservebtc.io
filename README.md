@@ -417,6 +417,11 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
+## License
+This project is licensed under the MIT License — see the [LICENSE](./LICENSE) file for details.
+
+---
+
 **ReserveBTC Protocol v1.0** — Decentralized Bitcoin Reserves with Cryptographic Proof-of-Reserves
 
 Built with ❤️ by the ReserveBTC team

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { CheckCircle, AlertCircle, Copy, Check, ChevronDown, ChevronUp, Info, ArrowRight, Rocket } from 'lucide-react'
 import { useAccount } from 'wagmi'
 // CRITICAL SECURITY FIX: Using secure Bitcoin signature validator
-import { SecureBitcoinValidator } from '@/lib/bitcoin-signature-secure-validator'
+import { BitcoinSignatureValidatorFixed } from '@/lib/bitcoin-signature-validator-fixed'
 import { useRouter } from 'next/navigation'
 // User data now handled by Professional Oracle only
 import { useUserVerification } from '@/hooks/useUserProfile'
@@ -281,24 +281,24 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
 
   // 🔐 CRITICAL SECURITY FIX: Proper signature validation with address verification
   const verifyBitcoinSignature = async (address: string, message: string, signature: string): Promise<boolean> => {
-    console.log('🔐 SECURE VALIDATOR: Starting secure signature verification')
+    console.log('🔐 VALIDATOR: Starting signature verification')
     console.log(`   Address: ${address}`)
     console.log(`   Message length: ${message.length}`)
     console.log(`   Signature length: ${signature.length}`)
     
     try {
-      const isValid = SecureBitcoinValidator.verify(address, message, signature)
+      const isValid = BitcoinSignatureValidatorFixed.verify(address, message, signature)
       
       if (isValid) {
-        console.log('✅ SECURE: Signature verified for correct address')
+        console.log('✅ Signature verified successfully')
         return true
       } else {
-        console.error('❌ SECURITY: Invalid signature - address/signature mismatch')
+        console.error('❌ Invalid signature')
         return false
       }
       
     } catch (error) {
-      console.error('❌ SECURE VALIDATOR: Signature validation error:', error)
+      console.error('❌ Signature validation error:', error)
       return false
     }
   }
@@ -353,7 +353,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
       
       setVerificationResult({
         success: true,
-        message: '✅ Bitcoin signature verified successfully with BIP-322 cryptographic validation!'
+        message: 'Bitcoin signature verified successfully with BIP-322 cryptographic validation!'
       })
       
       // Save verified address for navigation
