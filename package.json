@@ -29,8 +29,8 @@
     "@supabase/supabase-js": "2.56.1",
     "@tanstack/react-query": "^5.51.0",
     "@types/pg": "8.15.5",
-    "@wagmi/connectors": "^5.1.0",
-    "@wagmi/core": "^2.13.0",
+    "@wagmi/connectors": "^5.9.9",
+    "@wagmi/core": "^2.20.3",
     "bech32": "2.0.0",
     "bitcoin-address-validation": "^2.2.3",
     "bitcoinjs-lib": "6.1.5",
@@ -46,8 +46,8 @@
     "react-hook-form": "^7.52.0",
     "sonner": "2.0.7",
     "swr": "2.3.6",
-    "viem": "2.36.0",
-    "wagmi": "^2.12.0",
+    "viem": "^2.37.6",
+    "wagmi": "^2.16.9",
     "zod": "^3.23.0"
   },
   "devDependencies": {
