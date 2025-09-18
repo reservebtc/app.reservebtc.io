@@ -1,131 +1,207 @@
 // app/api/cron/indexer/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { ethers } from 'ethers';
+// Updated indexer to work with unified real-time system
 
-export async function GET(request: NextRequest) {
-  // NO AUTHENTICATION CHECKS - Vercel handles protection
-  // For manual testing use: ?x-vercel-protection-bypass=your_token
-  
-  const startTime = Date.now();
-  console.log('🚀 INDEXER: Started at', new Date().toISOString());
-  
+import { NextRequest, NextResponse } from 'next/server';
+import { createPublicClient, http } from 'viem';
+
+const MEGAETH_RPC = 'https://carrot.megaeth.com/rpc';
+const SUPABASE_URL = 'https://qoudozwmecstoxrqopqf.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvdWRvendtZWNzdG94cnFvcHFmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTUxOTc1OCwiZXhwIjoyMDU3MDk1NzU4fQ.WXjRfrYXnJZZguYc8thlGbdIfUG2z6Ws06UbPg8AIrQ';
+
+const client = createPublicClient({
+  transport: http(MEGAETH_RPC),
+});
+
+// Contract addresses and event signatures
+const ORACLE_CONTRACT = '0x74E64267a4d19357dd03A0178b5edEC79936c643' as `0x${string}`;
+
+// Only process historical data that unified system might have missed
+async function processHistoricalData() {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_KEY || 
-                       process.env.SUPABASE_SERVICE_ROLE_KEY;
+    console.log('📊 CRON: Checking for missed historical data...');
     
-    if (!supabaseUrl || !supabaseKey) {
-      return NextResponse.json({
-        success: false,
-        error: 'Missing configuration'
-      }, { status: 503 });
-    }
-    
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const provider = new ethers.JsonRpcProvider('https://carrot.megaeth.com/rpc');
-    
-    const currentBlock = await provider.getBlockNumber();
-    console.log(`📊 Current block: ${currentBlock}`);
-    
-    const { data: lastBlockData } = await supabase
-      .from('transactions')
-      .select('block_number')
-      .order('block_number', { ascending: false })
-      .limit(1)
-      .single();
-    
-    const lastIndexedBlock = lastBlockData?.block_number || (currentBlock - 500);
-    
-    if (lastIndexedBlock >= currentBlock) {
-      return NextResponse.json({ 
-        success: true,
-        message: 'Already up to date',
-        currentBlock,
-        lastIndexedBlock
-      });
-    }
-    
-    const fromBlock = lastIndexedBlock + 1;
-    const toBlock = Math.min(fromBlock + 49, currentBlock);
-    
-    console.log(`🔄 Indexing blocks ${fromBlock} to ${toBlock}`);
-    
-    const ORACLE_CONTRACT = '0x74E64267a4d19357dd03A0178b5edEC79936c643';
-    const oracleContract = new ethers.Contract(
-      ORACLE_CONTRACT,
-      ['event Synced(address indexed user, uint64 newBalanceSats, int64 deltaSats, uint256 feeWei, uint32 height, uint64 timestamp)'],
-      provider
+    // Get the latest processed block from Supabase
+    const latestResponse = await fetch(
+      `${SUPABASE_URL}/rest/v1/transactions?order=block_number.desc&limit=1`,
+      {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      }
     );
     
-    const transactions: any[] = [];
-    const usersToAdd = new Set<string>();
+    const latestRecords = await latestResponse.json();
+    const latestProcessedBlock = Array.isArray(latestRecords) && latestRecords.length > 0 
+      ? BigInt(latestRecords[0].block_number)
+      : BigInt(16500000); // Start block
     
-    const syncedEvents = await oracleContract.queryFilter(
-      oracleContract.filters.Synced(),
-      fromBlock,
-      toBlock
-    );
+    const currentBlock = await client.getBlockNumber();
+    const scanFromBlock = latestProcessedBlock + BigInt(1);
     
-    console.log(`Found ${syncedEvents.length} Synced events`);
+    // Only scan if there's a significant gap (more than 100 blocks)
+    if (currentBlock - scanFromBlock < BigInt(100)) {
+      console.log('📊 CRON: No historical gap detected, skipping');
+      return { processed: 0, message: 'No historical gap' };
+    }
     
-    for (const event of syncedEvents) {
-      const block = await provider.getBlock(event.blockNumber);
-      if (!block) continue;
+    console.log(`📊 CRON: Scanning historical gap from ${scanFromBlock} to ${currentBlock}`);
+    
+    // Scan for missed Oracle events in batches
+    const batchSize = BigInt(1000);
+    let totalProcessed = 0;
+    
+    for (let fromBlock = scanFromBlock; fromBlock < currentBlock; fromBlock += batchSize) {
+      const toBlock = fromBlock + batchSize - BigInt(1) > currentBlock ? currentBlock : fromBlock + batchSize - BigInt(1);
       
-      const eventWithArgs = event as ethers.EventLog;
-      if (!eventWithArgs.args) continue;
-      
-      const userAddr = eventWithArgs.args[0].toLowerCase();
-      const newBalance = eventWithArgs.args[1];
-      const delta = eventWithArgs.args[2];
-      
-      usersToAdd.add(userAddr);
-      
-      let txType = 'SYNC';
-      const deltaNum = Number(delta);
-      if (deltaNum > 0) txType = 'MINT';
-      else if (deltaNum < 0) txType = 'BURN';
-      
-      console.log(`${txType}: ${userAddr.slice(0,10)}... delta=${deltaNum}`);
-      
-      transactions.push({
-        tx_hash: event.transactionHash,
-        block_number: event.blockNumber,
-        block_timestamp: new Date(block.timestamp * 1000).toISOString(),
-        user_address: userAddr,
-        tx_type: txType,
-        amount: Math.abs(deltaNum).toString(),
-        delta: deltaNum.toString(),
-        fee_wei: eventWithArgs.args[3]?.toString() || '0',
-        status: 'confirmed'
+      const logs = await client.getLogs({
+        address: ORACLE_CONTRACT,
+        fromBlock,
+        toBlock
       });
+      
+      // Process missed events
+      for (const log of logs) {
+        // Filter for Synced events only
+        if (log.topics[0] !== '0xbd74477ace0e09075451becb82bdae1c9a11698b13f8488ab67f55722444eb84') {
+          continue;
+        }
+        
+        // Check if already processed
+        const existingResponse = await fetch(
+          `${SUPABASE_URL}/rest/v1/transactions?tx_hash=eq.${log.transactionHash}&select=tx_hash`,
+          {
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`
+            }
+          }
+        );
+        
+        const existing = await existingResponse.json();
+        if (Array.isArray(existing) && existing.length > 0) continue; // Already processed
+        
+        // Process missed transaction
+        if ('args' in log && log.args) {
+          const args = log.args as any;
+          const userAddress = (args.user as string).toLowerCase();
+          const deltaSats = Number(args.deltaSats);
+          
+          const transaction = {
+            tx_hash: log.transactionHash,
+            block_number: Number(log.blockNumber),
+            block_timestamp: new Date().toISOString(),
+            user_address: userAddress,
+            tx_type: deltaSats > 0 ? 'MINT' : 'BURN',
+            amount: Math.abs(deltaSats).toString(),
+            delta: deltaSats.toString(),
+            fee_wei: args.feeWei?.toString() || '0',
+            status: 'confirmed',
+            indexed_by: 'cron_historical'
+          };
+          
+          // Write missed transaction
+          const writeResponse = await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify(transaction)
+          });
+          
+          if (writeResponse.ok) {
+            totalProcessed++;
+            console.log(`📊 CRON: Processed missed tx ${log.transactionHash.slice(0,10)}...`);
+          }
+        }
+      }
     }
     
-    if (usersToAdd.size > 0) {
-      const users = Array.from(usersToAdd).map(addr => ({ eth_address: addr }));
-      await supabase.from('users').upsert(users, { onConflict: 'eth_address' });
-      console.log(`Added ${users.length} users`);
-    }
-    
-    if (transactions.length > 0) {
-      await supabase.from('transactions').upsert(transactions, { onConflict: 'tx_hash' });
-      console.log(`Added ${transactions.length} transactions`);
-    }
-    
-    return NextResponse.json({ 
-      success: true,
-      indexed: `${fromBlock}-${toBlock}`,
-      transactions: transactions.length,
-      users: usersToAdd.size,
-      duration: Date.now() - startTime
-    });
+    return { 
+      processed: totalProcessed, 
+      message: `Processed ${totalProcessed} missed historical transactions` 
+    };
     
   } catch (error) {
-    console.error('❌ Error:', error);
-    return NextResponse.json({ 
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error('❌ CRON: Historical processing error:', error);
+    throw error;
+  }
+}
+
+// Health check and cleanup
+async function performMaintenance() {
+  try {
+    console.log('🔧 CRON: Performing maintenance tasks...');
+    
+    // Clean up old test transactions
+    const deleteResponse = await fetch(`${SUPABASE_URL}/rest/v1/transactions?tx_type=eq.TEST`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    
+    // Update any pending transactions older than 1 hour to failed
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/transactions?status=eq.pending&block_timestamp=lt.${oneHourAgo}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ status: 'failed' })
+    });
+    
+    console.log('✅ CRON: Maintenance completed');
+    return { 
+      maintenance: 'completed',
+      deletedTests: deleteResponse.ok,
+      updatedPending: updateResponse.ok
+    };
+    
+  } catch (error) {
+    console.error('❌ CRON: Maintenance error:', error);
+    throw error;
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    console.log('⏰ CRON: Starting compatible indexer job...');
+    
+    // Check authorization
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    // Run tasks
+    const [historicalResult, maintenanceResult] = await Promise.all([
+      processHistoricalData(),
+      performMaintenance()
+    ]);
+    
+    const result = {
+      timestamp: new Date().toISOString(),
+      historical: historicalResult,
+      maintenance: maintenanceResult,
+      status: 'success',
+      note: 'Real-time processing handled by unified system'
+    };
+    
+    console.log('✅ CRON: Compatible indexer completed', result);
+    return NextResponse.json(result);
+    
+  } catch (error) {
+    console.error('❌ CRON: Job failed:', error);
+    return NextResponse.json(
+      { error: 'Indexer job failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
   }
 }

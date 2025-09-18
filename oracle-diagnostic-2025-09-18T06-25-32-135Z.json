@@ -1,0 +1,106 @@
+{
+  "timestamp": "2025-09-18T06:25:32.134Z",
+  "summary": {
+    "totalEndpointsTested": 222,
+    "workingEndpoints": 4,
+    "notFoundEndpoints": 30,
+    "errorEndpoints": 188
+  },
+  "workingEndpoints": [
+    {
+      "url": "https://oracle.reservebtc.io/status",
+      "path": "/status",
+      "status": 200,
+      "success": true,
+      "responseTime": 246,
+      "contentType": "application/json; charset=utf-8",
+      "data": "{\"status\":\"operational\",\"mode\":\"PROFESSIONAL_PRODUCTION\",\"version\":\"2.1.0\",\"uptime\":589754831,\"metrics\":{\"totalUsers\":3,\"totalTransactions\":2,\"totalMintOperations\":0,\"totalBurnOperations\":0,\"totalWrap"
+    },
+    {
+      "url": "https://oracle.reservebtc.io/health",
+      "path": "/health",
+      "status": 200,
+      "success": true,
+      "responseTime": 247,
+      "contentType": "application/json; charset=utf-8",
+      "data": "{\"status\":\"healthy\",\"timestamp\":\"2025-09-18T06:24:30.498Z\",\"uptime\":589755179,\"memory\":{\"used\":\"20 MB\",\"total\":\"27 MB\"},\"cache\":{\"profiles\":3,\"transactions\":3},\"version\":\"2.1.0\",\"mode\":\"PROFESSIONAL_P"
+    },
+    {
+      "url": "https://oracle.reservebtc.io/users",
+      "path": "/users",
+      "status": 200,
+      "success": true,
+      "responseTime": 244,
+      "contentType": "application/json; charset=utf-8",
+      "data": "{\"encrypted\":true,\"data\":\"2bc17999f74e4116139f72a48c2f95c73ff1c46d384963960d972a9a685c312baaaa1b2628fb9b18ef8eaaa762439f91afc11b6f326624c469a5f5c147d1a29750677b16ba4d05fc8fd1afca7b7fe49786a2e54cd893a0"
+    },
+    {
+      "url": "https://oracle.reservebtc.io/user/0xf45d5feefd7235d9872079d537f5796ba79b1e52",
+      "path": "/user/0xf45d5feefd7235d9872079d537f5796ba79b1e52",
+      "status": 200,
+      "success": true,
+      "responseTime": 244,
+      "contentType": "application/json; charset=utf-8",
+      "data": "{\"encrypted\":true,\"data\":\"025a1c5f6a57119b02a5ad676f017efd04788defeaf249fba9770bb6c5d0f7514827379d4474ffd41b129b01a6b3f1f01f2cf772e6bd72dfc8e732122bdd94e5976df0c045fdc9937685d5ebdeff2a84c64ee0ef89539d"
+    }
+  ],
+  "projectConfigs": [
+    {
+      "file": "professional-oracle-server.js",
+      "oracleUrls": [],
+      "apiEndpoints": [],
+      "ports": [
+        ":3000"
+      ]
+    },
+    {
+      "file": "lib/oracle-service.ts",
+      "oracleUrls": [
+        "https://oracle.reservebtc.io'"
+      ],
+      "apiEndpoints": [],
+      "ports": []
+    },
+    {
+      "file": "package.json",
+      "oracleUrls": [],
+      "apiEndpoints": [
+        "/api/__tests__/"
+      ],
+      "ports": []
+    },
+    {
+      "file": ".env",
+      "oracleUrls": [],
+      "apiEndpoints": [],
+      "ports": [
+        ":5432",
+        ":8332"
+      ]
+    },
+    {
+      "file": ".env.local",
+      "oracleUrls": [
+        "https://oracle.reservebtc.io"
+      ],
+      "apiEndpoints": [],
+      "ports": [
+        ":5432",
+        ":6543"
+      ]
+    },
+    {
+      "file": "vercel.json",
+      "oracleUrls": [],
+      "apiEndpoints": [
+        "/api/cron/indexer",
+        "/api/cron/bitcoin-balance-sync",
+        "/api/cron/"
+      ],
+      "ports": []
+    }
+  ],
+  "recommendations": [
+    "✅ Found 4 working endpoints."
+  ]
+}

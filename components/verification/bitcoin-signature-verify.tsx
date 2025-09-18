@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CheckCircle, AlertCircle, Copy, Check, ChevronDown, ChevronUp, Info, ArrowRight, Rocket } from 'lucide-react'
+import { CheckCircle, AlertCircle, Copy, Check, ChevronDown, ChevronUp, Info, ArrowRight, Rocket, Activity } from 'lucide-react'
 import { useAccount } from 'wagmi'
 // CRITICAL SECURITY FIX: Using secure Bitcoin signature validator
 import { BitcoinSignatureValidatorFixed } from '@/lib/bitcoin-signature-validator-fixed'
@@ -9,6 +9,8 @@ import { useRouter } from 'next/navigation'
 // User data now handled by Professional Oracle only
 import { useUserVerification } from '@/hooks/useUserProfile'
 import { saveVerifiedUserToCache } from '@/lib/verified-users-cache'
+// Real-time integration
+import { useRealtimeUserData } from '@/hooks/use-professional-realtime'
 // Old Oracle modules removed - using Professional Oracle only
 // Smart contract integration removed - using Professional Oracle only
 
@@ -30,9 +32,32 @@ interface WalletInstruction {
   testnet?: string[]
 }
 
+// UI Badge component
+interface BadgeProps {
+  variant?: 'default' | 'outline'
+  className?: string
+  children: React.ReactNode
+}
+
+const Badge = ({ variant = 'default', className = '', children }: BadgeProps) => {
+  const baseClasses = 'inline-flex items-center px-2 py-1 text-xs font-medium rounded'
+  const variantClasses = variant === 'outline' 
+    ? 'border border-muted text-muted-foreground bg-background'
+    : 'bg-primary text-primary-foreground'
+  
+  return (
+    <span className={`${baseClasses} ${variantClasses} ${className}`}>
+      {children}
+    </span>
+  )
+}
+
 export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignatureVerifyProps) {
   const { address: ethAddress, isConnected: isMetaMaskConnected } = useAccount()
   const router = useRouter()
+  
+  // Real-time integration
+  const userData = useRealtimeUserData()
   
   // Use new user verification hook for other purposes if needed
   const { refreshProfile } = useUserVerification()
@@ -122,6 +147,7 @@ export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignat
       }
     }
   }
+
   const [bitcoinAddress, setBitcoinAddress] = useState('')
   const [signature, setSignature] = useState('')
   const [isVerifying, setIsVerifying] = useState(false)
@@ -156,6 +182,24 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
     setTimeout(() => setCopiedMessage(false), 2000)
   }
 
+  // Real-time sync for existing verified addresses
+  useEffect(() => {
+    if (userData.user && !userData.loading) {
+      console.log('📡 VERIFY: Real-time user data update received')
+      
+      // Check if user already has verified addresses from real-time system
+      const userBitcoinAddresses = (userData.user as any).bitcoinAddresses || []
+      if (userBitcoinAddresses.length > 0) {
+        console.log('📡 VERIFY: User has', userBitcoinAddresses.length, 'verified addresses in real-time system')
+        
+        // If we just verified an address and it's now in real-time data, we can show success
+        if (verifiedAddress && userBitcoinAddresses.includes(verifiedAddress)) {
+          console.log('📡 VERIFY: Just verified address confirmed in real-time system')
+        }
+      }
+    }
+  }, [userData, verifiedAddress])
+
   // Check Bitcoin address uniqueness (enhanced version)
   const checkAddressUniqueness = async (bitcoinAddress: string) => {
     if (!bitcoinAddress || !ethAddress) return
@@ -171,6 +215,21 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
     })
 
     try {
+      // First check real-time data if available
+      if (userData.user && !userData.loading) {
+        const userBitcoinAddresses = (userData.user as any).bitcoinAddresses || []
+        if (userBitcoinAddresses.includes(bitcoinAddress)) {
+          console.log('📡 UNIQUENESS CHECK: Address found in real-time data for current user')
+          setAddressUniquenessCheck({
+            isChecking: false,
+            isUnique: false,
+            error: null,
+            conflictUser: 'current_user',
+            message: "You have already verified this Bitcoin address"
+          })
+          return
+        }
+      }
 
       const { oracleService } = await import('@/lib/oracle-service')
       const allUsers = await oracleService.getDecryptedUsers()
@@ -302,7 +361,6 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
       return false
     }
   }
-
 
   const verifySignature = async () => {
     if (!bitcoinAddress || !signature || !message) {
@@ -556,12 +614,23 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold flex items-center space-x-2">
-          <span>🔐</span>
-          <span>Bitcoin Address Verification</span>
-        </h3>
-        <p className="text-sm text-muted-foreground mt-1">
+        <div className="flex items-center space-x-2 mb-1">
+          <h3 className="text-lg font-semibold flex items-center space-x-2">
+            <span>🔐</span>
+            <span>Bitcoin Address Verification</span>
+          </h3>
+          {!userData.loading && userData.user && (userData.user as any).bitcoinAddresses?.length > 0 && (
+            <Badge variant="outline" className="flex items-center gap-1">
+              <Activity className="h-3 w-3 text-green-500" />
+              Real-time
+            </Badge>
+          )}
+        </div>
+        <p className="text-sm text-muted-foreground">
           Verify ownership of your Bitcoin address using BIP-322 signature
+          {!userData.loading && userData.user && (userData.user as any).bitcoinAddresses?.length > 0 && (
+            <span className="text-green-600 ml-1">• {(userData.user as any).bitcoinAddresses.length} verified address(es)</span>
+          )}
         </p>
       </div>
 
@@ -581,6 +650,30 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
 
       {isMetaMaskConnected && (
         <>
+          {/* Real-time verification status indicator */}
+          {!userData.loading && userData.user && (userData.user as any).bitcoinAddresses?.length > 0 && (
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium text-green-900 dark:text-green-100">
+                    Verified Addresses Found
+                  </p>
+                  <p className="text-green-700 dark:text-green-300 text-sm mt-1">
+                    You have {(userData.user as any).bitcoinAddresses.length} verified Bitcoin address(es) in the real-time system.
+                    You can verify additional addresses below.
+                  </p>
+                  <div className="mt-2">
+                    <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                      <Activity className="h-3 w-3 text-green-500" />
+                      Live sync active
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Step 1: Message to Sign */}
           <div className="border rounded-lg p-4 space-y-3">
             <div className="flex items-center justify-between">
@@ -847,10 +940,17 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                         Address: {bitcoinAddress}
                       </p>
                     )}
+                    {verificationResult.success && !userData.loading && (
+                      <div className="mt-2">
+                        <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                          <Activity className="h-3 w-3 text-green-500" />
+                          Will sync to real-time system
+                        </Badge>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-
 
               {/* Continue to Mint Button - Only shown on successful verification */}
               {verificationResult.success && (

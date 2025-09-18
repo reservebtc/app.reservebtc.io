@@ -5,12 +5,12 @@
   "outputDirectory": ".next",
   "crons": [
     {
-      "path": "/api/cron/bitcoin-balance-sync",
-      "schedule": "*/15 * * * *"
+      "path": "/api/cron/indexer",
+      "schedule": "*/1 * * * *"  
     },
     {
-      "path": "/api/cron/indexer",
-      "schedule": "*/5 * * * *"
+      "path": "/api/cron/bitcoin-balance-sync",
+      "schedule": "*/5 * * * *"   
     }
   ],
   "functions": {

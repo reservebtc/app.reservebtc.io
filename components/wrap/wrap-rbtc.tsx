@@ -21,7 +21,10 @@ import {
   Unlock,
   History,
   DollarSign,
-  X
+  X,
+  ChevronDown,
+  ChevronUp,
+  Activity
 } from 'lucide-react'
 import Link from 'next/link'
 import { CONTRACTS, CONTRACT_ABIS } from '@/app/lib/contracts'
@@ -61,10 +64,37 @@ export function WrapRBTC() {
   const [showRiskModal, setShowRiskModal] = useState(false)
   const [acceptedRisks, setAcceptedRisks] = useState(false)
   const [acceptedUserAgreement, setAcceptedUserAgreement] = useState(false)
+  const [showFullAgreement, setShowFullAgreement] = useState(false)
   const [pendingOperation, setPendingOperation] = useState<'wrap' | 'unwrap' | null>(null)
   const [wrapTransactions, setWrapTransactions] = useState<WrapTransaction[]>([])
   const [activeTab, setActiveTab] = useState<'wrap' | 'unwrap'>('wrap')
   const [showNotice, setShowNotice] = useState(true)
+  const [liveMode, setLiveMode] = useState(false)
+
+  // Real-time balances
+  useEffect(() => {
+    if (!address) return
+
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/realtime/balances?address=${address}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.rbtc !== undefined) {
+            setRbtcBalance((parseFloat(data.rbtc) / 100000000).toFixed(8))
+            setLiveMode(true)
+          }
+          if (data.wrbtc !== undefined) {
+            setWrbtcBalance((parseFloat(data.wrbtc) / 100000000).toFixed(8))
+          }
+        }
+      } catch (error) {
+        setLiveMode(false)
+      }
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [address])
 
   // Instant UI cleanup on address change
   useEffect(() => {
@@ -82,8 +112,10 @@ export function WrapRBTC() {
       setShowRiskModal(false)
       setAcceptedRisks(false)
       setAcceptedUserAgreement(false)
+      setShowFullAgreement(false)
       setPendingOperation(null)
       setWrapTransactions([])
+      setLiveMode(false)
       
       console.log('✅ Cleanup completed successfully')
     }
@@ -91,7 +123,7 @@ export function WrapRBTC() {
 
   // Load balances
   useEffect(() => {
-    if (!address || !publicClient) return
+    if (!address || !publicClient || liveMode) return
 
     const loadBalances = async () => {
       try {
@@ -201,7 +233,7 @@ export function WrapRBTC() {
     }
 
     loadBalances()
-  }, [address, publicClient])
+  }, [address, publicClient, liveMode])
 
   // Handle wrap operation
   const handleWrap = async () => {
@@ -262,24 +294,26 @@ export function WrapRBTC() {
       
       setWrapTransactions(prev => [newTransaction, ...prev])
       
-      // Reload balances
-      const [newRbtcBalance, newWrbtcBalance] = await Promise.all([
-        publicClient.readContract({
-          address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
-          abi: CONTRACT_ABIS.RBTC_SYNTH,
-          functionName: 'balanceOf',
-          args: [address]
-        }),
-        publicClient.readContract({
-          address: CONTRACTS.VAULT_WRBTC as `0x${string}`,
-          abi: CONTRACT_ABIS.VAULT_WRBTC,
-          functionName: 'balanceOf',
-          args: [address]
-        })
-      ])
-      
-      setRbtcBalance(formatUnits(newRbtcBalance as bigint, 8))
-      setWrbtcBalance(formatUnits(newWrbtcBalance as bigint, 8))
+      // Reload balances only if not using realtime
+      if (!liveMode) {
+        const [newRbtcBalance, newWrbtcBalance] = await Promise.all([
+          publicClient.readContract({
+            address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
+            abi: CONTRACT_ABIS.RBTC_SYNTH,
+            functionName: 'balanceOf',
+            args: [address]
+          }),
+          publicClient.readContract({
+            address: CONTRACTS.VAULT_WRBTC as `0x${string}`,
+            abi: CONTRACT_ABIS.VAULT_WRBTC,
+            functionName: 'balanceOf',
+            args: [address]
+          })
+        ])
+        
+        setRbtcBalance(formatUnits(newRbtcBalance as bigint, 8))
+        setWrbtcBalance(formatUnits(newWrbtcBalance as bigint, 8))
+      }
       
       // Sync with Oracle server
       console.log('🔄 WRAP: Syncing with Oracle server...')
@@ -287,6 +321,7 @@ export function WrapRBTC() {
       
       setWrapAmount('')
       setAcceptedUserAgreement(false)
+      setShowFullAgreement(false)
       console.log('✅ WRAP: Transaction completed and synced with Oracle')
       
     } catch (error) {
@@ -350,24 +385,26 @@ export function WrapRBTC() {
       
       setWrapTransactions(prev => [newTransaction, ...prev])
       
-      // Reload balances
-      const [newRbtcBalance, newWrbtcBalance] = await Promise.all([
-        publicClient.readContract({
-          address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
-          abi: CONTRACT_ABIS.RBTC_SYNTH,
-          functionName: 'balanceOf',
-          args: [address]
-        }),
-        publicClient.readContract({
-          address: CONTRACTS.VAULT_WRBTC as `0x${string}`,
-          abi: CONTRACT_ABIS.VAULT_WRBTC,
-          functionName: 'balanceOf',
-          args: [address]
-        })
-      ])
-      
-      setRbtcBalance(formatUnits(newRbtcBalance as bigint, 8))
-      setWrbtcBalance(formatUnits(newWrbtcBalance as bigint, 8))
+      // Reload balances only if not using realtime
+      if (!liveMode) {
+        const [newRbtcBalance, newWrbtcBalance] = await Promise.all([
+          publicClient.readContract({
+            address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
+            abi: CONTRACT_ABIS.RBTC_SYNTH,
+            functionName: 'balanceOf',
+            args: [address]
+          }),
+          publicClient.readContract({
+            address: CONTRACTS.VAULT_WRBTC as `0x${string}`,
+            abi: CONTRACT_ABIS.VAULT_WRBTC,
+            functionName: 'balanceOf',
+            args: [address]
+          })
+        ])
+        
+        setRbtcBalance(formatUnits(newRbtcBalance as bigint, 8))
+        setWrbtcBalance(formatUnits(newWrbtcBalance as bigint, 8))
+      }
       
       // Sync with Oracle server
       console.log('🔄 UNWRAP: Syncing with Oracle server...')
@@ -444,11 +481,19 @@ export function WrapRBTC() {
           <div className="p-3 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
             <ArrowUpDown className="h-8 w-8 text-purple-600 dark:text-purple-400" />
           </div>
-          <h1 className="text-4xl font-bold">
-            <span className="bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 bg-clip-text text-transparent">
-              Wrap rBTC-SYNTH
-            </span>
-          </h1>
+          <div className="flex items-center justify-center gap-3">
+            <h1 className="text-4xl font-bold">
+              <span className="bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 bg-clip-text text-transparent">
+                Wrap rBTC-SYNTH
+              </span>
+            </h1>
+            {liveMode && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 text-xs font-medium rounded-full">
+                <Activity className="h-3 w-3" />
+                Live
+              </span>
+            )}
+          </div>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             Convert your soulbound rBTC-SYNTH into transferable wrBTC certificates. 
             Create Bitcoin liquidity while maintaining non-custodial control.
@@ -469,7 +514,10 @@ export function WrapRBTC() {
                   <p className="text-xs text-muted-foreground">Soulbound • Non-transferable</p>
                 </div>
               </div>
-              <Lock className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-2">
+                <Lock className="h-4 w-4 text-muted-foreground" />
+                {liveMode && <Activity className="h-3 w-3 text-green-500" />}
+              </div>
             </div>
             <div className="space-y-2">
               <div className="text-3xl font-bold font-mono">
@@ -477,6 +525,7 @@ export function WrapRBTC() {
               </div>
               <p className="text-sm text-muted-foreground">
                 Backed 1:1 by Bitcoin in your wallet
+                {liveMode && <span className="block text-xs text-green-600">Live balance</span>}
               </p>
             </div>
           </div>
@@ -493,7 +542,10 @@ export function WrapRBTC() {
                   <p className="text-xs text-muted-foreground">ERC-20 • Transferable</p>
                 </div>
               </div>
-              <Unlock className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-2">
+                <Unlock className="h-4 w-4 text-muted-foreground" />
+                {liveMode && <Activity className="h-3 w-3 text-green-500" />}
+              </div>
             </div>
             <div className="space-y-2">
               <div className="text-3xl font-bold font-mono">
@@ -501,6 +553,7 @@ export function WrapRBTC() {
               </div>
               <p className="text-sm text-muted-foreground">
                 Certificates backed by rBTC-SYNTH
+                {liveMode && <span className="block text-xs text-green-600">Live balance</span>}
               </p>
             </div>
           </div>
@@ -540,8 +593,9 @@ export function WrapRBTC() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <label className="text-sm font-medium">Wrap Amount</label>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
                       Available: {parseFloat(rbtcBalance).toFixed(8)} rBTC-SYNTH
+                      {liveMode && <Activity className="h-3 w-3 text-green-500" />}
                     </div>
                   </div>
                   
@@ -578,7 +632,7 @@ export function WrapRBTC() {
                   </div>
                 </div>
 
-                {/* User Agreement Checkbox */}
+                {/* User Agreement Checkbox with Expandable Content */}
                 <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                   <div className="flex items-start space-x-3">
                     <input
@@ -588,16 +642,96 @@ export function WrapRBTC() {
                       onChange={(e) => setAcceptedUserAgreement(e.target.checked)}
                       className="mt-1 h-4 w-4 rounded border-gray-300"
                     />
-                    <label htmlFor="user-agreement" className="text-sm">
-                      <span className="font-medium text-blue-800 dark:text-blue-200">
+                    <div className="text-sm flex-1">
+                      <label htmlFor="user-agreement" className="font-medium text-blue-800 dark:text-blue-200 cursor-pointer">
                         I have read and agree to the User Agreement
-                      </span>
+                      </label>
                       <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
                         By checking this box, you confirm that you understand wrBTC is an experimental token with no guaranteed value, 
                         and you accept all risks including total loss.
                       </p>
-                    </label>
+                      
+                      {/* Toggle Agreement Button */}
+                      <button
+                        type="button"
+                        onClick={() => setShowFullAgreement(!showFullAgreement)}
+                        className="mt-2 inline-flex items-center text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                      >
+                        {showFullAgreement ? (
+                          <>
+                            <ChevronUp className="w-3 h-3 mr-1" />
+                            Hide Full Agreement
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="w-3 h-3 mr-1" />
+                            View Full Agreement
+                          </>
+                        )}
+                      </button>
+
+                      {/* Open in New Page Link */}
+                      <a
+                        href="/agreement"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-3 inline-flex items-center text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                      >
+                        <ExternalLink className="w-3 h-3 mr-1" />
+                        Open in New Page
+                      </a>
+                    </div>
                   </div>
+
+                  {/* Expandable Agreement Content */}
+                  {showFullAgreement && (
+                    <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800">
+                      <div className="text-xs space-y-3 text-blue-700 dark:text-blue-300 max-h-96 overflow-y-auto pr-2">
+                        <p className="font-semibold">
+                          By clicking "WRAP" and interacting with the protocol, you confirm and agree to the following:
+                        </p>
+                        
+                        <div>
+                          <p className="font-semibold">1. No Company / No Legal Entity</p>
+                          <p>This project is open-source software published on GitHub. There is no company, legal entity, or organization operating or controlling wrBTC.</p>
+                        </div>
+
+                        <div>
+                          <p className="font-semibold">2. No Custody / No Funds Held</p>
+                          <p>We never hold, receive, or custody any of your Bitcoin, Ether, or tokens. All actions are performed directly by you through public smart contracts.</p>
+                        </div>
+
+                        <div>
+                          <p className="font-semibold">3. Experimental / Play Token</p>
+                          <p>wrBTC is not money, not a security, not a stablecoin, and not an investment. It is an experimental, user-generated token that may have <strong>zero or highly volatile value</strong>. Any value comes only from other users voluntarily trading it.</p>
+                        </div>
+
+                        <div>
+                          <p className="font-semibold">4. No Responsibility</p>
+                          <p>The software is provided "AS IS", without warranties of any kind. We make no guarantees regarding price, liquidity, or usability of wrBTC. We are not responsible for any losses, damages, or claims that may arise from your use of wrBTC.</p>
+                        </div>
+
+                        <div>
+                          <p className="font-semibold">5. International Users</p>
+                          <p>If you wrap, sell, or transfer wrBTC to another person (including in the United States or any other jurisdiction), <strong>you are solely responsible</strong> for compliance with all applicable laws. You agree that no claim, legal action, or demand shall be made against the developers, contributors, or maintainers of this software.</p>
+                        </div>
+
+                        <div>
+                          <p className="font-semibold">6. Assumption of Risk</p>
+                          <p>By using this protocol, you accept full responsibility for your actions. You understand and agree that you may lose 100% of the value of wrBTC.</p>
+                        </div>
+
+                        <div className="mt-4 p-3 bg-blue-100 dark:bg-blue-900/30 rounded">
+                          <p className="font-semibold mb-2">✅ By proceeding, you acknowledge that:</p>
+                          <ul className="space-y-1">
+                            <li>• You understand wrBTC is experimental and has no guaranteed value.</li>
+                            <li>• You release the developers and contributors from all liability.</li>
+                            <li>• You assume all risks, including regulatory and financial.</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -642,8 +776,9 @@ export function WrapRBTC() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <label className="text-sm font-medium">Unwrap Amount</label>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
                       Available: {parseFloat(wrbtcBalance).toFixed(8)} wrBTC
+                      {liveMode && <Activity className="h-3 w-3 text-green-500" />}
                     </div>
                   </div>
                   

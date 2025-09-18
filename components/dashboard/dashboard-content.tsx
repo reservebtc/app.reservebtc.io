@@ -18,23 +18,33 @@ import {
   RefreshCw,
   Link2,
   Plus,
-  ExternalLink
+  ExternalLink,
+  Activity
 } from 'lucide-react'
 import Link from 'next/link'
 import { CONTRACTS } from '@/app/lib/contracts'
+import { useRealtimeUserData, useRealtimeBalance, useRealtimeTransactions, useFormattedBalance, useTransactionFormatter } from '@/hooks/use-professional-realtime'
 import { oracleService } from '@/lib/oracle-service'
 import { mempoolService } from '@/lib/mempool-service'
 
-interface Transaction {
-  tx_hash: string
-  block_number: number
-  block_timestamp: string
-  user_address: string
-  tx_type: string
-  amount: string
-  delta?: string
-  fee_wei?: string
-  status: string
+// UI Badge component (local implementation)
+interface BadgeProps {
+  variant?: 'default' | 'outline'
+  className?: string
+  children: React.ReactNode
+}
+
+const Badge = ({ variant = 'default', className = '', children }: BadgeProps) => {
+  const baseClasses = 'inline-flex items-center px-2 py-1 text-xs font-medium rounded'
+  const variantClasses = variant === 'outline' 
+    ? 'border border-muted text-muted-foreground bg-background'
+    : 'bg-primary text-primary-foreground'
+  
+  return (
+    <span className={`${baseClasses} ${variantClasses} ${className}`}>
+      {children}
+    </span>
+  )
 }
 
 interface BitcoinAddress {
@@ -44,61 +54,64 @@ interface BitcoinAddress {
   is_monitoring: boolean
 }
 
+// Define transaction type to match real-time system
+interface TransactionRecord {
+  id?: string
+  tx_hash?: string
+  txHash?: string
+  block_number?: number
+  blockNumber?: number
+  block_timestamp?: string
+  blockTimestamp?: string
+  user_address?: string
+  userAddress?: string
+  tx_type?: string
+  txType?: string
+  type?: string
+  amount: string
+  delta?: string
+  fee_wei?: string
+  feeWei?: string
+  status: string
+}
+
 export function DashboardContent() {
   const { address, isConnected } = useAccount()
   const router = useRouter()
   const publicClient = usePublicClient()
   
-  const [transactions, setTransactions] = useState<Transaction[]>([])
+  // Real-time hooks
+  const userData = useRealtimeUserData()
+  const balance = useRealtimeBalance()
+  const transactions = useRealtimeTransactions(50)
+  const formatBalance = useFormattedBalance()
+  const formatTx = useTransactionFormatter()
+  
+  // Local state for Bitcoin addresses and Oracle data
   const [bitcoinAddresses, setBitcoinAddresses] = useState<BitcoinAddress[]>([])
-  const [rbtcBalance, setRbtcBalance] = useState('0.00000000')
-  const [wrbtcBalance, setWrbtcBalance] = useState('0.00000000')
   const [oracleBalance, setOracleBalance] = useState('0.00000000')
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [totalTransactions, setTotalTransactions] = useState(0)
   const [currentlyMonitoredAddress, setCurrentlyMonitoredAddress] = useState<string | null>(null)
 
-  // Load all data
-  const loadDashboardData = async () => {
+  // Load additional data not covered by real-time system
+  const loadAdditionalData = async () => {
     if (!address) return
     
-    console.log('📊 DASHBOARD: Loading data for address:', address)
+    console.log('📊 DASHBOARD: Loading additional Oracle and Bitcoin address data...')
     setIsLoading(true)
     
     try {
-      // Load Oracle data first - this is our primary data source
+      // Get Oracle data for Bitcoin addresses
       const oracleData = await oracleService.getUserByAddress(address)
       
-      // Load on-chain balances first to determine what's being monitored
+      // Get Oracle balance from contract
       let currentOracleBalance = 0;
       let monitoredAddr: string | null = null;
       
       if (publicClient) {
-        console.log('📊 DASHBOARD: Fetching on-chain balances...')
-        
         try {
-          // Get rBTC balance
-          const rbtcBal = await publicClient.readContract({
-            address: CONTRACTS.RBTC_SYNTH as `0x${string}`,
-            abi: [
-              {
-                name: 'balanceOf',
-                type: 'function',
-                stateMutability: 'view',
-                inputs: [{ name: 'account', type: 'address' }],
-                outputs: [{ name: '', type: 'uint256' }]
-              }
-            ],
-            functionName: 'balanceOf',
-            args: [address]
-          }) as bigint
-          
-          const rbtcFormatted = (Number(rbtcBal) / 1e8).toFixed(8)
-          setRbtcBalance(rbtcFormatted)
-          console.log('✅ DASHBOARD: On-chain rBTC balance:', rbtcFormatted)
-          
-          // Get Oracle lastSats - this is the key to determine monitoring
+          // Get Oracle lastSats to determine monitoring status
           const lastSats = await publicClient.readContract({
             address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
             abi: [
@@ -117,64 +130,29 @@ export function DashboardContent() {
           currentOracleBalance = Number(lastSats) / 1e8;
           const oracleFormatted = currentOracleBalance.toFixed(8)
           setOracleBalance(oracleFormatted)
-          console.log('✅ DASHBOARD: On-chain Oracle balance:', oracleFormatted)
-          
-          // Get wrBTC balance
-          const wrbtcBal = await publicClient.readContract({
-            address: CONTRACTS.VAULT_WRBTC as `0x${string}`,
-            abi: [
-              {
-                name: 'balanceOf',
-                type: 'function',
-                stateMutability: 'view',
-                inputs: [{ name: 'account', type: 'address' }],
-                outputs: [{ name: '', type: 'uint256' }]
-              }
-            ],
-            functionName: 'balanceOf',
-            args: [address]
-          }) as bigint
-          
-          const wrbtcFormatted = (Number(wrbtcBal) / 1e8).toFixed(8)
-          setWrbtcBalance(wrbtcFormatted)
-          console.log('✅ DASHBOARD: On-chain wrBTC balance:', wrbtcFormatted)
-          
-          // Create synthetic transaction for display if we have balance
-          if (Number(lastSats) > 0) {
-            const syntheticTx: Transaction = {
-              tx_hash: '0x' + Math.random().toString(16).substring(2),
-              block_number: 0,
-              block_timestamp: new Date().toISOString(),
-              user_address: address.toLowerCase(),
-              tx_type: 'MINT',
-              amount: lastSats.toString(),
-              status: 'confirmed'
-            }
-            setTransactions([syntheticTx])
-            setTotalTransactions(1)
-          }
+          console.log('✅ DASHBOARD: Oracle balance from contract:', oracleFormatted)
           
         } catch (error) {
-          console.error('❌ DASHBOARD: On-chain balance fetch error:', error)
+          console.error('❌ DASHBOARD: Oracle balance fetch error:', error)
         }
       }
       
       if (oracleData) {
-        console.log('✅ DASHBOARD: Oracle data loaded:', oracleData)
+        console.log('✅ DASHBOARD: Oracle data loaded, processing Bitcoin addresses...')
         
         // Extract Bitcoin addresses from Oracle
         const btcAddrs: BitcoinAddress[] = []
         const processedAddresses = new Set<string>()
         
-        // Collect all addresses first
+        // Collect all addresses from Oracle data
         const allAddresses: string[] = []
         
         if (oracleData.bitcoinAddress) allAddresses.push(oracleData.bitcoinAddress)
         if ((oracleData as any).btcAddress) allAddresses.push((oracleData as any).btcAddress)
         
-        const bitcoinAddresses = (oracleData as any).bitcoinAddresses
-        if (Array.isArray(bitcoinAddresses)) {
-          bitcoinAddresses.forEach((addr: string) => allAddresses.push(addr))
+        const bitcoinAddressesFromOracle = (oracleData as any).bitcoinAddresses
+        if (Array.isArray(bitcoinAddressesFromOracle)) {
+          bitcoinAddressesFromOracle.forEach((addr: string) => allAddresses.push(addr))
         }
         
         const btcAddresses = (oracleData as any).btcAddresses
@@ -182,23 +160,20 @@ export function DashboardContent() {
           btcAddresses.forEach((addr: string) => allAddresses.push(addr))
         }
         
-        // Now check which address is actually being monitored
-        // Only ONE address can be monitored at a time - the one whose balance matches Oracle balance
+        // Determine which address is being monitored
         if (currentOracleBalance > 0) {
-          console.log('🔍 DASHBOARD: Oracle has balance, checking which address is monitored...')
+          console.log('🔍 DASHBOARD: Oracle has balance, checking monitored address...')
           
           for (const btcAddr of allAddresses) {
             if (processedAddresses.has(btcAddr)) continue;
             
             try {
-              // Check actual Bitcoin balance for this address
               const balanceData = await mempoolService.getAddressBalance(btcAddr)
               
               if (balanceData && Math.abs(balanceData.balance - currentOracleBalance) < 0.00000001) {
-                // This address balance matches Oracle - it's the monitored one
                 monitoredAddr = btcAddr
                 setCurrentlyMonitoredAddress(btcAddr)
-                console.log(`✅ DASHBOARD: Found monitored address: ${btcAddr} with balance ${balanceData.balance} BTC`)
+                console.log(`✅ DASHBOARD: Found monitored address: ${btcAddr}`)
                 break
               }
             } catch (err) {
@@ -206,7 +181,6 @@ export function DashboardContent() {
             }
           }
         } else {
-          console.log('🔍 DASHBOARD: Oracle balance is zero - no address is being monitored')
           setCurrentlyMonitoredAddress(null)
         }
         
@@ -215,7 +189,6 @@ export function DashboardContent() {
           if (!addr || processedAddresses.has(addr)) continue;
           processedAddresses.add(addr)
           
-          // Only the address that matches Oracle balance is monitored
           const isMonitored = monitoredAddr === addr
           
           btcAddrs.push({
@@ -227,96 +200,27 @@ export function DashboardContent() {
         }
         
         setBitcoinAddresses(btcAddrs)
-        console.log('✅ DASHBOARD: Bitcoin addresses loaded:', btcAddrs.length)
-        if (monitoredAddr) {
-          console.log(`✅ DASHBOARD: Currently monitoring: ${monitoredAddr}`)
-        } else {
-          console.log('✅ DASHBOARD: No address currently being monitored')
-        }
-      }
-      
-      // Try to load from Supabase if available
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_KEY
-      
-      if (supabaseUrl && supabaseKey) {
-        try {
-          console.log('📊 DASHBOARD: Loading from Supabase...')
-          
-          // Load transactions
-          const txResponse = await fetch(
-            `${supabaseUrl}/rest/v1/transactions?user_address=eq.${address.toLowerCase()}&order=block_timestamp.desc&limit=50`,
-            {
-              headers: {
-                'apikey': supabaseKey,
-                'Authorization': `Bearer ${supabaseKey}`,
-                'Range': '0-49',
-                'Prefer': 'count=exact'
-              }
-            }
-          )
-          
-          if (txResponse.ok) {
-            const txData = await txResponse.json()
-            const contentRange = txResponse.headers.get('content-range')
-            const total = contentRange ? parseInt(contentRange.split('/')[1]) : txData.length
-            
-            if (txData.length > 0) {
-              console.log('✅ DASHBOARD: Loaded transactions from Supabase:', txData.length)
-              setTransactions(txData)
-              setTotalTransactions(total)
-            }
-          }
-          
-          // Load Bitcoin addresses from Supabase ONLY if we don't have them from Oracle
-          // Check if we already set addresses from Oracle
-          const hasOracleAddresses = bitcoinAddresses.length > 0 || (oracleData && currentOracleBalance >= 0);
-          if (!hasOracleAddresses) {
-            const btcResponse = await fetch(
-              `${supabaseUrl}/rest/v1/bitcoin_addresses?eth_address=eq.${address.toLowerCase()}`,
-              {
-                headers: {
-                  'apikey': supabaseKey,
-                  'Authorization': `Bearer ${supabaseKey}`
-                }
-              }
-            )
-            
-            if (btcResponse.ok) {
-              const btcData = await btcResponse.json()
-              if (btcData.length > 0) {
-                console.log('✅ DASHBOARD: Loaded Bitcoin addresses from Supabase:', btcData.length)
-                const supabaseAddrs = btcData.map((addr: any) => ({
-                  ...addr,
-                  is_monitoring: false
-                }))
-                setBitcoinAddresses(supabaseAddrs)
-              }
-            }
-          }
-        } catch (error) {
-          console.error('⚠️ DASHBOARD: Supabase load error (non-critical):', error)
-        }
+        console.log('✅ DASHBOARD: Bitcoin addresses processed:', btcAddrs.length)
       }
       
     } catch (error) {
-      console.error('❌ DASHBOARD: General loading error:', error)
+      console.error('❌ DASHBOARD: Additional data loading error:', error)
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)
-      console.log('✅ DASHBOARD: Data loading complete')
+      console.log('✅ DASHBOARD: Additional data loading complete')
     }
   }
 
   useEffect(() => {
     if (address) {
-      loadDashboardData()
+      loadAdditionalData()
     }
   }, [address, publicClient])
 
   const handleRefresh = () => {
     setIsRefreshing(true)
-    loadDashboardData()
+    loadAdditionalData()
   }
 
   // Format timestamp
@@ -325,44 +229,41 @@ export function DashboardContent() {
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
 
-  // Get transaction icon and color
+  // Get transaction type safely
+  const getTransactionType = (tx: TransactionRecord): string => {
+    return tx.tx_type || tx.txType || tx.type || 'UNKNOWN'
+  }
+
+  // Get transaction hash safely
+  const getTransactionHash = (tx: TransactionRecord): string => {
+    return tx.tx_hash || tx.txHash || 'unknown'
+  }
+
+  // Get transaction timestamp safely
+  const getTransactionTimestamp = (tx: TransactionRecord): string => {
+    return tx.block_timestamp || tx.blockTimestamp || new Date().toISOString()
+  }
+
+  // Get transaction icon and color (using real-time formatter)
   const getTransactionStyle = (type: string) => {
-    switch (type.toUpperCase()) {
-      case 'MINT':
-        return { 
-          icon: <Plus className="h-4 w-4 text-green-600" />, 
-          bg: 'bg-green-500/10',
-          prefix: '+',
-          suffix: 'rBTC'
-        };
-      case 'BURN':
-        return { 
-          icon: <ArrowRight className="h-4 w-4 text-red-600 rotate-180" />, 
-          bg: 'bg-red-500/10',
-          prefix: '-',
-          suffix: 'rBTC'
-        };
-      case 'DEPOSIT':
-        return { 
-          icon: <ArrowUpRight className="h-4 w-4 text-blue-600" />, 
-          bg: 'bg-blue-500/10',
-          prefix: '+',
-          suffix: 'ETH'
-        };
-      case 'FEE_SPENT':
-        return { 
-          icon: <ArrowRight className="h-4 w-4 text-orange-600" />, 
-          bg: 'bg-orange-500/10',
-          prefix: '-',
-          suffix: 'ETH'
-        };
-      default:
-        return { 
-          icon: <RefreshCw className="h-4 w-4 text-gray-600" />, 
-          bg: 'bg-gray-500/10',
-          prefix: '',
-          suffix: ''
-        };
+    const txFormat = formatTx(type)
+    const baseStyles = {
+      'MINT': { bg: 'bg-green-500/10', prefix: '+', suffix: 'rBTC' },
+      'BURN': { bg: 'bg-red-500/10', prefix: '-', suffix: 'rBTC' },
+      'WRAP': { bg: 'bg-blue-500/10', prefix: '→', suffix: 'wrBTC' },
+      'UNWRAP': { bg: 'bg-purple-500/10', prefix: '←', suffix: 'rBTC' },
+      'DEPOSIT': { bg: 'bg-blue-500/10', prefix: '+', suffix: 'ETH' },
+      'WITHDRAW': { bg: 'bg-orange-500/10', prefix: '-', suffix: 'ETH' },
+      'TEST': { bg: 'bg-gray-500/10', prefix: '~', suffix: 'TEST' }
+    }
+    
+    const style = baseStyles[type as keyof typeof baseStyles] || baseStyles['TEST']
+    
+    return {
+      icon: <span className={txFormat.color}>{txFormat.emoji}</span>,
+      bg: style.bg,
+      prefix: style.prefix,
+      suffix: style.suffix
     }
   }
 
@@ -380,14 +281,14 @@ export function DashboardContent() {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || balance.loading) {
     return (
       <div className="container max-w-6xl mx-auto p-6">
         <div className="text-center py-12">
           <RefreshCw className="h-12 w-12 animate-spin mx-auto text-primary mb-4" />
           <h2 className="text-2xl font-bold mb-2">Loading Dashboard...</h2>
           <p className="text-muted-foreground mb-6">
-            Fetching your data from blockchain...
+            Fetching your real-time data...
           </p>
         </div>
       </div>
@@ -403,6 +304,10 @@ export function DashboardContent() {
           <p className="text-muted-foreground">Manage your Bitcoin reserves and rBTC tokens</p>
         </div>
         <div className="flex items-center gap-2">
+          <Badge variant="outline" className="flex items-center gap-1">
+            <Activity className="h-3 w-3 text-green-500" />
+            Real-time
+          </Badge>
           <button 
             onClick={handleRefresh}
             disabled={isRefreshing}
@@ -416,7 +321,7 @@ export function DashboardContent() {
 
       {/* Balance Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* rBTC-SYNTH Balance */}
+        {/* rBTC-SYNTH Balance - Real-time */}
         <div className="bg-card border rounded-xl p-6">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -426,10 +331,15 @@ export function DashboardContent() {
             <span className="text-xs bg-blue-500/10 text-blue-600 px-2 py-1 rounded">Soulbound</span>
           </div>
           <div className="text-2xl font-bold">
-            {rbtcBalance} BTC
+            {formatBalance(balance.rbtc)}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Non-transferable synthetic BTC
+            {balance.lastUpdate && (
+              <span className="block text-xs text-green-600">
+                Updated: {balance.lastUpdate.toLocaleTimeString()}
+              </span>
+            )}
           </p>
         </div>
 
@@ -452,7 +362,7 @@ export function DashboardContent() {
           </p>
         </div>
 
-        {/* wrBTC Balance */}
+        {/* wrBTC Balance - Real-time */}
         <div className="bg-card border rounded-xl p-6">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -462,7 +372,7 @@ export function DashboardContent() {
             <span className="text-xs bg-purple-500/10 text-purple-600 px-2 py-1 rounded">Transferable</span>
           </div>
           <div className="text-2xl font-bold">
-            {wrbtcBalance} BTC
+            {formatBalance(balance.wrbtc)}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             <Link href="/wrap" className="text-primary hover:underline">
@@ -471,16 +381,19 @@ export function DashboardContent() {
           </p>
         </div>
 
-        {/* Total Transactions */}
+        {/* Total Transactions - Real-time */}
         <div className="bg-card border rounded-xl p-6">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <History className="h-5 w-5 text-orange-500" />
               <span className="font-medium">Transactions</span>
             </div>
+            {transactions.loading && (
+              <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
+            )}
           </div>
           <div className="text-2xl font-bold">
-            {totalTransactions}
+            {transactions.data.length}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Total operations
@@ -567,46 +480,76 @@ export function DashboardContent() {
         )}
       </div>
 
-      {/* Transaction History */}
+      {/* Transaction History - Real-time */}
       <div className="bg-card border rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <History className="h-5 w-5 text-blue-500" />
             <h2 className="text-xl font-semibold">Transaction History</h2>
+            <Badge variant="outline" className="flex items-center gap-1">
+              <Activity className="h-3 w-3 text-green-500" />
+              Live
+            </Badge>
           </div>
-          {totalTransactions > 0 && (
+          {transactions.data.length > 0 && (
             <span className="text-sm text-muted-foreground">
-              Total: {totalTransactions}
+              Total: {transactions.data.length}
             </span>
           )}
         </div>
 
-        {transactions.length === 0 ? (
+        {transactions.loading ? (
+          <div className="space-y-3">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-muted rounded-full"></div>
+                  <div className="space-y-1">
+                    <div className="w-20 h-4 bg-muted rounded"></div>
+                    <div className="w-32 h-3 bg-muted rounded"></div>
+                  </div>
+                </div>
+                <div className="w-16 h-4 bg-muted rounded"></div>
+              </div>
+            ))}
+          </div>
+        ) : transactions.error ? (
+          <div className="text-center py-8">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-3" />
+            <h3 className="font-medium mb-2 text-red-600">Failed to load transactions</h3>
+            <p className="text-muted-foreground text-sm">
+              {transactions.error}
+            </p>
+          </div>
+        ) : transactions.data.length === 0 ? (
           <div className="text-center py-8">
             <History className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-medium mb-2">No transactions yet</h3>
             <p className="text-muted-foreground text-sm">
-              Your transaction history will appear here
+              Your transaction history will appear here in real-time
             </p>
           </div>
         ) : (
           <div className="space-y-3">
-            {transactions.map((tx) => {
-              const style = getTransactionStyle(tx.tx_type)
-              const amount = tx.tx_type === 'DEPOSIT' || tx.tx_type === 'FEE_SPENT' 
+            {transactions.data.map((tx: any) => {
+              const txType = getTransactionType(tx)
+              const txHash = getTransactionHash(tx)
+              const txTimestamp = getTransactionTimestamp(tx)
+              const style = getTransactionStyle(txType)
+              const amount = txType === 'DEPOSIT' || txType === 'WITHDRAW'
                 ? (Number(tx.amount) / 1e18).toFixed(6)
                 : (Number(tx.amount) / 1e8).toFixed(8)
               
               return (
-                <div key={tx.tx_hash} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <div key={txHash} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${style.bg}`}>
                       {style.icon}
                     </div>
                     <div>
-                      <div className="font-medium capitalize">{tx.tx_type.replace('_', ' ')}</div>
+                      <div className="font-medium capitalize">{formatTx(txType).label}</div>
                       <div className="text-sm text-muted-foreground">
-                        {formatTimestamp(tx.block_timestamp)}
+                        {formatTimestamp(txTimestamp)}
                       </div>
                     </div>
                   </div>
@@ -617,7 +560,7 @@ export function DashboardContent() {
                     </div>
                     
                     <a 
-                      href={`https://www.megaexplorer.xyz/tx/${tx.tx_hash}`}
+                      href={`https://www.megaexplorer.xyz/tx/${txHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-primary hover:underline flex items-center gap-1 justify-end"
@@ -659,6 +602,18 @@ export function DashboardContent() {
           <span className="font-medium">Wrap rBTC</span>
         </Link>
       </div>
+
+      {/* Error notification if any */}
+      {userData.error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <span className="text-sm text-red-800 dark:text-red-200">
+              Real-time data error: {userData.error}. Some data may not be current.
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -5,14 +5,38 @@ import { useAccount, useBalance, usePublicClient, useWalletClient } from 'wagmi'
 import { parseEther, formatEther } from 'viem';
 import { CONTRACTS, CONTRACT_ABIS, FEE_CONFIG } from '@/app/lib/contracts';
 import { getOracleAbi } from '@/app/lib/abi-utils';
-import { Loader2, AlertCircle, CheckCircle, Wallet, Plus, Info } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, Wallet, Plus, Info, Activity } from 'lucide-react';
 import { getUserFeeVaultHistory, saveFeeVaultDeposit } from '@/lib/transaction-storage';
+import { useRealtimeUserData } from '@/hooks/use-professional-realtime';
+
+// UI Badge component
+interface BadgeProps {
+  variant?: 'default' | 'outline'
+  className?: string
+  children: React.ReactNode
+}
+
+const Badge = ({ variant = 'default', className = '', children }: BadgeProps) => {
+  const baseClasses = 'inline-flex items-center px-2 py-1 text-xs font-medium rounded'
+  const variantClasses = variant === 'outline' 
+    ? 'border border-muted text-muted-foreground bg-background'
+    : 'bg-primary text-primary-foreground'
+  
+  return (
+    <span className={`${baseClasses} ${variantClasses} ${className}`}>
+      {children}
+    </span>
+  )
+}
 
 export function DepositFeeVault() {
   const { address, isConnected } = useAccount();
   const { data: balance } = useBalance({ address });
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
+  
+  // Real-time integration
+  const userData = useRealtimeUserData();
   
   const [amount, setAmount] = useState('0.25');
   const [isDepositing, setIsDepositing] = useState(false);
@@ -35,6 +59,25 @@ export function DepositFeeVault() {
 
   const recommendedAmount = calculateRecommendedDeposit(10);
 
+  // Real-time balance sync
+  useEffect(() => {
+    if (userData.user && !userData.loading) {
+      // Safe type checking for feeVaultBalance
+      const userFeeBalance = (userData.user as any).feeVaultBalance;
+      if (userFeeBalance !== undefined) {
+        const realtimeFeeBalance = formatEther(BigInt(userFeeBalance));
+        console.log('📡 FEE_VAULT: Real-time balance update:', realtimeFeeBalance, 'ETH');
+        
+        // Update local state with real-time data
+        setFeeVaultBalance(realtimeFeeBalance);
+        
+        if (parseFloat(realtimeFeeBalance) > 0) {
+          setHasEverDeposited(true);
+        }
+      }
+    }
+  }, [userData]);
+
   // Check if user has ever deposited
   useEffect(() => {
     const checkDepositHistory = async () => {
@@ -55,9 +98,16 @@ export function DepositFeeVault() {
     checkDepositHistory();
   }, [address]);
 
-  // Fetch FeeVault balance with retry logic
+  // Fetch FeeVault balance with retry logic (fallback if real-time not available)
   const fetchFeeVaultBalance = async (retries = 3) => {
     if (!address || !publicClient) return;
+    
+    // Skip contract call if we have real-time data
+    const userFeeBalance = userData.user ? (userData.user as any).feeVaultBalance : undefined;
+    if (userData.user && !userData.loading && userFeeBalance !== undefined) {
+      console.log('📡 FEE_VAULT: Using real-time balance, skipping contract call');
+      return;
+    }
     
     setIsLoadingBalance(true);
     
@@ -259,10 +309,18 @@ export function DepositFeeVault() {
 
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold mb-2 flex items-center space-x-2">
-            <Wallet className="h-5 w-5 text-primary" />
-            <span>Oracle Fee Vault</span>
-          </h3>
+          <div className="flex items-center space-x-2 mb-2">
+            <h3 className="text-lg font-semibold flex items-center space-x-2">
+              <Wallet className="h-5 w-5 text-primary" />
+              <span>Oracle Fee Vault</span>
+            </h3>
+            {!userData.loading && userData.user && (userData.user as any).feeVaultBalance !== undefined && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Activity className="h-3 w-3 text-green-500" />
+                Live
+              </Badge>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground">
             Your personal fee balance for protocol operations
           </p>
@@ -270,7 +328,7 @@ export function DepositFeeVault() {
         <div className="text-center sm:text-right">
           <div className="text-xs text-muted-foreground mb-1">Your Vault Balance</div>
           <div className="font-mono font-semibold mb-2">
-            {isLoadingBalance ? (
+            {(isLoadingBalance && userData.loading) ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <span className={parseFloat(feeVaultBalance) > 0.001 ? 'text-green-600' : 'text-yellow-600'}>
@@ -278,6 +336,11 @@ export function DepositFeeVault() {
               </span>
             )}
           </div>
+          {!userData.loading && userData.user && (userData.user as any).feeVaultBalance !== undefined && (
+            <div className="text-xs text-green-600">
+              Real-time sync active
+            </div>
+          )}
         </div>
       </div>
 
@@ -329,6 +392,9 @@ export function DepositFeeVault() {
               <p className="font-medium text-green-900 dark:text-green-100">Deposit Successful!</p>
               <p className="text-sm text-green-700 dark:text-green-300">
                 {amount} ETH has been added to your Fee Vault
+                {!userData.loading && (
+                  <span className="block text-xs mt-1">Real-time balance will update automatically</span>
+                )}
               </p>
             </div>
           </div>
