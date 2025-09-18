@@ -379,3 +379,77 @@ oracle-production.js
 test-oracle-user-data.js
 app/test-cron/
 _archived/
+
+scripts/full-system-test.js
+scripts/*system-test*.js
+
+
+# Test reports and diagnostics
+test-report-*.json
+oracle-diagnostic-*.json
+oracle-test-report.json
+oracle-users*.json
+used_files.txt
+
+# Deployment and configuration scripts
+install-professional-oracle.sh
+add-fee-deposits-endpoint.sh
+nginx-fee-deposits-location.conf
+redeploy-oracle-quick.sh
+update-oracle-contract-address.sh
+
+# Oracle server files (runs separately)
+professional-oracle-server.js
+oracle-server.js
+oracle-*.js
+monitor-cron.js
+
+# Temporary and build artifacts
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+tsconfig.typecheck.tsbuildinfo
+
+# Shell scripts for deployment
+*.sh
+!scripts/test-ci-locally.sh  # Keep CI test script if needed
+
+# JSON data files
+*-report.json
+*-diagnostic*.json
+oracle-users*.json
+
+# Temporary monitoring files
+monitor-*.js
+*-monitor.js
+
+# TypeScript build cache files
+tsconfig.tsbuildinfo
+tsconfig.typecheck.tsbuildinfo
+*.tsbuildinfo
+
+# Test report files (на случай если создадутся новые)
+test-report-*.json
+test-report-*.txt
+test-report-*
+
+# Oracle diagnostic files
+oracle-diagnostic-*.json
+oracle-test-report.json
+oracle-users.json
+oracle-users-*.json
+
+# Utility files
+used_files.txt
+
+# Shell scripts (уже удаленные)
+install-professional-oracle.sh
+add-fee-deposits-endpoint.sh
+nginx-fee-deposits-location.conf
+redeploy-oracle-quick.sh
+update-oracle-contract-address.sh
+
+# Monitor files
+monitor-cron.js
+
+# Oracle server files
+professional-oracle-server.js
