@@ -6,7 +6,7 @@ import { createPublicClient, http } from 'viem';
 
 const MEGAETH_RPC = 'https://carrot.megaeth.com/rpc';
 const SUPABASE_URL = 'https://qoudozwmecstoxrqopqf.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvdWRvendtZWNzdG94cnFvcHFmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTUxOTc1OCwiZXhwIjoyMDU3MDk1NzU4fQ.WXjRfrYXnJZZguYc8thlGbdIfUG2z6Ws06UbPg8AIrQ';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
 
 const client = createPublicClient({
   transport: http(MEGAETH_RPC),
