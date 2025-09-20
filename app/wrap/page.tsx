@@ -1,12 +1,25 @@
 import { Suspense } from 'react'
-import { WrapRBTC } from '@/components/wrap/wrap-rbtc'
+// import { WrapRBTC } from '@/components/wrap/wrap-rbtc'
 import { Loader2 } from 'lucide-react'
 
+/*
 function WrapRBTCWrapper() {
   return <WrapRBTC />
 }
+*/
 
 export default function WrapPage() {
+  // Temporarily disabled wrap functionality
+  return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold mb-4">Wrap Feature Temporarily Unavailable</h1>
+        <p className="text-muted-foreground">This feature is currently under maintenance.</p>
+      </div>
+    </div>
+  )
+  
+  /*
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-[200px]">
@@ -19,6 +32,7 @@ export default function WrapPage() {
       <WrapRBTCWrapper />
     </Suspense>
   )
+  */
 }
 
 export const metadata = {

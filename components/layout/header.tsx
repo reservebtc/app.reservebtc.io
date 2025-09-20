@@ -51,6 +51,7 @@ export function Header() {
                   <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
                   <span>Mint</span>
                 </Link>
+                {/* 
                 <Link 
                   href="/wrap" 
                   className="inline-flex items-center space-x-1 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 px-3 py-1 rounded-full text-xs font-medium hover:from-purple-500/20 hover:to-pink-500/20 transition-all duration-200"
@@ -58,6 +59,7 @@ export function Header() {
                   <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                   <span>Wrap</span>
                 </Link>
+                */}
               </div>
               <Link 
                 href="/dashboard"

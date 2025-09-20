@@ -1,7 +1,19 @@
-import { LearnMoreWrap } from '@/components/wrap/learn-more-wrap'
+// import { LearnMoreWrap } from '@/components/wrap/learn-more-wrap'
 
 export default function LearnMoreWrapPage() {
+  // Temporarily disabled wrap learn-more functionality
+  return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold mb-4">Wrap Documentation Temporarily Unavailable</h1>
+        <p className="text-muted-foreground">This documentation is currently under maintenance.</p>
+      </div>
+    </div>
+  )
+  
+  /*
   return <LearnMoreWrap />
+  */
 }
 
 export const metadata = {

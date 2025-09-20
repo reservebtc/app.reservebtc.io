@@ -250,8 +250,8 @@ export function DashboardContent() {
     const baseStyles = {
       'MINT': { bg: 'bg-green-500/10', prefix: '+', suffix: 'rBTC' },
       'BURN': { bg: 'bg-red-500/10', prefix: '-', suffix: 'rBTC' },
-      'WRAP': { bg: 'bg-blue-500/10', prefix: '→', suffix: 'wrBTC' },
-      'UNWRAP': { bg: 'bg-purple-500/10', prefix: '←', suffix: 'rBTC' },
+      // 'WRAP': { bg: 'bg-blue-500/10', prefix: '→', suffix: 'wrBTC' },
+      // 'UNWRAP': { bg: 'bg-purple-500/10', prefix: '←', suffix: 'rBTC' },
       'DEPOSIT': { bg: 'bg-blue-500/10', prefix: '+', suffix: 'ETH' },
       'WITHDRAW': { bg: 'bg-orange-500/10', prefix: '-', suffix: 'ETH' },
       'TEST': { bg: 'bg-gray-500/10', prefix: '~', suffix: 'TEST' }
@@ -362,7 +362,8 @@ export function DashboardContent() {
           </p>
         </div>
 
-        {/* wrBTC Balance - Real-time */}
+        {/* wrBTC Balance - Real-time - TEMPORARILY DISABLED */}
+        {/*
         <div className="bg-card border rounded-xl p-6">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -380,6 +381,7 @@ export function DashboardContent() {
             </Link>
           </p>
         </div>
+        */}
 
         {/* Total Transactions - Real-time */}
         <div className="bg-card border rounded-xl p-6">
@@ -594,6 +596,7 @@ export function DashboardContent() {
           <span className="font-medium">Mint rBTC</span>
         </Link>
         
+        {/* WRAP rBTC TEMPORARILY DISABLED
         <Link 
           href="/wrap"
           className="flex items-center justify-center gap-3 p-4 bg-card border rounded-xl hover:bg-accent transition-colors"
@@ -601,6 +604,7 @@ export function DashboardContent() {
           <Link2 className="h-5 w-5 text-primary" />
           <span className="font-medium">Wrap rBTC</span>
         </Link>
+        */}
       </div>
 
       {/* Error notification if any */}
