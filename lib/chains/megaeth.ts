@@ -26,7 +26,7 @@ export const megaeth = {
       address: '0xc10fD3a2DF480CFAE8a7aBC2862a9c5724f5f4b4',
     },
     feeVault: {
-      address: '0x9C0Bc4E6794544F8DAA39C2d913e16063898bEa1',
+      address: '0x1384d3A60a910B5b402ee09457b3eBfCC964FD4f',
     },
     rbtcSynth: {
       address: '0x37fE059490B70e2605cb3D6fD64F5292d3eB46dE',
@@ -35,7 +35,7 @@ export const megaeth = {
       address: '0xa10FC332f12d102Dddf431F8136E4E89279EFF87',
     },
     oracleAggregator: {
-      address: '0x74E64267a4d19357dd03A0178b5edEC79936c643',
+      address: '0xEcCC1Bf6Ad2e875152eE65DC365F90d07da7aEAc',
     },
   },
   testnet: true,

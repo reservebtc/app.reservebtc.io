@@ -18,8 +18,8 @@ const client = createPublicClient({
 });
 
 // Contract addresses
-const ORACLE_AGGREGATOR = '0x74E64267a4d19357dd03A0178b5edEC79936c643';
-const FEE_VAULT = '0x9C0Bc4E6794544F8DAA39C2d913e16063898bEa1';
+const ORACLE_AGGREGATOR = '0xEcCC1Bf6Ad2e875152eE65DC365F90d07da7aEAc';
+const FEE_VAULT = '0x1384d3A60a910B5b402ee09457b3eBfCC964FD4f';
 const RBTC_SYNTH = '0x37fE059490B70e2605cb3D6fD64F5292d3eB46dE';
 
 async function analyzeContractMethods() {

@@ -19,9 +19,9 @@ const chain = {
 
 // Smart contract addresses
 const CONTRACTS = {
-  ORACLE_AGGREGATOR: '0x74E64267a4d19357dd03A0178b5edEC79936c643' as `0x${string}`,
-  RBTC_SYNTH: '0x4BC51d94937f145C7D995E146C32EC3b9CeB3ACC' as `0x${string}`,
-  FEE_VAULT: '0x9C0Bc4E6794544F8DAA39C2d913e16063898bEa1' as `0x${string}`
+  ORACLE_AGGREGATOR: '0xEcCC1Bf6Ad2e875152eE65DC365F90d07da7aEAc' as `0x${string}`,
+  RBTC_SYNTH: '0x5b9375b4ac0f61C7D5af32374aCCe0d058cE6F58' as `0x${string}`,
+  FEE_VAULT: '0x1384d3A60a910B5b402ee09457b3eBfCC964FD4f' as `0x${string}`
 }
 
 // Committee credentials (for registerAndPrepay calls)

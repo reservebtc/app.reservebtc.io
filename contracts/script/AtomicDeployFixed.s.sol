@@ -14,7 +14,7 @@ contract AtomicDeployFixed is Script {
     uint256 constant CHAIN_ID = 6342;
     
     // Existing working contract
-    address constant FEE_POLICY = 0xc10fD3a2DF480CFAE8a7aBC2862a9c5724f5f4b4; // WORKING!
+    address constant FEE_POLICY = 0xc10fD3a2DF480CFAE8a7aBC2862a9c5724f5f4b4;
     
     // Oracle configuration  
     uint256 constant MIN_CONFIRMATIONS = 1;
@@ -23,10 +23,10 @@ contract AtomicDeployFixed is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
-        address committee = deployer; // Oracle server will be committee
-        address feeCollector = deployer; // Oracle server will collect fees
+        address committee = deployer;
+        address feeCollector = deployer;
         
-        console.log("=== ATOMIC DEPLOYMENT OF ALL THREE CONTRACTS ===");
+        console.log("=== ATOMIC DEPLOYMENT WITH EMERGENCY BURN PROTECTION ===");
         console.log("Chain ID:", CHAIN_ID);
         console.log("Deployer/Committee:", deployer);
         console.log("Fee Collector:", feeCollector);
@@ -55,7 +55,7 @@ contract AtomicDeployFixed is Script {
         );
         
         // STEP 2: Deploy OracleAggregator with predicted RBTCSynth and actual FeeVault
-        console.log("STEP 2: Deploying OracleAggregator...");
+        console.log("STEP 2: Deploying OracleAggregator with emergency burn...");
         OracleAggregator oracle = new OracleAggregator(
             predictedRBTCSynth,           // predicted synth address
             address(feeVault),            // actual feeVault address
@@ -133,7 +133,8 @@ contract AtomicDeployFixed is Script {
         
         console.log("");
         if (allCorrect) {
-            console.log("PERFECT! ALL THREE CONTRACTS PROPERLY LINKED!");
+            console.log("PERFECT! ALL CONTRACTS PROPERLY LINKED!");
+            console.log("Emergency burn protection enabled!");
             console.log("");
             console.log("FINAL WORKING ADDRESSES:");
             console.log("   FeeVault:         ", feeVaultAddr);

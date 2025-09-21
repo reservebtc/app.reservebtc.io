@@ -120,9 +120,9 @@ Expected result:
 ## 📊 Test Deployment Results in MegaETH
 
 ### Deployed Addresses (MegaETH Testnet):
-- **FeeVault:** `0x9C0Bc4E6794544F8DAA39C2d913e16063898bEa1`
-- **OracleAggregator:** `0x74E64267a4d19357dd03A0178b5edEC79936c643`  
-- **RBTCSynth:** `0x4BC51d94937f145C7D995E146C32EC3b9CeB3ACC`
+- **FeeVault:** `0x1384d3A60a910B5b402ee09457b3eBfCC964FD4f`
+- **OracleAggregator:** `0xEcCC1Bf6Ad2e875152eE65DC365F90d07da7aEAc`  
+- **RBTCSynth:** `0x5b9375b4ac0f61C7D5af32374aCCe0d058cE6F58`
 - **FeePolicy:** `0xc10fD3a2DF480CFAE8a7aBC2862a9c5724f5f4b4` (reused)
 
 ### Verification Successful:

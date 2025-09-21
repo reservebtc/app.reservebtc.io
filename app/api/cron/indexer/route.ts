@@ -13,7 +13,7 @@ const client = createPublicClient({
 });
 
 // Contract addresses and event signatures
-const ORACLE_CONTRACT = '0x74E64267a4d19357dd03A0178b5edEC79936c643' as `0x${string}`;
+const ORACLE_CONTRACT = '0xEcCC1Bf6Ad2e875152eE65DC365F90d07da7aEAc' as `0x${string}`;
 
 // Only process historical data that unified system might have missed
 async function processHistoricalData() {

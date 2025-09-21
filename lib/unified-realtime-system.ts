@@ -26,10 +26,10 @@ class UnifiedRealtimeSystem extends EventEmitter {
 
   // Contract addresses
   private readonly contracts = {
-    oracle: '0x74E64267a4d19357dd03A0178b5edEC79936c643',
-    rbtcSynth: '0x4BC51d94937f145C7D995E146C32EC3b9CeB3ACC',
+    oracle: '0xEcCC1Bf6Ad2e875152eE65DC365F90d07da7aEAc',
+    rbtcSynth: '0x5b9375b4ac0f61C7D5af32374aCCe0d058cE6F58',
     wrbtc: '0xa10FC332f12d102Dddf431F8136E4E89279EFF87',
-    feeVault: '0x9C0Bc4E6794544F8DAA39C2d913e16063898bEa1'
+    feeVault: '0x1384d3A60a910B5b402ee09457b3eBfCC964FD4f'
   };
 
   // Supabase config

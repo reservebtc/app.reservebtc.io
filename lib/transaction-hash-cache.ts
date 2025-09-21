@@ -154,7 +154,7 @@ class TransactionHashCache {
    * Search for sync transactions in OracleAggregator contract
    */
   private async searchMintTransactions(fromBlock: number, toBlock: number) {
-    const contractAddress = '0x74E64267a4d19357dd03A0178b5edEC79936c643'; // OracleAggregator
+    const contractAddress = '0xEcCC1Bf6Ad2e875152eE65DC365F90d07da7aEAc'; // OracleAggregator
     
     const response = await this.makeRpcRequest('eth_getLogs', [{
       address: contractAddress,
