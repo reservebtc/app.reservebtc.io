@@ -1,4 +1,4 @@
-// app/api/disputes/submit/route.ts
+// app/api/disputes/submit/route.ts 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
@@ -18,14 +18,37 @@ function encryptData(data: string): string {
   return encrypted
 }
 
+function isValidBitcoinAddress(address: string): boolean {
+  const patterns = [
+    /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/,
+    /^(bc1|tb1)[a-z0-9]{39,59}$/,
+    /^[2mn][a-km-zA-HJ-NP-Z1-9]{33}$/
+  ]
+  return patterns.some(pattern => pattern.test(address))
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { user_address, bitcoin_address, reported_balance, oracle_balance, description } = body
+    const { 
+      user_address, 
+      bitcoin_address, 
+      reported_balance, 
+      oracle_balance, 
+      description 
+    } = body
 
+    // Validation
     if (!user_address || !bitcoin_address || !description) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
+
+    if (!isValidBitcoinAddress(bitcoin_address)) {
+      return NextResponse.json(
+        { error: 'Invalid Bitcoin address format' },
         { status: 400 }
       )
     }
@@ -65,11 +88,14 @@ export async function POST(request: NextRequest) {
       })
       .select()
 
-    if (error) throw error
+    if (error) {
+      console.error('Supabase error:', error)
+      throw error
+    }
 
     return NextResponse.json({
       success: true,
-      disputeId: data?.[0]?.id,
+      disputeId: data[0]?.id,
       message: 'Dispute submitted successfully'
     })
 
