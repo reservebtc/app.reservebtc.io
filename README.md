@@ -53,8 +53,6 @@
 [![Self-Send Detector Module](https://img.shields.io/badge/SelfSend%20Module-IMPLEMENTED-success)](./backend/bitcoin-provider/src/selfsend-detector.ts)
 
 
-[Keep all existing test badges at the top - they remain unchanged]
-
 ## 🌟 **What is ReserveBTC? A Real-World Analogy**
 
 Imagine you own a valuable gold bar stored in your personal safe at home. Traditional finance would require you to hand over your gold to a bank to get a loan. But what if you could **keep your gold in YOUR safe** while still participating in the financial system?
