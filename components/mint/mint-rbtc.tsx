@@ -16,7 +16,7 @@ import { CONTRACTS, CONTRACT_ABIS } from '@/app/lib/contracts'
 import { oracleService } from '@/lib/oracle-service'
 import { mempoolService } from '@/lib/mempool-service'
 import { useMintProtection } from '@/lib/mint-protection'
-import { useRealtimeUserData, useRealtimeBalance } from '@/hooks/use-professional-realtime'
+import { useRealtimeUserData, useRealtimeBalance } from '@/lib/professional-realtime-hooks'
 
 interface OracleUserData {
   ethAddress?: string;

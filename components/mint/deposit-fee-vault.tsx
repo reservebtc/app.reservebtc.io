@@ -7,7 +7,7 @@ import { CONTRACTS, CONTRACT_ABIS, FEE_CONFIG } from '@/app/lib/contracts';
 import { getOracleAbi } from '@/app/lib/abi-utils';
 import { Loader2, AlertCircle, CheckCircle, Wallet, Plus, Info, Activity } from 'lucide-react';
 import { getUserFeeVaultHistory, saveFeeVaultDeposit } from '@/lib/transaction-storage';
-import { useRealtimeUserData } from '@/hooks/use-professional-realtime';
+import { useRealtimeUserData } from '@/lib/professional-realtime-hooks';
 
 // UI Badge component
 interface BadgeProps {

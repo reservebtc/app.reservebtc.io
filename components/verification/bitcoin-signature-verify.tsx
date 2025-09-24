@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation'
 import { useUserVerification } from '@/hooks/useUserProfile'
 import { saveVerifiedUserToCache } from '@/lib/verified-users-cache'
 // Real-time integration
-import { useRealtimeUserData } from '@/hooks/use-professional-realtime'
+import { useRealtimeUserData } from '@/lib/professional-realtime-hooks'
 // Old Oracle modules removed - using Professional Oracle only
 // Smart contract integration removed - using Professional Oracle only
 

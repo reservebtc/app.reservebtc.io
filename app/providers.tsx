@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider } from 'wagmi'
 import { config } from '@/lib/wagmi'
 import { useState } from 'react'
-import { useBlockchainMonitor } from '@/hooks/use-blockchain-monitor'
+import { useBlockchainMonitor } from '@/lib/blockchain-monitor-hook'
 
 function BlockchainMonitorProvider({ children }: { children: React.ReactNode }) {
   // Initialize automatic blockchain monitoring for enterprise operation

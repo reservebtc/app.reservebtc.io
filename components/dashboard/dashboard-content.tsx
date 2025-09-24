@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { CONTRACTS } from '@/app/lib/contracts'
-import { useRealtimeUserData, useRealtimeBalance, useRealtimeTransactions, useFormattedBalance, useTransactionFormatter } from '@/hooks/use-professional-realtime'
+import { useRealtimeUserData, useRealtimeBalance, useRealtimeTransactions, useFormattedBalance, useTransactionFormatter } from '@/lib/professional-realtime-hooks'
 import { oracleService } from '@/lib/oracle-service'
 import { mempoolService } from '@/lib/mempool-service'
 
