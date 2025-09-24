@@ -1,21 +1,27 @@
 // app/api/yield-scales/participant/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { getSupabaseClient } from '@/lib/supabase-server'
 
 export async function GET(request: NextRequest) {
+  // Skip during build time if environment variables are not available
+  if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
+    console.log('🔧 BUILD: Skipping yield scales participant during build process')
+    return NextResponse.json({ error: 'Service temporarily unavailable' }, { status: 503 })
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const address = searchParams.get('address')
-    
+
     if (!address) {
       return NextResponse.json({ error: 'Address required' }, { status: 400 })
     }
-    
+
+    const supabase = getSupabaseClient()
+    if (!supabase) {
+      return NextResponse.json({ error: 'Service temporarily unavailable' }, { status: 503 })
+    }
+
     // Check if user is participant
     const { data: participant } = await supabase
       .from('yield_scales_participants')
