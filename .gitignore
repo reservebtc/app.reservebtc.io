@@ -541,12 +541,10 @@ coverage.json
 .nyc_output/
 allure-results/
 
-# Test files and configs
-__tests__/
-**/test/
-**/tests/
-jest.config.js
-jest.setup.js
+# Test files and configs - Allow project tests but block test directories in node_modules
+node_modules/**/test/
+node_modules/**/tests/
+node_modules/**/__tests__/
 .swcrc
 .eslintrc.json
 .prettierrc
