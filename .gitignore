@@ -552,9 +552,6 @@ jest.setup.js
 .prettierrc
 tsconfig.tests.json
 tsconfig.typecheck.json
-*.test.tsx
-*.test.ts
-*.test.js
 
 # Local development scripts
 scripts/
