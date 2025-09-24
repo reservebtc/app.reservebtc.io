@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createPublicClient, http } from 'viem'
 import { CONTRACTS } from '@/app/lib/contracts'
 
-// Создаем клиент только если переменные окружения доступны
+// Create client only if environment variables are available
 function createSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -31,15 +31,25 @@ const megaeth = {
 }
 
 export async function GET(request: NextRequest) {
+  // Check for build mode
+  if (process.env.NODE_ENV === 'production' && !process.env.VERCEL_URL) {
+    return NextResponse.json({
+      error: 'API not available during build',
+      rbtc: '0',
+      wrbtc: '0',
+      lastUpdate: new Date().toISOString()
+    }, { status: 503 })
+  }
+
   const { searchParams } = new URL(request.url)
   const address = searchParams.get('address')
-  
+
   if (!address) {
     return NextResponse.json({ error: 'Address required' }, { status: 400 })
   }
   
   try {
-    // Get latest balance from snapshots (если Supabase доступен)
+    // Get latest balance from snapshots (if Supabase is available)
     let snapshot = null
     if (supabase) {
       try {

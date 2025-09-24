@@ -9,11 +9,21 @@ async function getServices() {
 }
 
 export async function GET(request: NextRequest) {
+  // Check for build mode
+  if (process.env.NODE_ENV === 'production' && !process.env.VERCEL_URL && !process.env.VERCEL) {
+    console.log('🔧 BUILD: Skipping cron job during build process');
+    return NextResponse.json({
+      message: 'Cron job skipped during build',
+      success: true,
+      processed: 0
+    });
+  }
+
   // NO AUTHENTICATION CHECKS - Vercel handles protection
   // For manual testing use: ?x-vercel-protection-bypass=your_token
-  
+
   const startTime = Date.now();
-  
+
   try {
     console.log('⏰ CRON: Bitcoin balance sync job started at', new Date().toISOString());
     

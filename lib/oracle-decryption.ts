@@ -69,6 +69,13 @@ export async function decryptOracleData(encryptedResponse: EncryptedOracleRespon
   try {
     console.log('🔐 PRIVACY: Starting data decryption...');
 
+    // Check for build mode or missing encryption key
+    const encryptionKey = process.env.NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY
+    if (!encryptionKey || (process.env.NODE_ENV === 'production' && !process.env.VERCEL_URL && !process.env.VERCEL)) {
+      console.log('🔧 BUILD: Skipping decryption during build or missing key');
+      return [];
+    }
+
     if (!encryptedResponse.encrypted || !encryptedResponse.data) {
       console.error('❌ PRIVACY: Invalid response format');
       return null;

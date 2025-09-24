@@ -2,6 +2,19 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  // Vercel configuration
+  experimental: {
+    serverComponentsExternalPackages: ['@supabase/supabase-js'],
+  },
+  // Exclude problematic routes from pre-generation
+  typescript: {
+    // Ignore TypeScript errors during production build
+    ignoreBuildErrors: false,
+  },
+  eslint: {
+    // Ignore ESLint errors during production build
+    ignoreDuringBuilds: false,
+  },
   images: {
     domains: ['app.reservebtc.io'],
   },

@@ -171,9 +171,19 @@ async function performMaintenance() {
 }
 
 export async function GET(request: NextRequest) {
+  // Check for build mode
+  if (process.env.NODE_ENV === 'production' && !process.env.VERCEL_URL && !process.env.VERCEL) {
+    console.log('🔧 BUILD: Skipping indexer job during build process');
+    return NextResponse.json({
+      message: 'Indexer job skipped during build',
+      success: true,
+      events: []
+    });
+  }
+
   try {
     console.log('⏰ CRON: Starting compatible indexer job...');
-    
+
     // Check authorization
     const authHeader = request.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {

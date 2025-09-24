@@ -3,6 +3,10 @@
   "installCommand": "npm ci",
   "framework": "nextjs",
   "outputDirectory": ".next",
+  "env": {
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "NODE_ENV": "production"
+  },
   "crons": [
     {
       "path": "/api/cron/indexer",
@@ -11,7 +15,13 @@
   ],
   "functions": {
     "app/api/cron/*.ts": {
-      "maxDuration": 10
+      "maxDuration": 300
+    },
+    "app/api/realtime/*.ts": {
+      "maxDuration": 30
+    },
+    "app/api/oracle/*.ts": {
+      "maxDuration": 30
     }
   }
 }
