@@ -14,12 +14,30 @@ jest.mock('@/lib/validation-schemas', () => ({
 
 import { walletVerificationSchema } from '@/lib/validation-schemas'
 
+// Mock the professional validator
+jest.mock('@/lib/bitcoin-signature-validator-professional', () => ({
+  ProfessionalBitcoinValidator: {
+    validateSecurity: jest.fn().mockReturnValue({
+      secure: true,
+      warnings: []
+    }),
+    validateAddressFormat: jest.fn().mockReturnValue(true),
+    verify: jest.fn().mockReturnValue({
+      valid: true,
+      method: 'BIP-322',
+      addressType: 'P2WPKH',
+      network: 'mainnet',
+      securityLevel: 'high'
+    })
+  }
+}))
+
 describe('/api/verify-wallet', () => {
   const mockValidationData = {
     bitcoinAddress: 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4',
     ethereumAddress: '0x742d35cc6435c0532925a3b8c17890c5e4e6f4b0',
     message: 'ReserveBTC verification message',
-    signature: 'SGVsbG8gV29ybGQ=',
+    signature: 'AkcwRAIgM2gBAQqvZX15ZHdwrkiukIzXPjWyFjPVJ2RsJLhflFcCIH4QKrYacvb35fj5zT2pNNdgK3vQD/ASnJ+r9W36hVqhASECx/EgAxlkQpQ9hcrNjhB3m1gp2fIHqOQc3XjNa6jVzQ1dGw==',
   }
 
   beforeEach(() => {
@@ -49,14 +67,9 @@ describe('/api/verify-wallet', () => {
   })
 
   test('should reject invalid input data', async () => {
-    ;(walletVerificationSchema.safeParse as jest.Mock).mockReturnValue({
-      success: false,
-      error: {
-        issues: [
-          { message: 'Invalid Bitcoin address format', path: ['bitcoinAddress'] },
-        ],
-      },
-    })
+    // Mock validation to fail for invalid address
+    const { ProfessionalBitcoinValidator } = require('@/lib/bitcoin-signature-validator-professional')
+    ProfessionalBitcoinValidator.validateAddressFormat.mockReturnValue(false)
 
     const invalidData = {
       ...mockValidationData,
@@ -70,6 +83,9 @@ describe('/api/verify-wallet', () => {
 
     const response = await POST(request)
     expect(response.status).toBe(400)
+
+    // Reset mock for other tests
+    ProfessionalBitcoinValidator.validateAddressFormat.mockReturnValue(true)
   })
 
   test('should handle malformed JSON', async () => {
