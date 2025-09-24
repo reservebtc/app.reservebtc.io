@@ -7,7 +7,7 @@ import { useAccount } from 'wagmi'
 import { BitcoinSignatureValidatorFixed } from '@/lib/bitcoin-signature-validator-fixed'
 import { useRouter } from 'next/navigation'
 // User data now handled by Professional Oracle only
-import { useUserVerification } from '@/hooks/useUserProfile'
+import { useUserVerification } from '@/lib/user-profile-hooks'
 import { saveVerifiedUserToCache } from '@/lib/verified-users-cache'
 // Real-time integration
 import { useRealtimeUserData } from '@/lib/professional-realtime-hooks'
