@@ -4,10 +4,24 @@ import { createClient } from '@supabase/supabase-js'
 import { createPublicClient, http } from 'viem'
 import { CONTRACTS } from '@/app/lib/contracts'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// Создаем клиент только если переменные окружения доступны
+function createSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!url || !key || key === 'placeholder-key') {
+    return null
+  }
+
+  try {
+    return createClient(url, key)
+  } catch (error) {
+    console.warn('Failed to initialize Supabase client:', error)
+    return null
+  }
+}
+
+const supabase = createSupabaseClient()
 
 const megaeth = {
   id: 6342,
@@ -25,14 +39,22 @@ export async function GET(request: NextRequest) {
   }
   
   try {
-    // Get latest balance from snapshots
-    const { data: snapshot } = await supabase
-      .from('balance_snapshots')
-      .select('*')
-      .eq('user_address', address.toLowerCase())
-      .order('snapshot_timestamp', { ascending: false })
-      .limit(1)
-      .single()
+    // Get latest balance from snapshots (если Supabase доступен)
+    let snapshot = null
+    if (supabase) {
+      try {
+        const { data } = await supabase
+          .from('balance_snapshots')
+          .select('*')
+          .eq('user_address', address.toLowerCase())
+          .order('snapshot_timestamp', { ascending: false })
+          .limit(1)
+          .single()
+        snapshot = data
+      } catch (error) {
+        console.warn('Failed to fetch from Supabase:', error)
+      }
+    }
     
     // Get Oracle balance from contract
     let oracleBalance = 0
