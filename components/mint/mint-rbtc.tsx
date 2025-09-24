@@ -39,13 +39,6 @@ interface MintRBTCProps {
   onMintComplete?: (data: MintForm) => void
 }
 
-const TEST_ADDRESSES = [
-  'tb1qtkj7hlhv9drfwe2mupq0yt9m6fsungkjjv5lr7',
-  'tb1qtkj7hlhv9drfwe2mupq0yt9m6fsungkjjv5lr4',
-  'tb1qtkj7hlhv9drfwe2mupq0yt9m6fsungkjjv5lr1'
-];
-
-// UI Badge component
 interface BadgeProps {
   variant?: 'default' | 'outline'
   className?: string
@@ -94,7 +87,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const publicClient = usePublicClient()
   const { data: walletClient } = useWalletClient()
   
-  // Real-time hooks integration
   const userData = useRealtimeUserData()
   const realtimeBalance = useRealtimeBalance()
   
@@ -138,13 +130,10 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }, [address, performCompleteDataCleanup])
 
-  // Sync with real-time balance updates
   useEffect(() => {
     if (!realtimeBalance.loading && realtimeBalance.rbtc !== undefined) {
       console.log('📡 MINT: Real-time balance update:', realtimeBalance.rbtc, 'sats')
-      // Convert sats to BTC for display consistency
       const btcAmount = realtimeBalance.rbtc / 100000000
-      // Only update if we don't have local Bitcoin balance yet
       if (bitcoinBalance === 0 && btcAmount > 0) {
         setBitcoinBalance(btcAmount)
         setValue('amount', btcAmount.toString())
@@ -152,19 +141,16 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }, [realtimeBalance, bitcoinBalance, setValue])
 
-  // Real-time monitoring status sync
   useEffect(() => {
     if (userData.user && !userData.loading) {
       console.log('📡 MINT: Real-time user data update - rBTC balance:', userData.user.rbtcBalance)
       
-      // Update Oracle balance from real-time data
       const realtimeOracleBalance = userData.user.rbtcBalance / 100000000
       if (realtimeOracleBalance !== currentOracleBalance) {
         setCurrentOracleBalance(realtimeOracleBalance)
         setHasAnyActiveMonitoring(realtimeOracleBalance > 0)
         setRealActiveMonitoring(realtimeOracleBalance > 0)
         
-        // If balance became zero, clear monitoring
         if (realtimeOracleBalance === 0 && hasAnyActiveMonitoring) {
           console.log('📡 MINT: Real-time detected monitoring ended')
           setMonitoredAddressesMap(new Map())
@@ -187,15 +173,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     setHasAttemptedFetch(false)
     
     try {
-      if (TEST_ADDRESSES.includes(btcAddress)) {
-        console.log(`💰 MINT: Using test balance for ${btcAddress}`);
-        setBitcoinBalance(0.00147145)
-        setValue('amount', '0.00147145')
-        setIsLoadingBalance(false)
-        setHasAttemptedFetch(true)
-        return;
-      }
-
       const balanceData = await mempoolService.getAddressBalance(btcAddress)
       
       if (balanceData && balanceData.balance !== undefined) {
@@ -216,7 +193,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }, [setValue])
 
-  // Check if user has active monitoring through Oracle lastSats
   const checkIfUserHasActiveMonitoring = useCallback(async (): Promise<{ hasMonitoring: boolean, oracleBalance: number }> => {
     if (!publicClient || !address) return { hasMonitoring: false, oracleBalance: 0 };
     
@@ -242,7 +218,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       const btcBalance = satsBalance / 100000000;
       setCurrentOracleBalance(btcBalance);
       
-      // Real monitoring check: Oracle has balance AND that balance matches an actual Bitcoin address balance
       const hasMonitoring = satsBalance > 0;
       console.log(`🔍 MINT: User lastSats: ${satsBalance}, Oracle BTC: ${btcBalance}, has monitoring: ${hasMonitoring}`)
       
@@ -253,11 +228,9 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   }, [publicClient, address]);
 
-  // Check if Oracle balance matches any Bitcoin address balance to determine real monitoring
   const checkRealActiveMonitoring = useCallback(async (addresses: Set<string>, oracleBalance: number): Promise<boolean> => {
     if (oracleBalance === 0) return false;
     
-    // Check if Oracle balance matches any Bitcoin address balance
     for (const btcAddr of Array.from(addresses)) {
       try {
         const balanceData = await mempoolService.getAddressBalance(btcAddr)
@@ -270,7 +243,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       }
     }
     
-    // If no address matches Oracle balance, monitoring is stale/ended
     console.log('⚠️ MINT: Oracle has balance but no matching Bitcoin address - monitoring ended')
     return false;
   }, []);
@@ -284,17 +256,14 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       console.log('📋 MINT: Loading verified addresses for user:', address)
       
       try {
-        // Check Oracle monitoring status (fallback if real-time not available)
         const { hasMonitoring, oracleBalance } = await checkIfUserHasActiveMonitoring()
         
-        // Use real-time data if available, fallback to contract check
         const effectiveHasMonitoring = realtimeBalance.rbtc > 0 ? true : hasMonitoring
         const effectiveOracleBalance = realtimeBalance.rbtc > 0 ? realtimeBalance.rbtc / 100000000 : oracleBalance
         
         setHasAnyActiveMonitoring(effectiveHasMonitoring)
         console.log(`📋 MINT: Monitoring check - has monitoring: ${effectiveHasMonitoring}, balance: ${effectiveOracleBalance} BTC`)
         
-        // Get user data from Oracle service
         const userData = await oracleService.getUserByAddress(address) as OracleUserData | null
         
         const verifiedAddrs: {
@@ -309,7 +278,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         if (userData) {
           console.log('📋 MINT: Oracle user data received')
           
-          // Collect all addresses
           const allAddresses = new Set<string>()
           if (userData.bitcoinAddress) allAddresses.add(userData.bitcoinAddress)
           if (userData.btcAddress) allAddresses.add(userData.btcAddress)
@@ -320,13 +288,11 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             userData.btcAddresses.forEach(addr => allAddresses.add(addr))
           }
           
-          // Check if Oracle balance matches any real Bitcoin address
           let realMonitoring = false;
           if (effectiveHasMonitoring && effectiveOracleBalance > 0) {
             realMonitoring = await checkRealActiveMonitoring(allAddresses, effectiveOracleBalance);
             setRealActiveMonitoring(realMonitoring);
             
-            // Find which address is being monitored
             if (realMonitoring) {
               for (const btcAddr of Array.from(allAddresses)) {
                 try {
@@ -345,7 +311,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             setRealActiveMonitoring(false);
           }
           
-          // Build address list
           for (const btcAddr of Array.from(allAddresses)) {
             const isMonitored = monitoringMap.has(btcAddr)
             verifiedAddrs.push({
@@ -386,7 +351,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     if (verifiedBitcoinAddress) {
       console.log('🔄 MINT: Refreshing balance for:', verifiedBitcoinAddress)
       fetchBitcoinBalance(verifiedBitcoinAddress)
-      checkIfUserHasActiveMonitoring() // Update monitoring status
+      checkIfUserHasActiveMonitoring()
     }
   }, [verifiedBitcoinAddress, fetchBitcoinBalance, checkIfUserHasActiveMonitoring])
 
@@ -409,7 +374,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   }, [setValue, fetchBitcoinBalance, monitoredAddressesMap])
 
   useEffect(() => {
-    if (verifiedBitcoinAddress && !TEST_ADDRESSES.includes(verifiedBitcoinAddress)) {
+    if (verifiedBitcoinAddress) {
       mempoolService.checkOutgoingTransactions(verifiedBitcoinAddress)
         .then(hasOutgoing => {
           setHasOutgoingTx(hasOutgoing)
@@ -471,7 +436,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const onSubmit = async (data: MintForm) => {
     console.log('🚀 MINT: Starting mint process for address:', data.bitcoinAddress);
     
-    // Check zero balance
     if (bitcoinBalance === 0 || !bitcoinBalance) {
       toast.error(
         <div className="flex flex-col gap-2">
@@ -482,7 +446,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       return;
     }
     
-    // Check real active monitoring (not just Oracle balance)
     if (realActiveMonitoring) {
       toast.warning(
         <div className="flex flex-col gap-2">
@@ -504,7 +467,10 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         return;
       }
 
-      console.log('🚀 MINT: Calling Oracle API to start monitoring...');
+      console.log('🚀 MINT: Calling Oracle API...');
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
       const response = await fetch('/api/oracle/register-monitoring', {
         method: 'POST',
@@ -515,25 +481,27 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           userAddress: address,
           bitcoinAddress: data.bitcoinAddress,
           initialBalance: Math.round(bitcoinBalance * 100000000)
-        })
+        }),
+        signal: controller.signal
       });
 
-      const result = await response.json();
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
+        const result = await response.json();
         throw new Error(result.error || 'Failed to register with Oracle');
       }
+      
+      const result = await response.json();
       
       if (result.success && result.transactionHash) {
         setMintTxHash(result.transactionHash);
         setMintStatus('success');
         
-        // Update monitoring map - only new address is active
         const newMonitoringMap = new Map<string, boolean>();
         newMonitoringMap.set(data.bitcoinAddress, true);
         setMonitoredAddressesMap(newMonitoringMap);
         
-        // Update UI - all old addresses now available, new one minted
         setAllVerifiedAddresses(prev => prev.map(addr => ({
           ...addr,
           mintStatus: addr.address === data.bitcoinAddress ? 'minted' as const : 'available' as const,
@@ -544,29 +512,80 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         setHasAnyActiveMonitoring(true);
         setRealActiveMonitoring(true);
         
-        toast.success('✅ Monitoring activated! Oracle will automatically sync your Bitcoin balance.');
-        console.log('✅ MINT: Monitoring activated successfully');
+        toast.success(
+          <div className="flex flex-col gap-2">
+            <strong>✅ Monitoring Activated!</strong>
+            <p className="text-sm">Transaction sent successfully</p>
+            <a 
+              href={`https://www.megaexplorer.xyz/tx/${result.transactionHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-500 hover:underline flex items-center gap-1"
+            >
+              View on Explorer →
+            </a>
+          </div>,
+          { duration: 5000 }
+        );
+        
+        console.log('✅ MINT: Transaction sent:', result.transactionHash);
+        console.log('   Real-time system will update balances automatically');
         
         setTimeout(() => {
           router.push('/dashboard');
-        }, 3000);
+        }, 2500);
         
         if (onMintComplete) {
           onMintComplete(data);
         }
       } else {
-        throw new Error(result.error || 'Oracle registration failed');
+        throw new Error('Oracle registration failed - no transaction hash');
       }
       
     } catch (error: any) {
-      console.error('❌ MINT: Mint failed:', error);
-      toast.error(error.message || 'Failed to activate monitoring. Please try again.');
-      setMintStatus('error');
-      setIsMinting(false);
+      console.error('❌ MINT: Failed:', error);
       
-      setTimeout(() => {
+      if (error.name === 'AbortError') {
+        toast.warning(
+          <div className="flex flex-col gap-2">
+            <strong>Request Timeout</strong>
+            <p className="text-sm">The request took too long. Your transaction may still be processing.</p>
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="px-3 py-1 bg-primary text-primary-foreground rounded text-xs"
+              >
+                Check Dashboard
+              </button>
+              <button
+                onClick={() => {
+                  setMintStatus('idle');
+                  setIsMinting(false);
+                }}
+                className="px-3 py-1 bg-secondary text-secondary-foreground rounded text-xs"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>,
+          { duration: 10000 }
+        );
         setMintStatus('idle');
-      }, 3000);
+        setIsMinting(false);
+      } else {
+        toast.error(
+          <div className="flex flex-col gap-2">
+            <strong>Registration Failed</strong>
+            <p className="text-sm">{error.message}</p>
+          </div>
+        );
+        setMintStatus('error');
+        setIsMinting(false);
+        
+        setTimeout(() => {
+          setMintStatus('idle');
+        }, 3000);
+      }
     }
   };
 
@@ -588,7 +607,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       return;
     }
     
-    // Check real active monitoring, not just Oracle balance
     if (realActiveMonitoring) {
       toast.info(
         <div className="flex flex-col gap-2">

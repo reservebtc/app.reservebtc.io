@@ -4,10 +4,12 @@
 import { useState, useEffect } from 'react'
 import { AlertTriangle, TrendingDown, Clock, Zap, Shield, RefreshCw } from 'lucide-react'
 import { useAccount } from 'wagmi'
-import { createPublicClient, http, formatEther } from 'viem'
+import { createPublicClient, http, formatEther, parseAbi } from 'viem'
 import { megaeth } from '@/lib/chains/megaeth'
 
 const FEE_VAULT_ADDRESS = '0x9C0Bc4E6794544F8DAA39C2d913e16063898bEa1'
+const ORACLE_CONTRACT = '0x74E64267a4d19357dd03A0178b5edEC79936c643'
+
 const FEE_VAULT_ABI = [
   {
     name: 'balanceOf',
@@ -18,27 +20,32 @@ const FEE_VAULT_ABI = [
   }
 ]
 
+const ORACLE_ABI = parseAbi([
+  'event Synced(address indexed user, uint64 newBalanceSats, int64 deltaSats, uint256 feeWei, uint32 height, uint64 timestamp)'
+])
+
 export function FeeBalanceMonitor() {
   const { address } = useAccount()
   const [feeBalance, setFeeBalance] = useState(0)
-  const [estimatedFees, setEstimatedFees] = useState(0.0001)
+  const [estimatedFees, setEstimatedFees] = useState(0)
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [syncHistory, setSyncHistory] = useState<any[]>([])
+  const [gasPrice, setGasPrice] = useState<bigint>(BigInt(0))
 
   useEffect(() => {
     if (!address) return
 
+    const publicClient = createPublicClient({
+      chain: megaeth,
+      transport: http()
+    })
+
     const checkBalance = async () => {
       try {
-        const client = createPublicClient({
-          chain: megaeth,
-          transport: http()
-        })
-
-        // Get fee balance
-        const balance = await client.readContract({
+        // Get real fee balance from blockchain
+        const balance = await publicClient.readContract({
           address: FEE_VAULT_ADDRESS,
           abi: FEE_VAULT_ABI,
           functionName: 'balanceOf',
@@ -48,8 +55,14 @@ export function FeeBalanceMonitor() {
         const balanceInEth = parseFloat(formatEther(balance as bigint))
         setFeeBalance(balanceInEth)
 
-        // Estimate next fee
-        const estimated = await getEstimatedNextFee()
+        // Get real gas price for accurate fee estimation
+        const currentGasPrice = await publicClient.getGasPrice()
+        setGasPrice(currentGasPrice)
+        
+        // Calculate real estimated fee based on gas price
+        const estimatedGas = BigInt(150000) // Typical sync operation gas
+        const feeInWei = currentGasPrice * estimatedGas
+        const estimated = parseFloat(formatEther(feeInWei))
         setEstimatedFees(estimated)
 
         // Calculate time remaining
@@ -61,10 +74,24 @@ export function FeeBalanceMonitor() {
           setTimeRemaining(null)
         }
 
-        // Get sync history
-        const history = await getSyncHistory(address)
-        setSyncHistory(history)
+        // Get real sync history from blockchain events
+        const logs = await publicClient.getLogs({
+          address: ORACLE_CONTRACT,
+          event: ORACLE_ABI[0],
+          args: { user: address },
+          fromBlock: 'earliest',
+          toBlock: 'latest'
+        })
 
+        const history = logs.slice(-10).reverse().map((log: any) => ({
+          timestamp: new Date(Number(log.args?.timestamp || 0) * 1000).toISOString(),
+          fee: parseFloat(formatEther(log.args?.feeWei || BigInt(0))),
+          txHash: log.transactionHash,
+          action: log.args?.deltaSats > 0 ? 'MINT' : 'BURN',
+          deltaSats: Number(log.args?.deltaSats || 0)
+        }))
+
+        setSyncHistory(history)
         setLoading(false)
       } catch (error) {
         console.error('Failed to load fee balance:', error)
@@ -72,33 +99,36 @@ export function FeeBalanceMonitor() {
       }
     }
 
+    // Initial check
     checkBalance()
 
+    // Set up real-time event watching
+    const unwatch = publicClient.watchContractEvent({
+      address: ORACLE_CONTRACT,
+      abi: ORACLE_ABI,
+      eventName: 'Synced',
+      args: { user: address },
+      onLogs: (logs) => {
+        console.log('New sync detected, updating balance...')
+        checkBalance()
+      }
+    })
+
+    // Auto refresh interval
+    let interval: NodeJS.Timeout | undefined
     if (autoRefresh) {
-      const interval = setInterval(checkBalance, 30000)
-      return () => clearInterval(interval)
+      interval = setInterval(checkBalance, 30000)
+    }
+
+    return () => {
+      unwatch()
+      if (interval) clearInterval(interval)
     }
   }, [address, autoRefresh])
 
-  async function getEstimatedNextFee(): Promise<number> {
-    // In production, calculate based on gas prices and complexity
-    return 0.0001 // ~$0.50 at current prices
-  }
-
-  async function getSyncHistory(userAddress: string): Promise<any[]> {
-    // Fetch from API
-    try {
-      const response = await fetch(`/api/fee-vault/history?address=${userAddress}`)
-      const data = await response.json()
-      return data.history || []
-    } catch {
-      return []
-    }
-  }
-
   function formatETH(value: number): string {
     if (value < 0.0001) return '<0.0001'
-    return value.toFixed(4)
+    return value.toFixed(6)
   }
 
   function formatDuration(ms: number): string {
@@ -127,7 +157,6 @@ export function FeeBalanceMonitor() {
   }
 
   async function topUpFees() {
-    // Open top-up modal or redirect
     window.location.href = '/mint'
   }
 
@@ -251,8 +280,8 @@ export function FeeBalanceMonitor() {
                 <p className="font-medium">{formatETH(estimatedFees)} ETH</p>
               </div>
               <div className="bg-muted/30 rounded-lg p-3">
-                <p className="text-xs text-muted-foreground mb-1">Sync Rate</p>
-                <p className="font-medium">30s</p>
+                <p className="text-xs text-muted-foreground mb-1">Gas Price</p>
+                <p className="font-medium">{Math.round(Number(gasPrice) / 1e9)} gwei</p>
               </div>
             </div>
 
@@ -277,17 +306,34 @@ export function FeeBalanceMonitor() {
         )}
       </div>
 
-      {/* Recent Activity */}
+      {/* Real Transaction History */}
       {syncHistory.length > 0 && (
         <div className="p-6">
           <h4 className="text-sm font-medium mb-3">Recent Sync Activity</h4>
           <div className="space-y-2">
-            {syncHistory.slice(0, 3).map((sync, index) => (
-              <div key={index} className="flex justify-between text-sm">
-                <span className="text-muted-foreground">
-                  {new Date(sync.timestamp).toLocaleTimeString()}
-                </span>
-                <span className="font-mono">-{formatETH(sync.fee)} ETH</span>
+            {syncHistory.slice(0, 5).map((sync, index) => (
+              <div key={index} className="flex justify-between items-center text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">
+                    {new Date(sync.timestamp).toLocaleTimeString()}
+                  </span>
+                  <span className={`text-xs px-2 py-0.5 rounded ${
+                    sync.action === 'MINT' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'
+                  }`}>
+                    {sync.action}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono">-{formatETH(sync.fee)} ETH</span>
+                  <a 
+                    href={`https://www.megaexplorer.xyz/tx/${sync.txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary hover:underline"
+                  >
+                    View
+                  </a>
+                </div>
               </div>
             ))}
           </div>

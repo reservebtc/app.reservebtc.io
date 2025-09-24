@@ -19,7 +19,12 @@ import {
   Link2,
   Plus,
   ExternalLink,
-  Activity
+  Activity,
+  Scale,
+  Trophy,
+  DollarSign,
+  Percent,
+  Clock
 } from 'lucide-react'
 import Link from 'next/link'
 import { CONTRACTS } from '@/app/lib/contracts'
@@ -52,6 +57,22 @@ interface BitcoinAddress {
   network: string
   verified_at: string
   is_monitoring: boolean
+}
+
+interface YieldScalesData {
+  isParticipant: boolean
+  participantType: 'bitcoin_holder' | 'trader' | null
+  currentAPY: number
+  scaleBalance: {
+    rbtc: number
+    usdt: number
+  }
+  yieldEarned: number
+  yieldClaimed: number
+  loyaltyTier: 'bronze' | 'silver' | 'gold'
+  timeInSystem: number
+  nextTierIn: number
+  totalTVL: number
 }
 
 // Define transaction type to match real-time system
@@ -93,6 +114,64 @@ export function DashboardContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [currentlyMonitoredAddress, setCurrentlyMonitoredAddress] = useState<string | null>(null)
+  
+  // New Yield Scales state
+  const [yieldScalesData, setYieldScalesData] = useState<YieldScalesData>({
+    isParticipant: false,
+    participantType: null,
+    currentAPY: 0,
+    scaleBalance: { rbtc: 0, usdt: 100 },
+    yieldEarned: 0,
+    yieldClaimed: 0,
+    loyaltyTier: 'bronze',
+    timeInSystem: 0,
+    nextTierIn: 180,
+    totalTVL: 0
+  })
+
+  // Load Yield Scales data
+  const loadYieldScalesData = async () => {
+    if (!address) return
+    
+    console.log('⚖️ DASHBOARD: Loading Yield Scales data...')
+    
+    try {
+      // Get participant data
+      const participantResponse = await fetch(`/api/yield-scales/participant?address=${address}`)
+      if (participantResponse.ok) {
+        const participantData = await participantResponse.json()
+        
+        // Get stats data
+        const statsResponse = await fetch('/api/yield-scales/stats')
+        const statsData = await statsResponse.json()
+        
+        // Get loyalty data
+        const loyaltyResponse = await fetch(`/api/yield-scales/loyalty?address=${address}`)
+        const loyaltyData = await loyaltyResponse.json()
+        
+        // Update state with decrypted data
+        setYieldScalesData({
+          isParticipant: participantData.isParticipant || false,
+          participantType: participantData.participantType || null,
+          currentAPY: statsData.currentYieldRate || 0,
+          scaleBalance: {
+            rbtc: statsData.scalesBalance?.rbtcScale || 0,
+            usdt: statsData.scalesBalance?.usdtScale || 100
+          },
+          yieldEarned: participantData.yieldEarned || 0,
+          yieldClaimed: participantData.yieldClaimed || 0,
+          loyaltyTier: loyaltyData.tier || 'bronze',
+          timeInSystem: loyaltyData.timeInSystem || 0,
+          nextTierIn: loyaltyData.nextTierIn || 180,
+          totalTVL: statsData.totalTVL || 0
+        })
+        
+        console.log('✅ DASHBOARD: Yield Scales data loaded successfully')
+      }
+    } catch (error) {
+      console.error('❌ DASHBOARD: Failed to load Yield Scales data:', error)
+    }
+  }
 
   // Load additional data not covered by real-time system
   const loadAdditionalData = async () => {
@@ -203,6 +282,9 @@ export function DashboardContent() {
         console.log('✅ DASHBOARD: Bitcoin addresses processed:', btcAddrs.length)
       }
       
+      // Load Yield Scales data
+      await loadYieldScalesData()
+      
     } catch (error) {
       console.error('❌ DASHBOARD: Additional data loading error:', error)
     } finally {
@@ -250,8 +332,6 @@ export function DashboardContent() {
     const baseStyles = {
       'MINT': { bg: 'bg-green-500/10', prefix: '+', suffix: 'rBTC' },
       'BURN': { bg: 'bg-red-500/10', prefix: '-', suffix: 'rBTC' },
-      // 'WRAP': { bg: 'bg-blue-500/10', prefix: '→', suffix: 'wrBTC' },
-      // 'UNWRAP': { bg: 'bg-purple-500/10', prefix: '←', suffix: 'rBTC' },
       'DEPOSIT': { bg: 'bg-blue-500/10', prefix: '+', suffix: 'ETH' },
       'WITHDRAW': { bg: 'bg-orange-500/10', prefix: '-', suffix: 'ETH' },
       'TEST': { bg: 'bg-gray-500/10', prefix: '~', suffix: 'TEST' }
@@ -265,6 +345,16 @@ export function DashboardContent() {
       prefix: style.prefix,
       suffix: style.suffix
     }
+  }
+
+  // Format loyalty tier display
+  const getLoyaltyDisplay = (tier: string) => {
+    const displays = {
+      'bronze': { icon: '🥉', label: 'Bronze', color: 'text-orange-600' },
+      'silver': { icon: '🥈', label: 'Silver', color: 'text-gray-500' },
+      'gold': { icon: '🥇', label: 'Gold', color: 'text-yellow-500' }
+    }
+    return displays[tier as keyof typeof displays] || displays.bronze
   }
 
   if (!isConnected || !address) {
@@ -319,7 +409,7 @@ export function DashboardContent() {
         </div>
       </div>
 
-      {/* Balance Cards */}
+      {/* Balance Cards - First Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* rBTC-SYNTH Balance - Real-time */}
         <div className="bg-card border rounded-xl p-6">
@@ -362,26 +452,26 @@ export function DashboardContent() {
           </p>
         </div>
 
-        {/* wrBTC Balance - Real-time - TEMPORARILY DISABLED */}
-        {/*
+        {/* Yield APY Card */}
         <div className="bg-card border rounded-xl p-6">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Link2 className="h-5 w-5 text-purple-500" />
-              <span className="font-medium">wrBTC</span>
+              <Percent className="h-5 w-5 text-green-500" />
+              <span className="font-medium">Current APY</span>
             </div>
-            <span className="text-xs bg-purple-500/10 text-purple-600 px-2 py-1 rounded">Transferable</span>
+            <Badge variant="outline" className="text-xs">
+              Live
+            </Badge>
           </div>
           <div className="text-2xl font-bold">
-            {formatBalance(balance.wrbtc)}
+            {yieldScalesData.currentAPY.toFixed(2)}%
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            <Link href="/wrap" className="text-primary hover:underline">
-              Wrap rBTC → wrBTC
+            <Link href="/yield-scales" className="text-primary hover:underline">
+              View Yield Scales
             </Link>
           </p>
         </div>
-        */}
 
         {/* Total Transactions - Real-time */}
         <div className="bg-card border rounded-xl p-6">
@@ -402,6 +492,97 @@ export function DashboardContent() {
           </p>
         </div>
       </div>
+
+      {/* Yield Scales Section - Only show if participant or has rBTC */}
+      {(yieldScalesData.isParticipant || Number(balance.rbtc) > 0) && (
+        <div className="bg-card border rounded-xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <Scale className="h-5 w-5 text-purple-500" />
+              <h2 className="text-xl font-semibold">Yield Scales Protocol</h2>
+            </div>
+            {!yieldScalesData.isParticipant && (
+              <Link
+                href="/yield-scales"
+                className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-3 py-1 rounded text-sm flex items-center gap-1 transition-colors"
+              >
+                Join Protocol
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Scales Balance */}
+            <div className="bg-muted/50 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Scale className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Scale Balance</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <div>
+                  <div className="text-xs text-muted-foreground">rBTC</div>
+                  <div className="font-bold">{yieldScalesData.scaleBalance.rbtc.toFixed(1)}%</div>
+                </div>
+                <div className="text-muted-foreground">/</div>
+                <div>
+                  <div className="text-xs text-muted-foreground">USDT</div>
+                  <div className="font-bold">{yieldScalesData.scaleBalance.usdt}%</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Loyalty Status */}
+            <div className="bg-muted/50 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Trophy className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Loyalty Tier</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{getLoyaltyDisplay(yieldScalesData.loyaltyTier).icon}</span>
+                <span className={`font-bold ${getLoyaltyDisplay(yieldScalesData.loyaltyTier).color}`}>
+                  {getLoyaltyDisplay(yieldScalesData.loyaltyTier).label}
+                </span>
+              </div>
+              {yieldScalesData.nextTierIn > 0 && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  Next tier in {yieldScalesData.nextTierIn} days
+                </div>
+              )}
+            </div>
+
+            {/* Yield Earned */}
+            {yieldScalesData.isParticipant && (
+              <div className="bg-muted/50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Yield Earned</span>
+                </div>
+                <div className="font-bold text-green-600">
+                  ${yieldScalesData.yieldEarned.toFixed(2)}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Claimed: ${yieldScalesData.yieldClaimed.toFixed(2)}
+                </div>
+              </div>
+            )}
+
+            {/* TVL */}
+            <div className="bg-muted/50 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Total TVL</span>
+              </div>
+              <div className="font-bold">
+                ${(yieldScalesData.totalTVL / 1e6).toFixed(2)}M
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Protocol liquidity
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bitcoin Addresses */}
       <div className="bg-card border rounded-xl p-6">
@@ -596,15 +777,13 @@ export function DashboardContent() {
           <span className="font-medium">Mint rBTC</span>
         </Link>
         
-        {/* WRAP rBTC TEMPORARILY DISABLED
         <Link 
-          href="/wrap"
+          href="/yield-scales"
           className="flex items-center justify-center gap-3 p-4 bg-card border rounded-xl hover:bg-accent transition-colors"
         >
-          <Link2 className="h-5 w-5 text-primary" />
-          <span className="font-medium">Wrap rBTC</span>
+          <Scale className="h-5 w-5 text-primary" />
+          <span className="font-medium">Yield Scales</span>
         </Link>
-        */}
       </div>
 
       {/* Error notification if any */}

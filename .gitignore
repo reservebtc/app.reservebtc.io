@@ -454,3 +454,270 @@ monitor-cron.js
 # Oracle server files
 professional-oracle-server.js
 test-realtime-v2.js
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+dist/
+.cache/
+coverage/
+.npm/
+.yarn/
+
+# Debug and test scripts
+debug-*.js
+test-*.js
+*-debug.js
+*-test.js
+scripts/oracle-integration-test.js
+scripts/comprehensive-test.js
+/scripts/test-bip322-*.js
+/scripts/debug-*.js
+
+# Env & local configs - CRITICAL SECURITY
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# Allow .env.example to be committed
+!.env.example
+config.local.*
+secrets.json
+private.json
+
+# Logs
+*.log
+*.lock
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS junk
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Solidity (foundry/forge)
+cache/
+artifacts/
+out/
+broadcast/
+deployments/
+typechain/
+typechain-types/
+
+# Keys & Secrets - CRITICAL SECURITY
+*.key
+*.pem
+*.p12
+*.keystore
+mnemonic.txt
+seed.txt
+private-keys.txt
+wallet.json
+keyfile.json
+
+# IDE & Editors
+.vscode/
+.idea/
+*.sublime-*
+.history/
+
+# IMPORTANT: Keep GitHub Actions workflows (custom test environment)
+!.github/
+!.github/workflows/
+!.github/workflows/*.yml
+
+# Testing
+.coverage
+coverage.json
+.nyc_output/
+allure-results/
+
+# Test files and configs
+__tests__/
+**/test/
+**/tests/
+jest.config.js
+jest.setup.js
+.swcrc
+.eslintrc.json
+.prettierrc
+tsconfig.tests.json
+tsconfig.typecheck.json
+*.test.tsx
+*.test.ts
+*.test.js
+
+# Local development scripts
+scripts/
+oracle-server-updates/
+database/
+db/
+hooks/
+styles/
+web-interface/
+landing-reservebtc.io/
+
+# Development documentation
+ATOMIC_DEPLOYMENT_GUIDE.md
+REALTIME-INTEGRATION.md
+ReserveBTC Oracle Server.md
+*_Test_Summary_*.md
+README_Test_Summary_*.md
+
+# Configuration files
+.npmrc
+.nvmrc
+/foundry.toml
+.env.example
+
+
+# Build artifacts
+*.swp
+*.tmp
+*.bak
+*.orig
+*~
+.vercel
+.env*.local
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+tsconfig.typecheck.tsbuildinfo
+
+# Private Monitoring (NEVER PUSH TO GITHUB)
+monitoring/
+monitoring-*
+monitor-*.js
+*-monitor.js
+monitor-cron.js
+
+# Supabase Setup Guide (PRIVATE!)
+SUPABASE_SETUP_GUIDE.md
+supabase-admin.js
+
+# Oracle server files (deployed separately)
+oracle-server.js
+oracle-*.js
+professional-oracle-server.js
+ORACLE-*.md
+README-Oracle-*.md
+
+# Internal documentation and guides
+ISSUES_FOUND.md
+SECURITY_RECOMMENDATIONS.md
+SETUP_ORACLE_KEY.md
+DEPLOYMENT-GUIDE.md
+TESTING-GUIDE.md
+WORKFLOW-*.md
+PROJECT_CHECKLIST.md
+*-GUIDE.md
+*-REPORT.md
+*-README.md
+AUTOPUSH-*.md
+CI-CD-*.md
+GITHUB-*.md
+GIT-*.md
+HASH_SYSTEM_TECHNICAL_DOCUMENTATION.md
+
+# Project structure dumps
+Project_Structure*.txt
+signatures.txt
+used_files.txt
+
+# Backup directories - ALWAYS IGNORE
+web-interface-BACKUP*/
+*-BACKUP*/
+*BACKUP*/
+_archived/
+
+# Security and audit files
+SECURITY_AUDIT_REPORT.md
+contracts/SECURITY_AUDIT_REPORT.md
+contracts/ReserveBTC_Tests_FullDump*.txt
+contracts/signatures.txt
+
+# Changelog (internal only)
+CHANGELOG.md
+
+# Oracle server diagnostic and fix scripts
+fix-oracle-*.sh
+oracle-server-diagnostic.sh
+test-contract-sync.js
+debug-rbtc-oracle.js
+update-oracle-*.sh
+test-new-contract.js
+find-correct-pair.js
+test-manual-sync.js
+
+# Contract deploy fix scripts
+contracts/script/Fix*.s.sol
+contracts/script/Final*.s.sol
+contracts/script/Atomic*.s.sol
+contracts/script/Deploy*.s.sol
+
+# Forge broadcast and cache directories
+contracts/broadcast/
+contracts/cache/
+
+# Shell scripts for deployment
+*.sh
+!scripts/test-ci-locally.sh  # Keep CI test script if needed
+install-professional-oracle.sh
+add-fee-deposits-endpoint.sh
+nginx-fee-deposits-location.conf
+redeploy-oracle-quick.sh
+update-oracle-contract-address.sh
+setup-eternal-oracle.sh
+deploy-production-oracle.sh
+
+# Test and debug scripts
+test-*.js
+debug-*.js
+check-*.js
+verify-*.js
+discover-*.js
+create-*.js
+fix-*.js
+migrate-*.js
+fund-*.js
+update-*.js
+deploy-*.js
+comprehensive-*.js
+blockchain-*.js
+clean-*.js
+setup-*.js
+
+# JSON data files
+*-report.json
+*-diagnostic*.json
+oracle-users*.json
+oracle-data-*.json
+debug-data-*.json
+temp-oracle-*.json
+/tmp/*.json
+
+# Utility and temporary files
+vercel-env-keys.txt
+test-report-*.txt
+test-report-*
+oracle-encrypted-backup-*.js
+
+# Misc
+*.swp
+*.tmp
+*.bak
+*.orig
+*~
+.vercel
+# Test reports and documentation - DO NOT COMMIT
+generate-hash.js
+realtime-test-*.json
+app/api/test-supabase/

@@ -1,87 +1,125 @@
+// app/api/verify-wallet/route.ts
+
 import { NextRequest, NextResponse } from 'next/server'
-import { walletVerificationSchema } from '@/lib/validation-schemas'
+import { ProfessionalBitcoinValidator } from '@/lib/bitcoin-signature-validator-professional'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    const { bitcoinAddress, ethereumAddress, message, signature } = body
     
-    // Validate input
-    const validationResult = walletVerificationSchema.safeParse(body)
-    if (!validationResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid input data', details: validationResult.error.issues },
-        { status: 400 }
-      )
+    // Input validation
+    if (!bitcoinAddress || !message || !signature) {
+      return NextResponse.json({
+        success: false,
+        error: 'Missing required fields'
+      }, { status: 400 })
     }
-
-    const { bitcoinAddress, ethereumAddress, message, signature } = validationResult.data
-
-    // Here you would implement actual BIP-322 signature verification
-    // This is a mock implementation for demonstration
     
-    // Simulate BIP-322 verification process
-    const isValidSignature = await verifyBIP322Signature({
-      address: bitcoinAddress,
-      message,
-      signature,
-    })
-
-    if (!isValidSignature) {
-      return NextResponse.json(
-        { error: 'Invalid BIP-322 signature' },
-        { status: 400 }
-      )
-    }
-
-    // Store verification result (you would use a database here)
-    const verificationData = {
+    console.log('🔐 API: Starting professional BIP-322 verification')
+    console.log(`  Address: ${bitcoinAddress.substring(0, 15)}...`)
+    
+    // Security checks
+    const securityCheck = ProfessionalBitcoinValidator.validateSecurity(
       bitcoinAddress,
-      ethereumAddress,
-      verified: true,
-      timestamp: new Date().toISOString(),
+      message,
+      signature
+    );
+    
+    if (!securityCheck.secure) {
+      console.error('⚠️ Security check failed:', securityCheck.warnings);
+      return NextResponse.json({
+        success: false,
+        error: 'Security validation failed',
+        warnings: securityCheck.warnings
+      }, { status: 400 })
     }
-
+    
+    // Address format validation
+    if (!ProfessionalBitcoinValidator.validateAddressFormat(bitcoinAddress)) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid Bitcoin address format'
+      }, { status: 400 })
+    }
+    
+    // Signature verification
+    const validationResult = ProfessionalBitcoinValidator.verify(
+      bitcoinAddress,
+      message,
+      signature
+    );
+    
+    console.log('📊 Validation result:', {
+      valid: validationResult.valid,
+      method: validationResult.method,
+      addressType: validationResult.addressType,
+      network: validationResult.network,
+      securityLevel: validationResult.securityLevel
+    });
+    
+    if (!validationResult.valid) {
+      return NextResponse.json({
+        success: false,
+        error: validationResult.error || 'Signature verification failed',
+        details: {
+          addressType: validationResult.addressType,
+          network: validationResult.network,
+          method: validationResult.method
+        }
+      }, { status: 400 })
+    }
+    
+    // Log successful verification
+    console.log(`✅ Verification successful:
+      Address: ${bitcoinAddress}
+      Type: ${validationResult.addressType}
+      Network: ${validationResult.network}
+      Security: ${validationResult.securityLevel}
+      Method: ${validationResult.method}
+    `);
+    
+    // Return success
     return NextResponse.json({
       success: true,
-      data: verificationData,
+      data: {
+        bitcoinAddress,
+        ethereumAddress: ethereumAddress || '',
+        verified: true,
+        timestamp: new Date().toISOString(),
+        validationDetails: {
+          addressType: validationResult.addressType,
+          network: validationResult.network,
+          securityLevel: validationResult.securityLevel,
+          method: validationResult.method
+        }
+      }
     })
-
-  } catch (error) {
-    console.error('Wallet verification error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    
+  } catch (error: any) {
+    console.error('❌ API: Fatal error:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Internal server error'
+    }, { status: 500 })
   }
 }
 
-// Mock BIP-322 verification function
-// In a real implementation, you would use a library like bitcoinjs-lib
-async function verifyBIP322Signature({
-  address,
-  message,
-  signature,
-}: {
-  address: string
-  message: string
-  signature: string
-}): Promise<boolean> {
-  // Mock verification - always returns true for demo
-  // Real implementation would verify the cryptographic signature
-  await new Promise(resolve => setTimeout(resolve, 1000))
-  
-  // Basic validation checks
-  if (!address || !message || !signature) {
-    return false
-  }
-
-  // Check if signature is base64 encoded
-  try {
-    atob(signature)
-  } catch {
-    return false
-  }
-
-  // In real implementation, verify the signature against the address and message
-  return true
+export async function GET() {
+  return NextResponse.json({
+    endpoint: 'Professional BIP-322 Verification API',
+    status: 'operational',
+    version: '2.0.0',
+    security: 'enhanced',
+    methods: ['BIP-322', 'BIP-137', 'Legacy'],
+    supportedAddressTypes: [
+      'Legacy (P2PKH)',
+      'SegWit (P2SH-P2WPKH)', 
+      'Native SegWit (P2WPKH)',
+      'Taproot (P2TR)'
+    ],
+    networks: ['mainnet', 'testnet'],
+    requiredFields: ['bitcoinAddress', 'message', 'signature'],
+    optionalFields: ['ethereumAddress']
+  })
 }

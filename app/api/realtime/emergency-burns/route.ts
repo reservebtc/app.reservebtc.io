@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 function getSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
   
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase configuration missing');
+    console.warn('Supabase configuration missing, returning empty data')
+    return null
   }
   
-  return createClient(supabaseUrl, supabaseKey);
+  return createClient(supabaseUrl, supabaseKey)
 }
 
 export async function GET(request: NextRequest) {
@@ -17,31 +18,45 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const address = searchParams.get('address')
     
-    if (!address) {
-      return NextResponse.json({ error: 'Address required' }, { status: 400 })
+    const supabase = getSupabaseClient()
+    
+    // Return valid structure even without Supabase
+    if (!supabase) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          userBurns: [],
+          emergencyTransactions: [],
+          totalSystemBurns: 0,
+          hasEmergencyBurns: false
+        },
+        timestamp: new Date().toISOString()
+      })
     }
 
-    // Get emergency burns for user
-    const { data: burns, error } = await getSupabaseClient()
-      .from('emergency_burns')
-      .select('*')
-      .eq('user_address', address.toLowerCase())
-      .order('timestamp', { ascending: false })
+    let userBurns = []
+    let emergencyTransactions = []
+    
+    if (address) {
+      const { data: burns } = await supabase
+        .from('emergency_burns')
+        .select('*')
+        .eq('user_address', address.toLowerCase())
+        .order('timestamp', { ascending: false })
+      
+      userBurns = burns || []
 
-    if (error && error.code !== 'PGRST116') { // Table exists but no data is ok
-      console.error('Emergency burns query error:', error)
+      const { data: txs } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_address', address.toLowerCase())
+        .eq('is_emergency_burn', true)
+        .order('block_timestamp', { ascending: false })
+      
+      emergencyTransactions = txs || []
     }
 
-    // Get transactions with emergency burn flag
-    const { data: emergencyTransactions } = await getSupabaseClient()
-      .from('transactions')
-      .select('*')
-      .eq('user_address', address.toLowerCase())
-      .eq('is_emergency_burn', true)
-      .order('block_timestamp', { ascending: false })
-
-    // Get total burns across system
-    const { data: totalBurns } = await getSupabaseClient()
+    const { data: totalBurns } = await supabase
       .from('emergency_burns')
       .select('burned_amount')
 
@@ -51,20 +66,27 @@ export async function GET(request: NextRequest) {
     ) || 0
 
     return NextResponse.json({
-      userBurns: burns || [],
-      emergencyTransactions: emergencyTransactions || [],
-      totalSystemBurns: totalBurnedAmount,
-      hasEmergencyBurns: (burns?.length || 0) > 0 || (emergencyTransactions?.length || 0) > 0,
+      success: true,
+      data: {
+        userBurns: userBurns,
+        emergencyTransactions: emergencyTransactions,
+        totalSystemBurns: totalBurnedAmount,
+        hasEmergencyBurns: userBurns.length > 0 || emergencyTransactions.length > 0
+      },
       timestamp: new Date().toISOString()
     })
 
   } catch (error) {
     console.error('Emergency burns API error:', error)
     return NextResponse.json({
-      userBurns: [],
-      emergencyTransactions: [],
-      totalSystemBurns: 0,
-      hasEmergencyBurns: false,
+      success: false,
+      error: 'Failed to fetch emergency burns',
+      data: {
+        userBurns: [],
+        emergencyTransactions: [],
+        totalSystemBurns: 0,
+        hasEmergencyBurns: false
+      },
       timestamp: new Date().toISOString()
     })
   }
