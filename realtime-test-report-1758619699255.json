@@ -1,0 +1,416 @@
+{
+  "timestamp": "2025-09-23T09:28:19.255Z",
+  "duration": 7813,
+  "results": {
+    "passed": 12,
+    "failed": 7,
+    "warnings": 3,
+    "startTime": 1758619691441,
+    "details": [
+      {
+        "name": "Oracle Status",
+        "success": true,
+        "time": 802,
+        "data": {
+          "status": "operational",
+          "mode": "PROFESSIONAL_PRODUCTION",
+          "version": "2.1.0",
+          "uptime": 1032776910,
+          "metrics": {
+            "totalUsers": 3,
+            "totalTransactions": 2,
+            "totalMintOperations": 0,
+            "totalBurnOperations": 0,
+            "totalWrapOperations": 0,
+            "totalUnwrapOperations": 0,
+            "activeUsers": 0
+          },
+          "blockchain": {
+            "chainId": 6342,
+            "lastSync": null
+          },
+          "features": [
+            "professional_user_management",
+            "encrypted_data_storage",
+            "blockchain_event_monitoring",
+            "automatic_user_registration",
+            "transaction_history_tracking",
+            "persistent_data_storage",
+            "automated_backups",
+            "high_performance_caching"
+          ]
+        }
+      },
+      {
+        "name": "Oracle Health",
+        "success": true,
+        "time": 239,
+        "data": {
+          "status": "healthy",
+          "timestamp": "2025-09-23T09:28:12.471Z",
+          "uptime": 1032777152,
+          "memory": {
+            "used": "24 MB",
+            "total": "28 MB"
+          },
+          "cache": {
+            "profiles": 3,
+            "transactions": 3
+          },
+          "version": "2.1.0",
+          "mode": "PROFESSIONAL_PRODUCTION"
+        }
+      },
+      {
+        "name": "Oracle Users Data",
+        "success": true,
+        "time": 237,
+        "data": {
+          "encrypted": true,
+          "data": "d1a171664d4669c73e87deb6341bee06f6229a2658120f21a4fcd8861a620781d99918fd2989bc3e7e4d120052f9917139b1692e39d9a2e1250b224086d193e624ca11d70dcdbe85b79135871a8a119acb5a38d647a3c71763892ef69344122afe09a64b657f86ac11f39f26c17783fd23fe2b70f9b6ff387231dd76b28575c324159ef534df38e81094af4d773f0724acf1e67bc91ef34edc0a65916d7984abaa77692d8714ae78e786a502e23cfaa1a7a0c2ca2beeddf11e015cda895237959beb2a074f8db02ac1951ecd4df07e5b8259acd135b3ceabd519df70fb93defefe3f56ccb613b1c9eecf680c60189d5e8d78034fb04fcdade1c09ccfbac8b8fd649440c7c6d6fd99aa991c88a911bc6ac95ad498c6aadd4fb10f7e63c649c684e658b8ba27eb9014aad25e3ca80cf0d5d79cc86374773ded5cfae1b856ba13dd23f47e97186008a1df218d3b287bbe5867806d56906948593a4edfad08873a6d823c69cef434846e095a2bf4a15f6ff9700e0f0574eb781742ad4ed697d209f28f7ef7664ec1f67caa41b395dcf50a61cb48b8f53f3dcb6dddf39ba8b3a29f1597bca50f5d911c9d6c35aed4534ba60a444e967c62627d464205612cffc129061ccf67c384fef125c7c1f3c06e8d3fcb196eccbea9dfe3f0bf3722196468174ce888e337eabdd468a1742df80ea7d97018e582ef7e90758a685e576424e3b17969eb8b6b6563416318ca57a7a581c7e5ffe26dd58f8819d0275636c63550bf60f992276f64d949509c8a0e51b29212048b643e4fb87c9a8b56e449e65289b9a0f8f5e26c11b153e03d112556ca41d169590ccae55178fcaddbf8b4a88b3b04b21de25e93b577350fa8b71e0c67c96612648b24d3b1db44e075604d76d26ed02b9e509cc8aed7630e5178865b4e05c6a11ab46e1cde96328df43d0a8aa98f7d91c087a747c02a8e63447e4bfde5be0d3ab98323d1e7cc6d0f22757e20b60a62452a177fc9c3ca157e667f239c65b88a6cde317e998d01782d9b05035dda49cd53deb7dbb419215ab8ac60264c4d2a0bd0870382d4269df05f15577ae4703a686a64a9d3c10acd562c373b10edaef78bfbc73dde85be715529095060b8bcffabaa85c97b85b35dab16485e900f67f80ff3b52e138d9491cca82546a29e38dad368daf4112a1e15d4658661b7fafa4f4033119b03effbea2c0231cdc40742fb79bac82a25229a354f0e39a9efb4e1072b5a93a6e92c9e6662ba25593409b8435acddb6800ae60096f08c33666987b898c0dc752fdb4284e492c0777a13d025fb2ed35267c2a4bc346ef2f3204a21e00ee4e33270865061d90d9e7844985aebd40ad820f108a86ecc8151dadca25113ba76d77960080ae7b90c576e46f1a16a578ab569b5d91ff33aeeb932bf86596e02eee196a16b64f55dafff699549351cc8492badcb59d1693fbf4d14bdc3b3f5f382ae5198da48311a0aea3da19245397fe32aeb3aa9beb292607347d337aedeaf60dd07d0614adcf03f21a7133df83d8f6aa0b2505e69edbcd24fff75cf9c3cb6351ebff162c8ddc5ad9ff9bafef63221c681e8c6491e1f97e668c16b4466dca52a73911e9ea27fa45f743b636b5af20ebceb539dbe6db05221be3ff9c44fbc895e65016afacca73a65bf6392024594661d6f37c7d46dd8d14819a09f1d97f0e741d2a7bb1b78206d4eb196ec0e8f1a07d979be5bbf7f5166f0663acdfa8e4846d1445c636c9b97d8616c11ad5a5ecd579dec6b39e2fca7fbe97a95c92c199cfd296e16986c1b5ae",
+          "iv": "b1e04104493c37328077308e0d2330b6",
+          "authTag": "6a7c3e16d7d0f8b891aa98919b7ecc33",
+          "algorithm": "aes-256-gcm",
+          "timestamp": "2025-09-23T09:28:12.708Z",
+          "additionalData": "users_list"
+        }
+      },
+      {
+        "name": "Oracle API Integration",
+        "success": false,
+        "time": 430,
+        "error": "HTTP 405"
+      },
+      {
+        "name": "Table: transactions",
+        "success": false,
+        "time": 341,
+        "error": "HTTP 401"
+      },
+      {
+        "name": "Table: users",
+        "success": false,
+        "time": 38,
+        "error": "HTTP 401"
+      },
+      {
+        "name": "Table: balance_snapshots",
+        "success": false,
+        "time": 31,
+        "error": "HTTP 401"
+      },
+      {
+        "name": "Table: bitcoin_addresses",
+        "success": false,
+        "time": 35,
+        "error": "HTTP 401"
+      },
+      {
+        "name": "Table: emergency_burns",
+        "success": false,
+        "time": 36,
+        "error": "HTTP 401"
+      },
+      {
+        "name": "Table: yield_scales_participants",
+        "success": false,
+        "time": 38,
+        "error": "HTTP 401"
+      },
+      {
+        "name": "Balances",
+        "success": true,
+        "time": 971,
+        "data": {
+          "address": "0xf45d5feefd7235d9872079d537f5796ba79b1e52",
+          "rbtc": 147145,
+          "wrbtc": "0",
+          "oracle": "0",
+          "oracleBalance": 0,
+          "lastUpdate": "2025-09-23T05:47:52.449",
+          "blockNumber": 17425398
+        }
+      },
+      {
+        "name": "Transactions",
+        "success": true,
+        "time": 565,
+        "data": [
+          {
+            "tx_hash": "0x4235601c63b4c4d4dd6a57c40f7bff010c70c204d9fa182406c3ea33b77f9a87",
+            "block_number": 17425398,
+            "block_timestamp": "2025-09-23T05:47:51.933",
+            "user_address": "0xf45d5feefd7235d9872079d537f5796ba79b1e52",
+            "tx_type": "MINT",
+            "amount": "147145",
+            "delta": "147145",
+            "fee_wei": "1400000000000000",
+            "bitcoin_address": "tb1qtkj7hlhv9drfwe2mupq0yt9m6fsungkjjv5lr7",
+            "gas_used": null,
+            "gas_price": "0",
+            "status": "confirmed",
+            "metadata": {}
+          },
+          {
+            "tx_hash": "0x4af824a7bca19ddb895e9635f5e7d8238ef954622d220c8e90327bfe8804e17b",
+            "block_number": 17424667,
+            "block_timestamp": "2025-09-23T05:35:40.723",
+            "user_address": "0xf45d5feefd7235d9872079d537f5796ba79b1e52",
+            "tx_type": "MINT",
+            "amount": "147145",
+            "delta": "147145",
+            "fee_wei": "1400000000000000",
+            "bitcoin_address": "tb1qtkj7hlhv9drfwe2mupq0yt9m6fsungkjjv5lr7",
+            "gas_used": null,
+            "gas_price": "0",
+            "status": "confirmed",
+            "metadata": {}
+          },
+          {
+            "tx_hash": "0xafedbf7b000779e3dbf891dcb930355566d37cf59b42b14dcaf5d5e16bd9cea2",
+            "block_number": 17346901,
+            "block_timestamp": "2025-09-22T07:59:36.331",
+            "user_address": "0xf45d5feefd7235d9872079d537f5796ba79b1e52",
+            "tx_type": "MINT",
+            "amount": "5000",
+            "delta": "5000",
+            "fee_wei": "0",
+            "bitcoin_address": null,
+            "gas_used": null,
+            "gas_price": "0",
+            "status": "confirmed",
+            "metadata": {}
+          },
+          {
+            "tx_hash": "0x41671cc64414666f1ec12e8d83dfa7140b6828f3e9b7e06919c8f60f4e994d50",
+            "block_number": 17345761,
+            "block_timestamp": "2025-09-22T07:40:37.048",
+            "user_address": "0xf45d5feefd7235d9872079d537f5796ba79b1e52",
+            "tx_type": "BURN",
+            "amount": "1000",
+            "delta": "-1000",
+            "fee_wei": "0",
+            "bitcoin_address": null,
+            "gas_used": null,
+            "gas_price": "0",
+            "status": "confirmed",
+            "metadata": {}
+          },
+          {
+            "tx_hash": "0x583fa9ca9aa10451d9495c9b2438ef987f7009a4e725fc6c428e48ddbc28b342",
+            "block_number": 17341736,
+            "block_timestamp": "2025-09-22T06:33:31.522",
+            "user_address": "0xf45d5feefd7235d9872079d537f5796ba79b1e52",
+            "tx_type": "BURN",
+            "amount": "1000",
+            "delta": "-1000",
+            "fee_wei": "0",
+            "bitcoin_address": null,
+            "gas_used": null,
+            "gas_price": "0",
+            "status": "confirmed",
+            "metadata": {}
+          },
+          {
+            "tx_hash": "0xa0bd84301a739e7e2bc63064d67a440a84e9ceac94934e34732fc956f8ed0bf3",
+            "block_number": 17341219,
+            "block_timestamp": "2025-09-22T06:24:54.345",
+            "user_address": "0xf45d5feefd7235d9872079d537f5796ba79b1e52",
+            "tx_type": "MINT",
+            "amount": "150000",
+            "delta": "150000",
+            "fee_wei": "0",
+            "bitcoin_address": null,
+            "gas_used": null,
+            "gas_price": "0",
+            "status": "confirmed",
+            "metadata": {}
+          },
+          {
+            "tx_hash": "0x06922a3f2958ce9b0dd0579805774f9d9e6e142abb7b831b06432d7894c570c5",
+            "block_number": 17340582,
+            "block_timestamp": "2025-09-22T06:14:17.039",
+            "user_address": "0xf45d5feefd7235d9872079d537f5796ba79b1e52",
+            "tx_type": "BURN",
+            "amount": "144246",
+            "delta": "-144246",
+            "fee_wei": "0",
+            "bitcoin_address": null,
+            "gas_used": null,
+            "gas_price": "0",
+            "status": "confirmed",
+            "metadata": {}
+          },
+          {
+            "tx_hash": "0x5860827b61338c00821c5bcfbef9e79b633177e5099788e878cfca7956bde9c2",
+            "block_number": 17339909,
+            "block_timestamp": "2025-09-22T06:03:04.955",
+            "user_address": "0xf45d5feefd7235d9872079d537f5796ba79b1e52",
+            "tx_type": "BURN",
+            "amount": "1000",
+            "delta": "-1000",
+            "fee_wei": "0",
+            "bitcoin_address": null,
+            "gas_used": null,
+            "gas_price": "0",
+            "status": "confirmed",
+            "metadata": {}
+          },
+          {
+            "tx_hash": "0x851b25cdc0bb24e623eb5b2dbbebd42d4350ccd672b053862ee802dd40a27940",
+            "block_number": 17339279,
+            "block_timestamp": "2025-09-22T05:52:34.951",
+            "user_address": "0xf45d5feefd7235d9872079d537f5796ba79b1e52",
+            "tx_type": "BURN",
+            "amount": "1000",
+            "delta": "-1000",
+            "fee_wei": "0",
+            "bitcoin_address": null,
+            "gas_used": null,
+            "gas_price": "0",
+            "status": "confirmed",
+            "metadata": {}
+          },
+          {
+            "tx_hash": "0x3fcc558e6df8efe1a560621545b6a84a591467e8e09cb6c9cf73cdb6985c5eba",
+            "block_number": 17338787,
+            "block_timestamp": "2025-09-22T05:44:22.721",
+            "user_address": "0xf45d5feefd7235d9872079d537f5796ba79b1e52",
+            "tx_type": "MINT",
+            "amount": "1000",
+            "delta": "1000",
+            "fee_wei": "0",
+            "bitcoin_address": null,
+            "gas_used": null,
+            "gas_price": "0",
+            "status": "confirmed",
+            "metadata": {}
+          }
+        ]
+      },
+      {
+        "name": "Sync Status",
+        "success": true,
+        "time": 562,
+        "data": {
+          "synced": true,
+          "lastSync": null,
+          "syncAge": null,
+          "isRecent": false,
+          "status": "stale",
+          "userRegistered": true
+        }
+      },
+      {
+        "name": "Bitcoin Addresses",
+        "success": true,
+        "time": 565,
+        "data": {
+          "ethAddress": "0xf45d5feefd7235d9872079d537f5796ba79b1e52",
+          "bitcoinAddresses": [
+            {
+              "id": 1,
+              "eth_address": "0xf45d5feefd7235d9872079d537f5796ba79b1e52",
+              "bitcoin_address": "tb1qtkj7hlhv9drfwe2mupq0yt9m6fsungkjjv5lr7",
+              "network": "testnet",
+              "verified_at": "2025-09-12T15:12:06.58563",
+              "monitoring_started_at": "2025-09-12T15:12:06.58563",
+              "is_monitoring": true,
+              "created_at": "2025-09-12T15:12:06.58563"
+            },
+            {
+              "id": 2,
+              "eth_address": "0xf45d5feefd7235d9872079d537f5796ba79b1e52",
+              "bitcoin_address": "tb1qtkj7hlhv9drfwe2mupq0yt9m6fsungkjjv5lr4",
+              "network": "testnet",
+              "verified_at": "2025-09-12T15:12:06.58563",
+              "monitoring_started_at": null,
+              "is_monitoring": false,
+              "created_at": "2025-09-12T15:12:06.58563"
+            },
+            {
+              "id": 3,
+              "eth_address": "0xf45d5feefd7235d9872079d537f5796ba79b1e52",
+              "bitcoin_address": "tb1qtkj7hlhv9drfwe2mupq0yt9m6fsungkjjv5lr1",
+              "network": "testnet",
+              "verified_at": "2025-09-12T15:12:06.58563",
+              "monitoring_started_at": null,
+              "is_monitoring": false,
+              "created_at": "2025-09-12T15:12:06.58563"
+            }
+          ],
+          "count": 3,
+          "timestamp": "2025-09-23T09:28:16.343Z"
+        }
+      },
+      {
+        "name": "Emergency Burns",
+        "success": true,
+        "time": 768,
+        "data": {
+          "success": true,
+          "data": {
+            "userBurns": [],
+            "emergencyTransactions": [],
+            "totalSystemBurns": 0,
+            "hasEmergencyBurns": false
+          },
+          "timestamp": "2025-09-23T09:28:17.111Z"
+        }
+      },
+      {
+        "name": "Yield Status",
+        "success": true,
+        "time": 637,
+        "data": {
+          "isParticipant": false,
+          "isEligible": true,
+          "participantData": null,
+          "currentBalance": 147145,
+          "systemStats": {
+            "totalParticipants": 0,
+            "bitcoinHolders": 0,
+            "traders": 0,
+            "bronzeTier": 0,
+            "silverTier": 0,
+            "goldTier": 0
+          },
+          "yieldScalesContract": "0xbaBfC9B230e34c1726bAb00C99032f9e84c1C3fb",
+          "timestamp": "2025-09-23T09:28:17.754Z"
+        }
+      },
+      {
+        "name": "Disputes",
+        "success": true,
+        "time": 508,
+        "data": {
+          "success": true,
+          "data": {
+            "userDisputes": [],
+            "hasActiveDispute": false,
+            "totalDisputes": 0
+          },
+          "timestamp": "2025-09-23T09:28:18.269Z"
+        }
+      },
+      {
+        "name": "Proof of Reserves",
+        "success": true,
+        "time": 46,
+        "data": {
+          "success": true,
+          "data": {
+            "latestProof": null,
+            "currentTotals": {
+              "totalRBTC": 533257,
+              "totalSats": 533257,
+              "backingRatio": "100.00"
+            }
+          },
+          "timestamp": "2025-09-23T09:12:00.345Z"
+        }
+      }
+    ]
+  },
+  "successRate": "63.2"
+}

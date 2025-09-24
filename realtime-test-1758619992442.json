@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-09-23T09:33:12.442Z",
+  "duration": 9636,
+  "results": {
+    "passed": 14,
+    "failed": 0,
+    "warnings": 0,
+    "skipped": 0,
+    "startTime": 1758619982806,
+    "details": []
+  },
+  "successRate": "100.0",
+  "adjustedRate": "100.0"
+}
