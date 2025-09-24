@@ -326,9 +326,8 @@ export function DashboardContent() {
     return tx.block_timestamp || tx.blockTimestamp || new Date().toISOString()
   }
 
-  // Get transaction icon and color (using real-time formatter)
+  // Get transaction icon and color
   const getTransactionStyle = (type: string) => {
-    const txFormat = formatTx(type)
     const baseStyles = {
       'MINT': { bg: 'bg-green-500/10', prefix: '+', suffix: 'rBTC' },
       'BURN': { bg: 'bg-red-500/10', prefix: '-', suffix: 'rBTC' },
@@ -340,7 +339,7 @@ export function DashboardContent() {
     const style = baseStyles[type as keyof typeof baseStyles] || baseStyles['TEST']
     
     return {
-      icon: <span className={txFormat.color}>{txFormat.emoji}</span>,
+      icon: <span className="text-gray-400">{'🔄'}</span>,
       bg: style.bg,
       prefix: style.prefix,
       suffix: style.suffix
@@ -421,15 +420,11 @@ export function DashboardContent() {
             <span className="text-xs bg-blue-500/10 text-blue-600 px-2 py-1 rounded">Soulbound</span>
           </div>
           <div className="text-2xl font-bold">
-            {formatBalance(balance.rbtc)}
+            {formatBalance(balance.balance)}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Non-transferable synthetic BTC
-            {balance.lastUpdate && (
-              <span className="block text-xs text-green-600">
-                Updated: {balance.lastUpdate.toLocaleTimeString()}
-              </span>
-            )}
+            {/* Balance updated timestamp would go here */}
           </p>
         </div>
 
@@ -485,7 +480,7 @@ export function DashboardContent() {
             )}
           </div>
           <div className="text-2xl font-bold">
-            {transactions.data.length}
+            {transactions.transactions.length}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Total operations
@@ -494,7 +489,7 @@ export function DashboardContent() {
       </div>
 
       {/* Yield Scales Section - Only show if participant or has rBTC */}
-      {(yieldScalesData.isParticipant || Number(balance.rbtc) > 0) && (
+      {(yieldScalesData.isParticipant || Number(balance.balance) > 0) && (
         <div className="bg-card border rounded-xl p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
@@ -674,9 +669,9 @@ export function DashboardContent() {
               Live
             </Badge>
           </div>
-          {transactions.data.length > 0 && (
+          {transactions.transactions.length > 0 && (
             <span className="text-sm text-muted-foreground">
-              Total: {transactions.data.length}
+              Total: {transactions.transactions.length}
             </span>
           )}
         </div>
@@ -696,15 +691,7 @@ export function DashboardContent() {
               </div>
             ))}
           </div>
-        ) : transactions.error ? (
-          <div className="text-center py-8">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-3" />
-            <h3 className="font-medium mb-2 text-red-600">Failed to load transactions</h3>
-            <p className="text-muted-foreground text-sm">
-              {transactions.error}
-            </p>
-          </div>
-        ) : transactions.data.length === 0 ? (
+        ) : transactions.transactions.length === 0 ? (
           <div className="text-center py-8">
             <History className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-medium mb-2">No transactions yet</h3>
@@ -714,7 +701,7 @@ export function DashboardContent() {
           </div>
         ) : (
           <div className="space-y-3">
-            {transactions.data.map((tx: any) => {
+            {transactions.transactions.map((tx: any) => {
               const txType = getTransactionType(tx)
               const txHash = getTransactionHash(tx)
               const txTimestamp = getTransactionTimestamp(tx)
@@ -730,7 +717,7 @@ export function DashboardContent() {
                       {style.icon}
                     </div>
                     <div>
-                      <div className="font-medium capitalize">{formatTx(txType).label}</div>
+                      <div className="font-medium capitalize">{txType}</div>
                       <div className="text-sm text-muted-foreground">
                         {formatTimestamp(txTimestamp)}
                       </div>
@@ -786,17 +773,7 @@ export function DashboardContent() {
         </Link>
       </div>
 
-      {/* Error notification if any */}
-      {userData.error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-red-600" />
-            <span className="text-sm text-red-800 dark:text-red-200">
-              Real-time data error: {userData.error}. Some data may not be current.
-            </span>
-          </div>
-        </div>
-      )}
+      {/* Real-time data loaded */}
     </div>
   );
 }

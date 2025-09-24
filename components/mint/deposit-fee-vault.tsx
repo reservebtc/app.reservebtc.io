@@ -61,9 +61,9 @@ export function DepositFeeVault() {
 
   // Real-time balance sync
   useEffect(() => {
-    if (userData.user && !userData.loading) {
+    if (userData.userData && !userData.loading) {
       // Safe type checking for feeVaultBalance
-      const userFeeBalance = (userData.user as any).feeVaultBalance;
+      const userFeeBalance = (userData.userData as any).feeVaultBalance;
       if (userFeeBalance !== undefined) {
         const realtimeFeeBalance = formatEther(BigInt(userFeeBalance));
         console.log('📡 FEE_VAULT: Real-time balance update:', realtimeFeeBalance, 'ETH');
@@ -103,8 +103,8 @@ export function DepositFeeVault() {
     if (!address || !publicClient) return;
     
     // Skip contract call if we have real-time data
-    const userFeeBalance = userData.user ? (userData.user as any).feeVaultBalance : undefined;
-    if (userData.user && !userData.loading && userFeeBalance !== undefined) {
+    const userFeeBalance = userData.userData ? (userData.userData as any).feeVaultBalance : undefined;
+    if (userData.userData && !userData.loading && userFeeBalance !== undefined) {
       console.log('📡 FEE_VAULT: Using real-time balance, skipping contract call');
       return;
     }
@@ -314,7 +314,7 @@ export function DepositFeeVault() {
               <Wallet className="h-5 w-5 text-primary" />
               <span>Oracle Fee Vault</span>
             </h3>
-            {!userData.loading && userData.user && (userData.user as any).feeVaultBalance !== undefined && (
+            {!userData.loading && userData.userData && (userData.userData as any).feeVaultBalance !== undefined && (
               <Badge variant="outline" className="flex items-center gap-1">
                 <Activity className="h-3 w-3 text-green-500" />
                 Live
@@ -336,7 +336,7 @@ export function DepositFeeVault() {
               </span>
             )}
           </div>
-          {!userData.loading && userData.user && (userData.user as any).feeVaultBalance !== undefined && (
+          {!userData.loading && userData.userData && (userData.userData as any).feeVaultBalance !== undefined && (
             <div className="text-xs text-green-600">
               Real-time sync active
             </div>

@@ -60,7 +60,7 @@ export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignat
   const userData = useRealtimeUserData()
   
   // Use new user verification hook for other purposes if needed
-  const { refreshProfile } = useUserVerification()
+  const verification = useUserVerification()
 
   /**
    * Create/Update user profile via Professional Oracle (ORACLE 2.1.0 ARRAY SUPPORT)
@@ -184,11 +184,11 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
 
   // Real-time sync for existing verified addresses
   useEffect(() => {
-    if (userData.user && !userData.loading) {
+    if (userData.userData && !userData.loading) {
       console.log('📡 VERIFY: Real-time user data update received')
       
       // Check if user already has verified addresses from real-time system
-      const userBitcoinAddresses = (userData.user as any).bitcoinAddresses || []
+      const userBitcoinAddresses = (userData.userData as any).bitcoinAddresses || []
       if (userBitcoinAddresses.length > 0) {
         console.log('📡 VERIFY: User has', userBitcoinAddresses.length, 'verified addresses in real-time system')
         
@@ -216,8 +216,8 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
 
     try {
       // First check real-time data if available
-      if (userData.user && !userData.loading) {
-        const userBitcoinAddresses = (userData.user as any).bitcoinAddresses || []
+      if (userData.userData && !userData.loading) {
+        const userBitcoinAddresses = (userData.userData as any).bitcoinAddresses || []
         if (userBitcoinAddresses.includes(bitcoinAddress)) {
           console.log('📡 UNIQUENESS CHECK: Address found in real-time data for current user')
           setAddressUniquenessCheck({
@@ -619,7 +619,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
             <span>🔐</span>
             <span>Bitcoin Address Verification</span>
           </h3>
-          {!userData.loading && userData.user && (userData.user as any).bitcoinAddresses?.length > 0 && (
+          {!userData.loading && userData.userData && (userData.userData as any).bitcoinAddresses?.length > 0 && (
             <Badge variant="outline" className="flex items-center gap-1">
               <Activity className="h-3 w-3 text-green-500" />
               Real-time
@@ -628,8 +628,8 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
         </div>
         <p className="text-sm text-muted-foreground">
           Verify ownership of your Bitcoin address using BIP-322 signature
-          {!userData.loading && userData.user && (userData.user as any).bitcoinAddresses?.length > 0 && (
-            <span className="text-green-600 ml-1">• {(userData.user as any).bitcoinAddresses.length} verified address(es)</span>
+          {!userData.loading && userData.userData && (userData.userData as any).bitcoinAddresses?.length > 0 && (
+            <span className="text-green-600 ml-1">• {(userData.userData as any).bitcoinAddresses.length} verified address(es)</span>
           )}
         </p>
       </div>
@@ -651,7 +651,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
       {isMetaMaskConnected && (
         <>
           {/* Real-time verification status indicator */}
-          {!userData.loading && userData.user && (userData.user as any).bitcoinAddresses?.length > 0 && (
+          {!userData.loading && userData.userData && (userData.userData as any).bitcoinAddresses?.length > 0 && (
             <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
               <div className="flex items-start space-x-3">
                 <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
@@ -660,7 +660,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                     Verified Addresses Found
                   </p>
                   <p className="text-green-700 dark:text-green-300 text-sm mt-1">
-                    You have {(userData.user as any).bitcoinAddresses.length} verified Bitcoin address(es) in the real-time system.
+                    You have {(userData.userData as any).bitcoinAddresses.length} verified Bitcoin address(es) in the real-time system.
                     You can verify additional addresses below.
                   </p>
                   <div className="mt-2">

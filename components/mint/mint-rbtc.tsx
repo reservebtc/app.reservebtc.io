@@ -131,9 +131,9 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   }, [address, performCompleteDataCleanup])
 
   useEffect(() => {
-    if (!realtimeBalance.loading && realtimeBalance.rbtc !== undefined) {
-      console.log('📡 MINT: Real-time balance update:', realtimeBalance.rbtc, 'sats')
-      const btcAmount = realtimeBalance.rbtc / 100000000
+    if (!realtimeBalance.loading && realtimeBalance.balance !== undefined) {
+      console.log('📡 MINT: Real-time balance update:', realtimeBalance.balance, 'sats')
+      const btcAmount = Number(realtimeBalance.balance) / 100000000
       if (bitcoinBalance === 0 && btcAmount > 0) {
         setBitcoinBalance(btcAmount)
         setValue('amount', btcAmount.toString())
@@ -142,10 +142,10 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   }, [realtimeBalance, bitcoinBalance, setValue])
 
   useEffect(() => {
-    if (userData.user && !userData.loading) {
-      console.log('📡 MINT: Real-time user data update - rBTC balance:', userData.user.rbtcBalance)
-      
-      const realtimeOracleBalance = userData.user.rbtcBalance / 100000000
+    if (userData.userData && !userData.loading) {
+      console.log('📡 MINT: Real-time user data update - rBTC balance:', (userData.userData as any).rbtcBalance)
+
+      const realtimeOracleBalance = ((userData.userData as any).rbtcBalance || 0) / 100000000
       if (realtimeOracleBalance !== currentOracleBalance) {
         setCurrentOracleBalance(realtimeOracleBalance)
         setHasAnyActiveMonitoring(realtimeOracleBalance > 0)
@@ -258,8 +258,8 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       try {
         const { hasMonitoring, oracleBalance } = await checkIfUserHasActiveMonitoring()
         
-        const effectiveHasMonitoring = realtimeBalance.rbtc > 0 ? true : hasMonitoring
-        const effectiveOracleBalance = realtimeBalance.rbtc > 0 ? realtimeBalance.rbtc / 100000000 : oracleBalance
+        const effectiveHasMonitoring = Number(realtimeBalance.balance) > 0 ? true : hasMonitoring
+        const effectiveOracleBalance = Number(realtimeBalance.balance) > 0 ? Number(realtimeBalance.balance) / 100000000 : oracleBalance
         
         setHasAnyActiveMonitoring(effectiveHasMonitoring)
         console.log(`📋 MINT: Monitoring check - has monitoring: ${effectiveHasMonitoring}, balance: ${effectiveOracleBalance} BTC`)
@@ -345,7 +345,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
     
     loadVerifiedAddresses()
-  }, [address, searchParams, setValue, fetchBitcoinBalance, checkIfUserHasActiveMonitoring, checkRealActiveMonitoring, realtimeBalance.rbtc])
+  }, [address, searchParams, setValue, fetchBitcoinBalance, checkIfUserHasActiveMonitoring, checkRealActiveMonitoring, Number(realtimeBalance.balance)])
 
   const refreshBalance = useCallback(() => {
     if (verifiedBitcoinAddress) {
@@ -672,7 +672,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               Mint rBTC Token
             </span>
           </h1>
-          {!realtimeBalance.loading && realtimeBalance.rbtc > 0 && (
+          {!realtimeBalance.loading && Number(realtimeBalance.balance) > 0 && (
             <Badge variant="outline" className="flex items-center gap-1">
               <Activity className="h-3 w-3 text-green-500" />
               Live
@@ -694,7 +694,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                   Bitcoin Balance (from verified wallet)
                 </h3>
                 <div className="flex items-center gap-2">
-                  {!realtimeBalance.loading && realtimeBalance.rbtc > 0 && (
+                  {!realtimeBalance.loading && Number(realtimeBalance.balance) > 0 && (
                     <Badge variant="outline" className="flex items-center gap-1">
                       <Activity className="h-3 w-3 text-green-500" />
                       Real-time
@@ -737,7 +737,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               <div className="mt-3 pt-3 border-t">
                 <p className="text-xs text-muted-foreground">
                   Balance is fetched automatically from your verified Bitcoin wallet
-                  {!realtimeBalance.loading && realtimeBalance.rbtc > 0 && (
+                  {!realtimeBalance.loading && Number(realtimeBalance.balance) > 0 && (
                     <span className="text-green-600"> • Real-time sync active</span>
                   )}
                 </p>
