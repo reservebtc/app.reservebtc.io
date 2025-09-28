@@ -479,5 +479,4 @@ tsconfig.typecheck.json
 
 .gitignore-additions.txt
 
-lib/unified-realtime-system.ts
 lib/blockchain-sync.ts
