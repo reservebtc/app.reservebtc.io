@@ -478,3 +478,13 @@ tsconfig.typecheck.json
 
 
 .gitignore-additions.txt
+
+lib/bitcoin-signature-validator-fixed.ts
+lib/bitcoin-signature-validator-professional.ts
+
+lib/professional-realtime.ts
+lib/professional-realtime-hooks.ts
+lib/unified-realtime-system.ts
+lib/blockchain-monitor-hook.ts
+lib/blockchain-sync.ts
+lib/user-profile-hooks.ts
