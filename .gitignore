@@ -480,3 +480,14 @@ tsconfig.typecheck.json
 .gitignore-additions.txt
 
 lib/blockchain-sync.ts
+
+
+lib/apiClient.ts
+lib/bip322-validator.ts
+lib/bitcoin-signature-secure-validator.ts
+lib/blockchain-sync.ts
+lib/csp.ts
+lib/ipfs.ts
+lib/oracle-smart-contract.ts
+lib/performance-monitor.ts
+lib/user-profile-manager.ts
