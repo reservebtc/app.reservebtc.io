@@ -479,9 +479,5 @@ tsconfig.typecheck.json
 
 .gitignore-additions.txt
 
-lib/bitcoin-signature-validator-fixed.ts
-lib/bitcoin-signature-validator-professional.ts
-
-lib/professional-realtime.ts
 lib/unified-realtime-system.ts
 lib/blockchain-sync.ts
