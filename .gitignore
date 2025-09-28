@@ -473,7 +473,7 @@ lib/performance-monitor.ts
 scripts/smart-contract-health-check.js
 
 
-tsconfig.typecheck.json
+
 *.tsbuildinfo
 
 
@@ -498,6 +498,12 @@ contracts/cache/
 contracts/.gas-snapshot
 
 
-tsconfig.typecheck.json
+
 tsconfig.typecheck.tsbuildinfo
 *.tsbuildinfo
+
+
+backend/bitcoin-provider/docker-compose.yml
+backend/bitcoin-provider/postcss.config.cjs
+backend/bitcoin-provider/README_API.md
+backend/bitcoin-provider/README_Test_Summary_BitcoinProvider.md
