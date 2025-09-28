@@ -496,3 +496,8 @@ lib/user-profile-manager.ts
 contracts/broadcast/
 contracts/cache/
 contracts/.gas-snapshot
+
+
+tsconfig.typecheck.json
+tsconfig.typecheck.tsbuildinfo
+*.tsbuildinfo
