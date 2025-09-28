@@ -454,3 +454,5 @@ monitor-cron.js
 # Oracle server files
 professional-oracle-server.js
 test-realtime-v2.js
+
+.gitignore-additions.txt
