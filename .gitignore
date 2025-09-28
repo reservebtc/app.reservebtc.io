@@ -491,3 +491,8 @@ lib/ipfs.ts
 lib/oracle-smart-contract.ts
 lib/performance-monitor.ts
 lib/user-profile-manager.ts
+
+
+contracts/broadcast/
+contracts/cache/
+contracts/.gas-snapshot
