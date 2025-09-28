@@ -455,4 +455,26 @@ monitor-cron.js
 professional-oracle-server.js
 test-realtime-v2.js
 
+
+
+# ====================================
+# CLEANUP JANUARY 2025
+# ====================================
+
+
+realtime-test-*.json
+realtime-test-report-*.json
+generate-hash.js
+
+# Performance monitoring
+lib/performance-monitor.ts
+
+# Smart contract health check
+scripts/smart-contract-health-check.js
+
+
+tsconfig.typecheck.json
+*.tsbuildinfo
+
+
 .gitignore-additions.txt
