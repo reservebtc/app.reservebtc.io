@@ -469,8 +469,8 @@ generate-hash.js
 # Performance monitoring
 lib/performance-monitor.ts
 
-# Smart contract health check
-scripts/smart-contract-health-check.js
+# Smart contract health check - ALLOW THIS FILE
+!scripts/smart-contract-health-check.js
 
 
 
@@ -507,3 +507,20 @@ backend/bitcoin-provider/docker-compose.yml
 backend/bitcoin-provider/postcss.config.cjs
 backend/bitcoin-provider/README_API.md
 backend/bitcoin-provider/README_Test_Summary_BitcoinProvider.md
+
+
+
+# ==========================================
+# Personal Management Scripts (Local Only)
+# ==========================================
+scripts/mint-management.js
+scripts/*-management.js
+scripts/personal-*.js
+scripts/local-*.js
+scripts/test-*.js
+scripts/*-local.js
+
+# User-specific files
+*-management.js
+local-*.js
+personal-*.js
