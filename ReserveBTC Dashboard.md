@@ -56,7 +56,7 @@ The ReserveBTC Dashboard is the central hub for users to monitor and manage thei
 - **Features**: Shows verification status and monitoring state
 
 ### 5. **YieldScales Protocol Integration**
-- **Source**: `YieldScalesPool` contract (`0xbaBfC9B230e34c1726bAb00C99032f9e84c1C3fb`)
+- **Source**: `YieldScalesPool` contract (`0x0bAbb640c2eb4501b3d62D090A2c34871EB95df8`)
 - **Method**: `getParticipant()` and `getSystemStats()` calls
 - **Data**: APY, loyalty tiers, scale balance, yield earnings
 

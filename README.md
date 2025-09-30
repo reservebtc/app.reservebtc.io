@@ -132,10 +132,9 @@ Security Status:         PRODUCTION READY
 |----------|---------|---------|--------------|
 | **OracleAggregator** | `0xEcCC1Bf6Ad2e875152eE65DC365F90d07da7aEAc` | Core Oracle logic | ✅ 27 Security Tests Passed |
 | **RBTCSynth** | `0x5b9375b4ac0f61C7D5af32374aCCe0d058cE6F58` | Soulbound BTC mirror | ✅ Soulbound Verified |
-| **VaultWrBTC** | `0xa10FC332f12d102Dddf431F8136E4E89279EFF87` | Transferable wrapper | ✅ Reentrancy Safe |
 | **FeeVault** | `0x1384d3A60a910B5b402ee09457b3eBfCC964FD4f` | Fee management | ✅ 31 Tests Passed |
 | **FeePolicy** | `0xc10fD3a2DF480CFAE8a7aBC2862a9c5724f5f4b4` | Fee calculations | ✅ No Overflow |
-| **YieldScalesPool** | `0xbaBfC9B230e34c1726bAb00C99032f9e84c1C3fb` | DeFi yield engine | ✅ Fully Operational |
+| **YieldScalesPool** | `0x0bAbb640c2eb4501b3d62D090A2c34871EB95df8` | DeFi yield engine | ✅ Fully Operational |
 
 ---
 

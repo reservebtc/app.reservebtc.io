@@ -10,7 +10,7 @@ export const CONTRACTS = {
   RBTC_SYNTH: '0x5b9375b4ac0f61C7D5af32374aCCe0d058cE6F58',
   VAULT_WRBTC: '0xa10FC332f12d102Dddf431F8136E4E89279EFF87',
   ORACLE_AGGREGATOR: '0xEcCC1Bf6Ad2e875152eE65DC365F90d07da7aEAc',
-  YIELD_SCALES_POOL: '0xbaBfC9B230e34c1726bAb00C99032f9e84c1C3fb',
+  YIELD_SCALES_POOL: '0x0bAbb640c2eb4501b3d62D090A2c34871EB95df8',
   
   // Oracle Configuration
   // Note: This is the actual Oracle committee address that controls sync operations

@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
       participantData: participant || null,
       currentBalance: balanceSnapshot?.rbtc_balance || '0',
       systemStats: stats,
-      yieldScalesContract: '0xbaBfC9B230e34c1726bAb00C99032f9e84c1C3fb',
+      yieldScalesContract: '0x0bAbb640c2eb4501b3d62D090A2c34871EB95df8',
       timestamp: new Date().toISOString()
     })
 
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
         silverTier: 0,
         goldTier: 0
       },
-      yieldScalesContract: '0xbaBfC9B230e34c1726bAb00C99032f9e84c1C3fb',
+      yieldScalesContract: '0x0bAbb640c2eb4501b3d62D090A2c34871EB95df8',
       timestamp: new Date().toISOString()
     })
   }

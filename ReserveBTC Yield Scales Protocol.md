@@ -413,7 +413,7 @@ Emergency Burn Trigger: <0.001 ETH fees
 | **RBTCSynth** | `0x4BC51d94937f145C7D995E146C32EC3b9CeB3ACC` | Soulbound tokens | ✅ Active |
 | **FeeVault** | `0x9C0Bc4E6794544F8DAA39C2d913e16063898bEa1` | Fee management | ✅ Active |
 | **VaultWrBTC** | `0xa10FC332f12d102Dddf431F8136E4E89279EFF87` | Transferable wrBTC | ✅ Active |
-| **YieldScalesPool** | `0xbaBfC9B230e34c1726bAb00C99032f9e84c1C3fb` | Yield generation | ✅ Active |
+| **YieldScalesPool** | `0x0bAbb640c2eb4501b3d62D090A2c34871EB95df8` | Yield generation | ✅ Active |
 | **FeePolicy** | `0xc10fD3a2DF480CFAE8a7aBC2862a9c5724f5f4b4` | Fee calculation | ✅ Active |
 
 ### Network Configuration
