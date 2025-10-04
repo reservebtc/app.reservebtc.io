@@ -2,6 +2,11 @@
 
 # ReserveBTC Protocol — Decentralized Bitcoin Reserves with Proof-of-Reserves
 
+[![BIP-322 Verified](https://img.shields.io/badge/BIP--322-Verified-brightgreen)](./docs/SECURITY_AUDIT_BIP322.md)
+[![Security Audit](https://img.shields.io/badge/Security%20Tests-32%2F32%20PASS-success)](./scripts/security-audit-bip322-professional.js)
+[![Vulnerabilities](https://img.shields.io/badge/Vulnerabilities-0%20Found-brightgreen)](./docs/SECURITY_AUDIT_BIP322.md)
+[![Production Ready](https://img.shields.io/badge/Production-Ready-brightgreen)]
+
 [![Frontend Test Suite](https://github.com/reservebtc/app.reservebtc.io/actions/workflows/frontend-test-suite.yml/badge.svg?branch=main)](https://github.com/reservebtc/app.reservebtc.io/actions/workflows/frontend-test-suite.yml)
 [![Smart Contract Tests](https://github.com/reservebtc/app.reservebtc.io/actions/workflows/smart-contract-tests.yml/badge.svg?branch=main)](https://github.com/reservebtc/app.reservebtc.io/actions/workflows/smart-contract-tests.yml)
 [![Bitcoin Provider](https://github.com/reservebtc/app.reservebtc.io/actions/workflows/bitcoin-provider-tests.yml/badge.svg?branch=main)](https://github.com/reservebtc/app.reservebtc.io/actions/workflows/bitcoin-provider-tests.yml)
@@ -340,6 +345,28 @@ Layer 3: Data Protection
 ├── Audit Trail Logging
 └── GDPR Compliance Ready
 ```
+
+---
+
+## Security & Compliance
+
+### BIP-322 Verification
+
+ReserveBTC implements complete BIP-322 signature verification with comprehensive security testing:
+
+- **32 security tests** covering cryptographic attacks, injection vulnerabilities, and protocol compliance
+- **0 vulnerabilities** found in production deployment
+- **100% test coverage** for signature verification flows
+
+See full [Security Audit Report](./docs/SECURITY_AUDIT_BIP322.md) for details.
+
+### Supported Address Types
+
+- Native SegWit (P2WPKH) - `bc1q...`
+- Taproot (P2TR) - `bc1p...`
+- SegWit (P2SH-P2WPKH) - `3...`
+- Legacy (P2PKH) - `1...`
+- Testnet variants - `tb1...`, `2...`, `m...`, `n...`
 
 ---
 

@@ -50,12 +50,33 @@ export async function POST(request: NextRequest) {
     
     // SECURITY: Timestamp validation
     const timestampMatch = message.match(/Timestamp:\s*(\d+)/)
-    
+
     if (timestampMatch) {
       const messageTimestamp = parseInt(timestampMatch[1], 10)
+      
+      // Validate timestamp is a reasonable number
+      if (isNaN(messageTimestamp) || messageTimestamp <= 0) {
+        console.log('❌ Rejected: Invalid timestamp format')
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid timestamp format'
+        }, { status: 400 })
+      }
+      
+      // Check timestamp is not absurdly far in future (year 2100)
+      const maxReasonableTimestamp = 4102444800 // Jan 1, 2100
+      if (messageTimestamp > maxReasonableTimestamp) {
+        console.log(`❌ Rejected: Timestamp ${messageTimestamp} is unreasonably far in future`)
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid timestamp: unreasonably far in future'
+        }, { status: 400 })
+      }
+      
       const currentTimestamp = Math.floor(Date.now() / 1000)
       const timestampDiff = currentTimestamp - messageTimestamp
       
+      // Must not be more than 60 seconds in the future
       if (timestampDiff < -60) {
         console.log(`❌ Rejected: Timestamp is ${Math.abs(timestampDiff)}s in the future`)
         return NextResponse.json({
@@ -64,6 +85,7 @@ export async function POST(request: NextRequest) {
         }, { status: 400 })
       }
       
+      // Must not be older than 1 hour
       if (timestampDiff > 3600) {
         console.log(`❌ Rejected: Timestamp is ${timestampDiff}s old (max 3600s)`)
         return NextResponse.json({
@@ -229,26 +251,43 @@ export async function POST(request: NextRequest) {
     // ========================================================================
     
     if (client) {
-      const { error: insertError } = await client
-        .from('bitcoin_addresses')
-        .insert({
-          bitcoin_address: cleanAddress,
-          eth_address: ethereumAddress || null,
-          network: cleanAddress.startsWith('tb1') || cleanAddress.startsWith('2') ? 'testnet' : 'mainnet',
-          verified_at: new Date().toISOString(),
-          is_monitoring: false
-        })
-      
-      if (insertError) {
-        console.error('❌ Failed to save to database:', insertError)
-        return NextResponse.json({
-          success: false,
-          error: 'Failed to save verification'
-        }, { status: 500 })
-      }
-      
-      console.log('✅ Bitcoin address saved to database')
-    }
+          // TEMPORARY DEBUG - Remove after fixing
+          const dataToInsert = {
+            bitcoin_address: cleanAddress,
+            eth_address: ethereumAddress || null,
+            network: cleanAddress.startsWith('tb1') || cleanAddress.startsWith('2') ? 'testnet' : 'mainnet',
+            verified_at: new Date().toISOString(),
+            is_monitoring: false
+          }
+          
+          console.log('🔍 DEBUG: Data to insert:', JSON.stringify(dataToInsert, null, 2))
+          console.log('🔍 DEBUG: Table name: bitcoin_addresses')
+          
+          const { error: insertError } = await client
+            .from('bitcoin_addresses')
+            .insert(dataToInsert)
+          
+          if (insertError) {
+            console.error('❌ DEBUG: Insert failed!')
+            console.error('   Error code:', insertError.code)
+            console.error('   Error message:', insertError.message)
+            console.error('   Error hint:', insertError.hint)
+            console.error('   Error details:', insertError.details)
+            console.error('   Full error object:', JSON.stringify(insertError, null, 2))
+            
+            return NextResponse.json({
+              success: false,
+              error: 'Failed to save verification',
+              debug: {
+                code: insertError.code,
+                message: insertError.message,
+                hint: insertError.hint
+              }
+            }, { status: 500 })
+          }
+          
+          console.log('✅ Bitcoin address saved to database')
+        }
     
     // ========================================================================
     // Detect address type for response

@@ -527,3 +527,4 @@ personal-*.js
 
 test-validator.js
 test-validator-direct.mjs
+!scripts/security-audit-bip322.js

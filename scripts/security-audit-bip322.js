@@ -1,21 +1,26 @@
 // security-audit-bip322-professional.js
-// PROFESSIONAL BIP-322 SECURITY AUDIT - ReserveBTC Protocol v2.4
-// FINAL CLEAN VERSION - Only real vulnerabilities tested
+// PROFESSIONAL BIP-322 SECURITY AUDIT - ReserveBTC Protocol v2.5
+// FINAL PRODUCTION VERSION - Isolated test addresses
 // Ready for MegaETH competition
 
+// Attack tests use this address (won't create duplicate)
+const ATTACK_TEST_ADDRESS = 'tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7'
+
+// Valid test uses DIFFERENT address (only this creates DB record)
 const VALID_TEST_DATA = {
   bitcoinAddress: 'tb1qq8d4mm3x36tjslk0gk8pkjwkv834m8m9sylrjr',
   ethAddress: '0xc381F1927257fA20782a65005a2cb094637D75e1',
+  ethereumAddress: '0xc381F1927257fA20782a65005a2cb094637D75e1',
   message: `ReserveBTC Wallet Verification
-Timestamp: 1759559297
+Timestamp: 1759563274
 MegaETH Address: 0xc381F1927257fA20782a65005a2cb094637D75e1
 I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`,
-  signature: 'ICZdgdoEoORSQbHo2HnnlsrhaQHtjEx4at12hHeQYAcgfDZw+2nLWeVXnshIi+U8G01aMMid+7QEuvoUdd70jWc='
+  signature: 'H123QE0EwEcYvAWWMgwIL/s6acvWdQYW7++I+HFwr1XAAX+VRkqK+8jBtxzblDCUVZhcPK33wAddIEIT+Z25Mpg='
 }
 
 const API_ENDPOINT = process.env.API_URL || 'https://app.reservebtc.io/api/verify-wallet'
 
-console.log('🔐 PROFESSIONAL BIP-322 SECURITY AUDIT v2.4 - CLEAN')
+console.log('🔐 PROFESSIONAL BIP-322 SECURITY AUDIT v2.5 - PRODUCTION')
 console.log('Target:', API_ENDPOINT)
 console.log('Protocol: ReserveBTC Production - MegaETH Competition Ready')
 console.log('=' .repeat(80))
@@ -23,7 +28,7 @@ console.log('=' .repeat(80))
 const attackVectors = []
 
 // ============================================================================
-// CATEGORY 1: CRYPTOGRAPHIC ATTACKS - Real vulnerabilities only
+// CATEGORY 1: CRYPTOGRAPHIC ATTACKS
 // ============================================================================
 
 console.log('\n📁 CATEGORY 1: CRYPTOGRAPHIC ATTACKS')
@@ -32,7 +37,7 @@ attackVectors.push({
   category: 'Cryptographic',
   name: 'Wrong Signature - Random Data',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress,
+    bitcoinAddress: ATTACK_TEST_ADDRESS,
     message: VALID_TEST_DATA.message,
     signature: 'HwkKIDPJcUQP/INVALID_SIG_HERE/5F1U/U2usec5UMX5sq/FAKE='
   },
@@ -58,7 +63,7 @@ attackVectors.push({
   category: 'Cryptographic',
   name: 'Signature Replay - Different Message',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress,
+    bitcoinAddress: ATTACK_TEST_ADDRESS,
     message: 'Malicious message content',
     signature: VALID_TEST_DATA.signature
   },
@@ -71,8 +76,8 @@ attackVectors.push({
   category: 'Cryptographic',
   name: 'Timestamp Manipulation',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress,
-    message: VALID_TEST_DATA.message.replace('1759498437', '9999999999'),
+    bitcoinAddress: ATTACK_TEST_ADDRESS,
+    message: VALID_TEST_DATA.message.replace('1759563274', '9999999999'),
     signature: VALID_TEST_DATA.signature
   },
   expectedResult: 'REJECT',
@@ -84,7 +89,7 @@ attackVectors.push({
   category: 'Cryptographic',
   name: 'ETH Address Substitution',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress,
+    bitcoinAddress: ATTACK_TEST_ADDRESS,
     message: VALID_TEST_DATA.message.replace(
       VALID_TEST_DATA.ethAddress,
       '0xDEADBEEF00000000000000000000000000000000'
@@ -100,7 +105,7 @@ attackVectors.push({
   category: 'Cryptographic',
   name: 'Signature Truncation',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress,
+    bitcoinAddress: ATTACK_TEST_ADDRESS,
     message: VALID_TEST_DATA.message,
     signature: VALID_TEST_DATA.signature.substring(0, 50)
   },
@@ -126,7 +131,7 @@ attackVectors.push({
   category: 'Cryptographic',
   name: 'Signature Byte Manipulation',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress,
+    bitcoinAddress: ATTACK_TEST_ADDRESS,
     message: VALID_TEST_DATA.message,
     signature: (() => {
       const buf = Buffer.from(VALID_TEST_DATA.signature, 'base64')
@@ -175,7 +180,7 @@ attackVectors.push({
   category: 'Injection',
   name: 'XSS Attack - Script Tag',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress,
+    bitcoinAddress: ATTACK_TEST_ADDRESS,
     message: '<script>alert("XSS")</script>' + VALID_TEST_DATA.message,
     signature: VALID_TEST_DATA.signature
   },
@@ -188,7 +193,7 @@ attackVectors.push({
   category: 'Injection',
   name: 'XSS Attack - Event Handler',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress,
+    bitcoinAddress: ATTACK_TEST_ADDRESS,
     message: '<img src=x onerror="alert(1)">' + VALID_TEST_DATA.message,
     signature: VALID_TEST_DATA.signature
   },
@@ -214,7 +219,7 @@ attackVectors.push({
   category: 'Injection',
   name: 'Command Injection',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress + '; rm -rf /',
+    bitcoinAddress: ATTACK_TEST_ADDRESS + '; rm -rf /',
     message: VALID_TEST_DATA.message,
     signature: VALID_TEST_DATA.signature
   },
@@ -246,7 +251,7 @@ attackVectors.push({
   category: 'Input Validation',
   name: 'Empty Signature',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress,
+    bitcoinAddress: ATTACK_TEST_ADDRESS,
     message: VALID_TEST_DATA.message,
     signature: ''
   },
@@ -259,7 +264,7 @@ attackVectors.push({
   category: 'Input Validation',
   name: 'Null Signature',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress,
+    bitcoinAddress: ATTACK_TEST_ADDRESS,
     message: VALID_TEST_DATA.message,
     signature: null
   },
@@ -272,7 +277,7 @@ attackVectors.push({
   category: 'Input Validation',
   name: 'Missing Signature',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress,
+    bitcoinAddress: ATTACK_TEST_ADDRESS,
     message: VALID_TEST_DATA.message
   },
   expectedResult: 'REJECT',
@@ -284,7 +289,7 @@ attackVectors.push({
   category: 'Input Validation',
   name: 'Malformed Base64',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress,
+    bitcoinAddress: ATTACK_TEST_ADDRESS,
     message: VALID_TEST_DATA.message,
     signature: 'NOT@VALID#BASE64$STRING!'
   },
@@ -297,7 +302,7 @@ attackVectors.push({
   category: 'Input Validation',
   name: 'Buffer Overflow - Signature',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress,
+    bitcoinAddress: ATTACK_TEST_ADDRESS,
     message: VALID_TEST_DATA.message,
     signature: 'A'.repeat(100000)
   },
@@ -310,7 +315,7 @@ attackVectors.push({
   category: 'Input Validation',
   name: 'Buffer Overflow - Message',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress,
+    bitcoinAddress: ATTACK_TEST_ADDRESS,
     message: 'X'.repeat(1000000),
     signature: VALID_TEST_DATA.signature
   },
@@ -323,7 +328,7 @@ attackVectors.push({
   category: 'Input Validation',
   name: 'Null Bytes - Address',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress + '\0malicious',
+    bitcoinAddress: ATTACK_TEST_ADDRESS + '\0malicious',
     message: VALID_TEST_DATA.message,
     signature: VALID_TEST_DATA.signature
   },
@@ -336,7 +341,7 @@ attackVectors.push({
   category: 'Input Validation',
   name: 'Null Bytes - Message',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress,
+    bitcoinAddress: ATTACK_TEST_ADDRESS,
     message: VALID_TEST_DATA.message + '\0<script>',
     signature: VALID_TEST_DATA.signature
   },
@@ -349,7 +354,7 @@ attackVectors.push({
   category: 'Input Validation',
   name: 'Case Manipulation - Uppercase',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress.toUpperCase(),
+    bitcoinAddress: ATTACK_TEST_ADDRESS.toUpperCase(),
     message: VALID_TEST_DATA.message,
     signature: VALID_TEST_DATA.signature
   },
@@ -375,7 +380,7 @@ attackVectors.push({
   category: 'Input Validation',
   name: 'Leading Whitespace',
   data: {
-    bitcoinAddress: '  ' + VALID_TEST_DATA.bitcoinAddress,
+    bitcoinAddress: '  ' + ATTACK_TEST_ADDRESS,
     message: VALID_TEST_DATA.message,
     signature: VALID_TEST_DATA.signature
   },
@@ -388,7 +393,7 @@ attackVectors.push({
   category: 'Input Validation',
   name: 'Trailing Whitespace',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress + '  ',
+    bitcoinAddress: ATTACK_TEST_ADDRESS + '  ',
     message: VALID_TEST_DATA.message,
     signature: VALID_TEST_DATA.signature
   },
@@ -420,7 +425,7 @@ attackVectors.push({
   category: 'Protocol',
   name: 'Empty Message',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress,
+    bitcoinAddress: ATTACK_TEST_ADDRESS,
     message: '',
     signature: VALID_TEST_DATA.signature
   },
@@ -452,7 +457,7 @@ attackVectors.push({
   category: 'DoS',
   name: 'Computational DoS',
   data: {
-    bitcoinAddress: VALID_TEST_DATA.bitcoinAddress,
+    bitcoinAddress: ATTACK_TEST_ADDRESS,
     message: 'X'.repeat(50000),
     signature: VALID_TEST_DATA.signature
   },
@@ -462,7 +467,7 @@ attackVectors.push({
 })
 
 // ============================================================================
-// LEGITIMATE TEST
+// LEGITIMATE TEST (Only this creates DB record)
 // ============================================================================
 
 console.log('\n✅ LEGITIMATE TEST')
@@ -485,7 +490,10 @@ console.log('='.repeat(80))
 // ============================================================================
 
 async function runSecurityAudit() {
-  console.log('\n🚀 STARTING SECURITY AUDIT v2.4\n')
+  console.log('\n🚀 STARTING SECURITY AUDIT v2.5\n')
+  
+  console.log('⚠️ IMPORTANT: Delete test record before running:')
+  console.log(`   DELETE FROM bitcoin_addresses WHERE bitcoin_address = '${VALID_TEST_DATA.bitcoinAddress}';\n`)
   
   const results = {
     total: attackVectors.length,
@@ -510,7 +518,7 @@ async function runSecurityAudit() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'User-Agent': 'ReserveBTC-Audit/2.4'
+          'User-Agent': 'ReserveBTC-Audit/2.5'
         },
         body: JSON.stringify(test.data)
       })
@@ -521,8 +529,8 @@ async function runSecurityAudit() {
       console.log(`   Actual: ${actualResult}`)
 
       if (test.name === 'Valid Signature') {
-        console.log('   FULL ERROR:', JSON.stringify(result, null, 2))
-    }
+        console.log('   📋 FULL RESPONSE:', JSON.stringify(result, null, 2))
+      }
       
       const testPassed = actualResult === test.expectedResult
       
