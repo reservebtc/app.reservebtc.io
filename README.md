@@ -7,6 +7,42 @@
 
 ---
 
+## 🔐 Independent Security Verification
+
+**Don't trust. Verify.** Anyone can independently test our BIP-322 implementation:
+
+<div align="center">
+
+### [🚀 Run BIP-322 Security Tests (Public Access)](https://github.com/reservebtc/app.reservebtc.io/actions/workflows/bip322-public-verification.yml)
+
+**Click → Press "Run workflow" → Watch 32 tests execute → See results in 2 minutes**
+
+[![Run Tests](https://img.shields.io/badge/🔒_BIP--322-Run_32_Public_Tests-orange?style=for-the-badge)](https://github.com/reservebtc/app.reservebtc.io/actions/workflows/bip322-public-verification.yml)
+[![Security](https://img.shields.io/badge/Security-Independently_Verifiable-green?style=for-the-badge)](https://github.com/reservebtc/app.reservebtc.io/blob/main/docs/SECURITY_AUDIT_BIP322.md)
+
+</div>
+
+**Why this matters:** BIP-322 signature verification is the **foundation** of ReserveBTC security. We let you verify it yourself:
+
+- ✅ **32 security tests** - Run them yourself on GitHub Actions
+- ✅ **Zero vulnerabilities** - Independently verifiable
+- ✅ **Open source** - Complete code transparency
+- ✅ **No trust needed** - Mathematical proof, not promises
+
+**How to verify:**
+1. Click button above → Opens GitHub Actions
+2. Press green "Run workflow" button (top right)
+3. Watch all 32 security tests execute live
+4. Download test results (available for 30 days)
+```bash
+# Or run locally yourself:
+git clone https://github.com/reservebtc/app.reservebtc.io
+cd app.reservebtc.io
+npm install
+node scripts/security-audit-bip322-ci.js
+
+---
+
 ## 🚀 Quick Links
 
 | Resource | Link |
