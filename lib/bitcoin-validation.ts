@@ -8,7 +8,7 @@ import * as bitcoin from 'bitcoinjs-lib'
 export interface BitcoinAddressValidation {
   valid: boolean
   network: 'mainnet' | 'testnet' | 'unknown'
-  type: string
+  type: 'taproot' | 'segwit' | 'legacy' | 'unknown'
   error?: string
 }
 
@@ -20,7 +20,7 @@ export function validateBitcoinAddress(address: string): BitcoinAddressValidatio
     return {
       valid: false,
       network: 'unknown',
-      type: 'invalid',
+      type: 'unknown',
       error: 'Address is required'
     }
   }
@@ -37,30 +37,34 @@ export function validateBitcoinAddress(address: string): BitcoinAddressValidatio
       network = 'testnet'
     }
 
-    // Detect type and validate
-    let type = 'unknown'
+    // Reject testnet addresses
+    if (network === 'testnet') {
+      return {
+        valid: false,
+        network: 'unknown',
+        type: 'unknown',
+        error: 'Only mainnet Bitcoin addresses are supported'
+      }
+    }
 
-    if (cleanAddress.startsWith('bc1p') || cleanAddress.startsWith('tb1p')) {
-      type = 'Taproot (P2TR)'
+    // Detect type and validate
+    let type: 'taproot' | 'segwit' | 'legacy' | 'unknown' = 'unknown'
+
+    if (cleanAddress.startsWith('bc1p')) {
+      type = 'taproot'
       bitcoin.address.fromBech32(cleanAddress)
-    } else if (cleanAddress.startsWith('bc1q') || cleanAddress.startsWith('tb1q')) {
-      type = 'Native SegWit (P2WPKH)'
+    } else if (cleanAddress.startsWith('bc1q') || cleanAddress.startsWith('bc1')) {
+      type = 'segwit'
       bitcoin.address.fromBech32(cleanAddress)
-    } else if (cleanAddress.startsWith('bc1') || cleanAddress.startsWith('tb1')) {
-      type = 'Native SegWit (bech32)'
-      bitcoin.address.fromBech32(cleanAddress)
-    } else if (cleanAddress.startsWith('3') || cleanAddress.startsWith('2')) {
-      type = cleanAddress.startsWith('3') ? 'SegWit (P2SH-P2WPKH)' : 'Testnet SegWit (P2SH-P2WPKH)'
-      bitcoin.address.fromBase58Check(cleanAddress)
-    } else if (cleanAddress.startsWith('1') || cleanAddress.startsWith('m') || cleanAddress.startsWith('n')) {
-      type = cleanAddress.startsWith('1') ? 'Legacy (P2PKH)' : 'Testnet Legacy (P2PKH)'
+    } else if (cleanAddress.startsWith('3') || cleanAddress.startsWith('1')) {
+      type = 'legacy'
       bitcoin.address.fromBase58Check(cleanAddress)
     } else {
       return {
         valid: false,
         network: 'unknown',
         type: 'unknown',
-        error: 'Unknown address format'
+        error: 'Invalid Bitcoin address format'
       }
     }
 
@@ -74,8 +78,8 @@ export function validateBitcoinAddress(address: string): BitcoinAddressValidatio
     return {
       valid: false,
       network: 'unknown',
-      type: 'invalid',
-      error: error.message || 'Invalid Bitcoin address'
+      type: 'unknown',
+      error: 'Invalid Bitcoin address format'
     }
   }
 }
@@ -83,14 +87,17 @@ export function validateBitcoinAddress(address: string): BitcoinAddressValidatio
 /**
  * Get human-readable label for Bitcoin address type
  */
-export function getBitcoinAddressTypeLabel(address: string): string {
-  const validation = validateBitcoinAddress(address)
-  
-  if (!validation.valid) {
-    return 'Invalid Address'
+export function getBitcoinAddressTypeLabel(type: 'taproot' | 'segwit' | 'legacy' | 'unknown'): string {
+  switch (type) {
+    case 'taproot':
+      return 'Taproot (bc1p...)'
+    case 'segwit':
+      return 'SegWit (bc1q...)'
+    case 'legacy':
+      return 'Legacy (1.../3...)'
+    default:
+      return 'Unknown'
   }
-
-  return `${validation.type} (${validation.network})`
 }
 
 /**
@@ -107,4 +114,11 @@ export function isTestnetAddress(address: string): boolean {
 export function isMainnetAddress(address: string): boolean {
   const validation = validateBitcoinAddress(address)
   return validation.network === 'mainnet'
+}
+
+/**
+ * Simple helper for quick validation
+ */
+export function isValidBitcoinAddress(address: string): boolean {
+  return validateBitcoinAddress(address).valid
 }
