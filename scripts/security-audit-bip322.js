@@ -1,4 +1,4 @@
-// security-audit-bip322-professional.js
+// security-audit-bip322.js
 // PROFESSIONAL BIP-322 SECURITY AUDIT - ReserveBTC Protocol v2.5
 // FINAL PRODUCTION VERSION - Isolated test addresses
 // Ready for MegaETH competition
