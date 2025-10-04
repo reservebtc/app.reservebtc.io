@@ -25,7 +25,7 @@ jobs:
     - name: Run BIP-322 Security Audit
       run: |
         echo "Running BIP-322 Security Validation..."
-        node scripts/security-audit-bip322-professional.js
+        node scripts/security-audit-bip322-ci.js
       env:
         API_URL: https://app.reservebtc.io/api/verify-wallet
     
