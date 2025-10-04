@@ -34,12 +34,15 @@
 2. Press green "Run workflow" button (top right)
 3. Watch all 32 security tests execute live
 4. Download test results (available for 30 days)
+
+**Or run locally:**
+
 ```bash
-# Or run locally yourself:
 git clone https://github.com/reservebtc/app.reservebtc.io
 cd app.reservebtc.io
 npm install
 node scripts/security-audit-bip322-ci.js
+```
 
 ---
 
