@@ -1,0 +1,671 @@
+// security-audit-bip322-professional.js
+// PROFESSIONAL BIP-322 SECURITY AUDIT - ReserveBTC Protocol
+// Comprehensive vulnerability testing for production deployment
+
+const VALID_TEST_DATA = {
+  address: 'tb1qp2lwapdug2t6pedf52l629r4he7ru4wtkqpyew',
+  ethAddress: '0xc381F1927257fA20782a65005a2cb094637D75e1',
+  message: `ReserveBTC Wallet Verification
+Timestamp: 1759498437
+MegaETH Address: 0xc381F1927257fA20782a65005a2cb094637D75e1
+I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`,
+  signature: 'HzpnOh+zaFTcwatnJAduZ2ChTbGDbGYyuw9Up6rrcC4UCrvkek44J/2o8DwOumev7x2VXdUNxeHh5r0GQOQO3rg='
+}
+
+const API_ENDPOINT = process.env.API_URL || 'https://app.reservebtc.io/api/verify-wallet'
+
+console.log('🔐 PROFESSIONAL BIP-322 SECURITY AUDIT')
+console.log('Target:', API_ENDPOINT)
+console.log('Protocol: ReserveBTC v2.0')
+console.log('=' .repeat(80))
+
+const attackVectors = []
+
+// ============================================================================
+// CATEGORY 1: CRYPTOGRAPHIC ATTACKS
+// ============================================================================
+
+console.log('\n📁 CATEGORY 1: CRYPTOGRAPHIC ATTACKS')
+
+attackVectors.push({
+  category: 'Cryptographic',
+  name: 'Wrong Signature - Random Data',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: VALID_TEST_DATA.message,
+    signature: 'HwkKIDPJcUQP/INVALID_SIG_HERE/5F1U/U2usec5UMX5sq/FAKE='
+  },
+  expectedResult: 'REJECT',
+  severity: 'CRITICAL',
+  reason: 'Invalid signature must be rejected to prevent impersonation'
+})
+
+attackVectors.push({
+  category: 'Cryptographic',
+  name: 'Address Substitution Attack',
+  data: {
+    bitcoinAddress: 'tb1qt75gzlur2q55dusst5tpc5qfc8a8u7lzgepdhf',
+    message: VALID_TEST_DATA.message,
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'CRITICAL',
+  reason: 'Signature from different address must fail'
+})
+
+attackVectors.push({
+  category: 'Cryptographic',
+  name: 'Signature Replay Attack - Different Message',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: 'Different message content',
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'CRITICAL',
+  reason: 'Signature must be tied to specific message'
+})
+
+attackVectors.push({
+  category: 'Cryptographic',
+  name: 'Timestamp Manipulation',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: VALID_TEST_DATA.message.replace('1759498437', '9999999999'),
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'HIGH',
+  reason: 'Modified timestamp must invalidate signature'
+})
+
+attackVectors.push({
+  category: 'Cryptographic',
+  name: 'ETH Address Substitution',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: VALID_TEST_DATA.message.replace(
+      VALID_TEST_DATA.ethAddress,
+      '0xDEADBEEF00000000000000000000000000000000'
+    ),
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'CRITICAL',
+  reason: 'Binding to different ETH address must fail'
+})
+
+attackVectors.push({
+  category: 'Cryptographic',
+  name: 'Signature Truncation Attack',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: VALID_TEST_DATA.message,
+    signature: VALID_TEST_DATA.signature.substring(0, 50)
+  },
+  expectedResult: 'REJECT',
+  severity: 'HIGH',
+  reason: 'Truncated signature must be rejected'
+})
+
+attackVectors.push({
+  category: 'Cryptographic',
+  name: 'Signature Padding Attack',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: VALID_TEST_DATA.message,
+    signature: VALID_TEST_DATA.signature + 'AAAA'
+  },
+  expectedResult: 'REJECT',
+  severity: 'HIGH',
+  reason: 'Padded signature must be rejected'
+})
+
+attackVectors.push({
+  category: 'Cryptographic',
+  name: 'Wrong Network - Mainnet Address',
+  data: {
+    bitcoinAddress: 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4',
+    message: VALID_TEST_DATA.message,
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'HIGH',
+  reason: 'Cross-network signatures must fail'
+})
+
+// ============================================================================
+// CATEGORY 2: INJECTION ATTACKS
+// ============================================================================
+
+console.log('📁 CATEGORY 2: INJECTION ATTACKS')
+
+attackVectors.push({
+  category: 'Injection',
+  name: 'SQL Injection - Address Field',
+  data: {
+    bitcoinAddress: "tb1q' OR '1'='1",
+    message: VALID_TEST_DATA.message,
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'CRITICAL',
+  reason: 'SQL injection must be sanitized'
+})
+
+attackVectors.push({
+  category: 'Injection',
+  name: 'SQL Injection - UNION Attack',
+  data: {
+    bitcoinAddress: "tb1q' UNION SELECT * FROM users--",
+    message: VALID_TEST_DATA.message,
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'CRITICAL',
+  reason: 'SQL UNION attack must be prevented'
+})
+
+attackVectors.push({
+  category: 'Injection',
+  name: 'XSS Attack - Script Tag',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: '<script>alert("XSS")</script>' + VALID_TEST_DATA.message,
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'HIGH',
+  reason: 'XSS payload must be sanitized'
+})
+
+attackVectors.push({
+  category: 'Injection',
+  name: 'XSS Attack - Event Handler',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: '<img src=x onerror="alert(1)">' + VALID_TEST_DATA.message,
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'HIGH',
+  reason: 'XSS via event handlers must be prevented'
+})
+
+attackVectors.push({
+  category: 'Injection',
+  name: 'NoSQL Injection - MongoDB',
+  data: {
+    bitcoinAddress: { "$ne": null },
+    message: VALID_TEST_DATA.message,
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'HIGH',
+  reason: 'NoSQL injection must be prevented'
+})
+
+attackVectors.push({
+  category: 'Injection',
+  name: 'Command Injection',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address + '; rm -rf /',
+    message: VALID_TEST_DATA.message,
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'CRITICAL',
+  reason: 'Command injection must be sanitized'
+})
+
+attackVectors.push({
+  category: 'Injection',
+  name: 'LDAP Injection',
+  data: {
+    bitcoinAddress: 'tb1q*',
+    message: VALID_TEST_DATA.message,
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'MEDIUM',
+  reason: 'LDAP wildcards must be escaped'
+})
+
+// ============================================================================
+// CATEGORY 3: INPUT VALIDATION ATTACKS
+// ============================================================================
+
+console.log('📁 CATEGORY 3: INPUT VALIDATION ATTACKS')
+
+attackVectors.push({
+  category: 'Input Validation',
+  name: 'Empty Signature',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: VALID_TEST_DATA.message,
+    signature: ''
+  },
+  expectedResult: 'REJECT',
+  severity: 'HIGH',
+  reason: 'Empty signature must be rejected'
+})
+
+attackVectors.push({
+  category: 'Input Validation',
+  name: 'Null Signature',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: VALID_TEST_DATA.message,
+    signature: null
+  },
+  expectedResult: 'REJECT',
+  severity: 'HIGH',
+  reason: 'Null signature must be rejected'
+})
+
+attackVectors.push({
+  category: 'Input Validation',
+  name: 'Undefined Signature',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: VALID_TEST_DATA.message
+    // signature missing
+  },
+  expectedResult: 'REJECT',
+  severity: 'HIGH',
+  reason: 'Missing signature must be rejected'
+})
+
+attackVectors.push({
+  category: 'Input Validation',
+  name: 'Malformed Base64',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: VALID_TEST_DATA.message,
+    signature: 'NOT@VALID#BASE64$STRING!'
+  },
+  expectedResult: 'REJECT',
+  severity: 'HIGH',
+  reason: 'Invalid base64 must be rejected'
+})
+
+attackVectors.push({
+  category: 'Input Validation',
+  name: 'Buffer Overflow - Oversized Signature',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: VALID_TEST_DATA.message,
+    signature: 'A'.repeat(100000)
+  },
+  expectedResult: 'REJECT',
+  severity: 'CRITICAL',
+  reason: 'Oversized input must be rejected'
+})
+
+attackVectors.push({
+  category: 'Input Validation',
+  name: 'Buffer Overflow - Oversized Message',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: 'X'.repeat(1000000),
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'HIGH',
+  reason: 'Oversized message must be rejected'
+})
+
+attackVectors.push({
+  category: 'Input Validation',
+  name: 'Null Bytes Injection - Address',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address + '\0malicious',
+    message: VALID_TEST_DATA.message,
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'HIGH',
+  reason: 'Null bytes must be sanitized'
+})
+
+attackVectors.push({
+  category: 'Input Validation',
+  name: 'Null Bytes Injection - Message',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: VALID_TEST_DATA.message + '\0<script>',
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'HIGH',
+  reason: 'Null bytes in message must be rejected'
+})
+
+attackVectors.push({
+  category: 'Input Validation',
+  name: 'Unicode Normalization Attack',
+  data: {
+    bitcoinAddress: 'tb1qp2lwapdug2t6pedf52l629r4he7ru4wtkqpyew', // with unicode tricks
+    message: VALID_TEST_DATA.message,
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'MEDIUM',
+  reason: 'Unicode tricks must be normalized'
+})
+
+attackVectors.push({
+  category: 'Input Validation',
+  name: 'Case Manipulation - Uppercase',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address.toUpperCase(),
+    message: VALID_TEST_DATA.message,
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'MEDIUM',
+  reason: 'Bech32 is case-sensitive'
+})
+
+attackVectors.push({
+  category: 'Input Validation',
+  name: 'Mixed Case Attack',
+  data: {
+    bitcoinAddress: 'TB1qnqvgm3fc79emmy040288npuw624grq9874l5jc',
+    message: VALID_TEST_DATA.message,
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'MEDIUM',
+  reason: 'Mixed case bech32 is invalid'
+})
+
+// ============================================================================
+// CATEGORY 4: PROTOCOL ATTACKS
+// ============================================================================
+
+console.log('📁 CATEGORY 4: PROTOCOL ATTACKS')
+
+attackVectors.push({
+  category: 'Protocol',
+  name: 'Message Malleability - Extra Newlines',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: VALID_TEST_DATA.message + '\n\n\n',
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'MEDIUM',
+  reason: 'Message format must be exact'
+})
+
+attackVectors.push({
+  category: 'Protocol',
+  name: 'Message Malleability - Extra Spaces',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: VALID_TEST_DATA.message + '   ',
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'MEDIUM',
+  reason: 'Trailing spaces must invalidate signature'
+})
+
+attackVectors.push({
+  category: 'Protocol',
+  name: 'Message Encoding Attack - UTF-8 vs ASCII',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: Buffer.from(VALID_TEST_DATA.message, 'utf8').toString('latin1'),
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'MEDIUM',
+  reason: 'Encoding changes must fail'
+})
+
+attackVectors.push({
+  category: 'Protocol',
+  name: 'Signature Format Attack - Wrong Recovery Flag',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: VALID_TEST_DATA.message,
+    signature: Buffer.from(
+      Buffer.from(VALID_TEST_DATA.signature, 'base64')
+        .map((b, i) => i === 0 ? b + 1 : b)
+    ).toString('base64')
+  },
+  expectedResult: 'REJECT',
+  severity: 'HIGH',
+  reason: 'Modified recovery flag must fail'
+})
+
+// ============================================================================
+// CATEGORY 5: DENIAL OF SERVICE ATTACKS
+// ============================================================================
+
+console.log('📁 CATEGORY 5: DENIAL OF SERVICE ATTACKS')
+
+attackVectors.push({
+  category: 'DoS',
+  name: 'Computational DoS - Complex Message',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: 'X'.repeat(50000),
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'MEDIUM',
+  reason: 'Resource exhaustion must be prevented'
+})
+
+attackVectors.push({
+  category: 'DoS',
+  name: 'Memory DoS - Nested Objects',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: JSON.stringify({ a: { b: { c: { d: { e: 'deep' } } } } }).repeat(1000),
+    signature: VALID_TEST_DATA.signature
+  },
+  expectedResult: 'REJECT',
+  severity: 'MEDIUM',
+  reason: 'Deep nesting must be limited'
+})
+
+// ============================================================================
+// CATEGORY 6: BUSINESS LOGIC ATTACKS
+// ============================================================================
+
+console.log('📁 CATEGORY 6: BUSINESS LOGIC ATTACKS')
+
+attackVectors.push({
+  category: 'Business Logic',
+  name: 'Double Registration Attempt',
+  data: VALID_TEST_DATA,
+  expectedResult: 'ACCEPT_ONCE',
+  severity: 'HIGH',
+  reason: 'Same address should not be registered twice'
+})
+
+attackVectors.push({
+  category: 'Business Logic',
+  name: 'Timestamp Replay - Old Timestamp',
+  data: {
+    bitcoinAddress: VALID_TEST_DATA.address,
+    message: VALID_TEST_DATA.message.replace('1759498437', '1000000000'),
+    signature: 'HzpnOh+zaFTcwatnJAduZ2ChTbGDbGYyuw9Up6rrcC4UCrvkek44J/2o8DwOumev7x2VXdUNxeHh5r0GQOQO3rg='
+  },
+  expectedResult: 'REJECT',
+  severity: 'MEDIUM',
+  reason: 'Old timestamps should be rejected (if timestamp validation enabled)'
+})
+
+// ============================================================================
+// LEGITIMATE TEST (MUST PASS)
+// ============================================================================
+
+console.log('\n✅ LEGITIMATE TEST (MUST PASS)')
+
+attackVectors.push({
+  category: 'Legitimate',
+  name: 'Valid Signature Test',
+  data: VALID_TEST_DATA,
+  expectedResult: 'ACCEPT',
+  severity: 'CRITICAL',
+  reason: 'Valid signature MUST be accepted'
+})
+
+console.log('\n' + '='.repeat(80))
+console.log(`Total Test Cases: ${attackVectors.length}`)
+console.log('Categories:', [...new Set(attackVectors.map(v => v.category))].join(', '))
+console.log('='.repeat(80))
+
+// ============================================================================
+// TEST EXECUTION ENGINE
+// ============================================================================
+
+async function runSecurityAudit() {
+  console.log('\n🚀 STARTING AUTOMATED SECURITY AUDIT\n')
+  
+  const results = {
+    total: attackVectors.length,
+    passed: 0,
+    failed: 0,
+    errors: 0,
+    vulnerabilities: [],
+    byCategory: {},
+    bySeverity: { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 }
+  }
+  
+  for (let i = 0; i < attackVectors.length; i++) {
+    const test = attackVectors[i]
+    const testNum = `[${i + 1}/${attackVectors.length}]`
+    
+    console.log(`\n${testNum} ${test.category}: ${test.name}`)
+    console.log(`   Severity: ${test.severity}`)
+    console.log(`   Expected: ${test.expectedResult}`)
+    
+    try {
+      const response = await fetch(API_ENDPOINT, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'User-Agent': 'ReserveBTC-Security-Audit/2.0'
+        },
+        body: JSON.stringify(test.data)
+      })
+      
+      const result = await response.json()
+      const actualResult = result.success ? 'ACCEPT' : 'REJECT'
+      
+      console.log(`   Actual: ${actualResult}`)
+      console.log(`   Response: ${JSON.stringify(result).substring(0, 100)}...`)
+      
+      // Check result
+      const testPassed = actualResult === test.expectedResult
+      
+      if (testPassed) {
+        console.log('   ✅ PASS')
+        results.passed++
+      } else {
+        console.log('   ❌ FAIL - VULNERABILITY DETECTED!')
+        results.failed++
+        results.vulnerabilities.push({
+          test: test.name,
+          category: test.category,
+          severity: test.severity,
+          expected: test.expectedResult,
+          actual: actualResult,
+          data: test.data,
+          reason: test.reason
+        })
+        results.bySeverity[test.severity]++
+      }
+      
+      // Track by category
+      if (!results.byCategory[test.category]) {
+        results.byCategory[test.category] = { passed: 0, failed: 0 }
+      }
+      if (testPassed) {
+        results.byCategory[test.category].passed++
+      } else {
+        results.byCategory[test.category].failed++
+      }
+      
+    } catch (error) {
+      console.log(`   ⚠️ ERROR: ${error.message}`)
+      results.errors++
+    }
+    
+    // Rate limiting - be nice to the server
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
+  
+  // ============================================================================
+  // FINAL SECURITY REPORT
+  // ============================================================================
+  
+  console.log('\n' + '='.repeat(80))
+  console.log('🔐 SECURITY AUDIT COMPLETE')
+  console.log('='.repeat(80))
+  console.log(`\n📊 OVERALL RESULTS:`)
+  console.log(`   Total Tests: ${results.total}`)
+  console.log(`   ✅ Passed: ${results.passed} (${((results.passed/results.total)*100).toFixed(1)}%)`)
+  console.log(`   ❌ Failed: ${results.failed}`)
+  console.log(`   ⚠️ Errors: ${results.errors}`)
+  
+  console.log(`\n📁 RESULTS BY CATEGORY:`)
+  Object.entries(results.byCategory).forEach(([category, stats]) => {
+    console.log(`   ${category}: ${stats.passed} passed, ${stats.failed} failed`)
+  })
+  
+  console.log(`\n🚨 VULNERABILITIES BY SEVERITY:`)
+  console.log(`   CRITICAL: ${results.bySeverity.CRITICAL}`)
+  console.log(`   HIGH: ${results.bySeverity.HIGH}`)
+  console.log(`   MEDIUM: ${results.bySeverity.MEDIUM}`)
+  console.log(`   LOW: ${results.bySeverity.LOW}`)
+  
+  if (results.vulnerabilities.length > 0) {
+    console.log(`\n⚠️ DETAILED VULNERABILITY REPORT:`)
+    console.log('='.repeat(80))
+    
+    results.vulnerabilities.forEach((vuln, i) => {
+      console.log(`\n${i + 1}. [${vuln.severity}] ${vuln.test}`)
+      console.log(`   Category: ${vuln.category}`)
+      console.log(`   Expected: ${vuln.expected}`)
+      console.log(`   Actual: ${vuln.actual}`)
+      console.log(`   Risk: ${vuln.reason}`)
+      console.log(`   Test Data: ${JSON.stringify(vuln.data).substring(0, 200)}...`)
+    })
+    
+    console.log('\n' + '='.repeat(80))
+    console.log('⚠️ ACTION REQUIRED: Fix vulnerabilities before production deployment!')
+    console.log('='.repeat(80))
+  } else {
+    console.log('\n' + '='.repeat(80))
+    console.log('🎉 NO VULNERABILITIES FOUND!')
+    console.log('BIP-322 verification system is secure.')
+    console.log('✅ READY FOR PRODUCTION DEPLOYMENT')
+    console.log('='.repeat(80))
+  }
+  
+  return results
+}
+
+// Export for module usage
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { attackVectors, runSecurityAudit, VALID_TEST_DATA }
+}
+
+// Auto-run if executed directly
+if (typeof require !== 'undefined' && require.main === module) {
+  runSecurityAudit()
+    .then(results => {
+      process.exit(results.failed > 0 ? 1 : 0)
+    })
+    .catch(error => {
+      console.error('Fatal error:', error)
+      process.exit(2)
+    })
+}

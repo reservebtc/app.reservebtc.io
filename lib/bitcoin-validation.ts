@@ -1,93 +1,110 @@
-import { validate } from 'bitcoin-address-validation'
+// lib/bitcoin-validation.ts
+/**
+ * Bitcoin address validation utilities
+ */
 
-// Bitcoin address validation utilities for mainnet addresses only
-export type BitcoinAddressType = 'legacy' | 'segwit' | 'taproot' | 'unknown'
+import * as bitcoin from 'bitcoinjs-lib'
 
-export interface BitcoinValidationResult {
-  isValid: boolean
-  type: BitcoinAddressType
+export interface BitcoinAddressValidation {
+  valid: boolean
+  network: 'mainnet' | 'testnet' | 'unknown'
+  type: string
   error?: string
 }
 
-export function validateBitcoinAddress(address: string): BitcoinValidationResult {
+/**
+ * Validate Bitcoin address format and detect type
+ */
+export function validateBitcoinAddress(address: string): BitcoinAddressValidation {
   if (!address || typeof address !== 'string') {
     return {
-      isValid: false,
-      type: 'unknown',
+      valid: false,
+      network: 'unknown',
+      type: 'invalid',
       error: 'Address is required'
     }
   }
 
-  // Trim whitespace
-  const trimmedAddress = address.trim()
+  const cleanAddress = address.trim()
 
   try {
-    const isValid = validate(trimmedAddress)
-    
-    if (!isValid) {
+    // Detect network
+    let network: 'mainnet' | 'testnet' = 'mainnet'
+    if (cleanAddress.startsWith('tb1') || 
+        cleanAddress.startsWith('m') || 
+        cleanAddress.startsWith('n') || 
+        cleanAddress.startsWith('2')) {
+      network = 'testnet'
+    }
+
+    // Detect type and validate
+    let type = 'unknown'
+
+    if (cleanAddress.startsWith('bc1p') || cleanAddress.startsWith('tb1p')) {
+      type = 'Taproot (P2TR)'
+      bitcoin.address.fromBech32(cleanAddress)
+    } else if (cleanAddress.startsWith('bc1q') || cleanAddress.startsWith('tb1q')) {
+      type = 'Native SegWit (P2WPKH)'
+      bitcoin.address.fromBech32(cleanAddress)
+    } else if (cleanAddress.startsWith('bc1') || cleanAddress.startsWith('tb1')) {
+      type = 'Native SegWit (bech32)'
+      bitcoin.address.fromBech32(cleanAddress)
+    } else if (cleanAddress.startsWith('3') || cleanAddress.startsWith('2')) {
+      type = cleanAddress.startsWith('3') ? 'SegWit (P2SH-P2WPKH)' : 'Testnet SegWit (P2SH-P2WPKH)'
+      bitcoin.address.fromBase58Check(cleanAddress)
+    } else if (cleanAddress.startsWith('1') || cleanAddress.startsWith('m') || cleanAddress.startsWith('n')) {
+      type = cleanAddress.startsWith('1') ? 'Legacy (P2PKH)' : 'Testnet Legacy (P2PKH)'
+      bitcoin.address.fromBase58Check(cleanAddress)
+    } else {
       return {
-        isValid: false,
+        valid: false,
+        network: 'unknown',
         type: 'unknown',
-        error: 'Invalid Bitcoin address format'
-      }
-    }
-
-    // Check for testnet addresses and reject them
-    if (trimmedAddress.startsWith('tb1') || 
-        trimmedAddress.startsWith('m') || 
-        trimmedAddress.startsWith('n') || 
-        trimmedAddress.startsWith('2')) {
-      return {
-        isValid: false,
-        type: 'unknown',
-        error: 'Only mainnet Bitcoin addresses are supported'
-      }
-    }
-
-    // Determine address type (mainnet only)
-    let type: BitcoinAddressType = 'unknown'
-    
-    if (trimmedAddress.startsWith('bc1p')) {
-      type = 'taproot' // Bech32m (P2TR)
-    } else if (trimmedAddress.startsWith('bc1q')) {
-      type = 'segwit' // Bech32 (P2WPKH/P2WSH)
-    } else if (trimmedAddress.startsWith('1')) {
-      type = 'legacy' // P2PKH (mainnet)
-    } else if (trimmedAddress.startsWith('3')) {
-      type = 'legacy' // P2SH (mainnet)
-    }
-
-    // Allow only mainnet addresses
-    if (!trimmedAddress.match(/^(bc1[a-z0-9]{25,62}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})$/)) {
-      return {
-        isValid: false,
-        type,
-        error: 'Invalid Bitcoin address format'
+        error: 'Unknown address format'
       }
     }
 
     return {
-      isValid: true,
+      valid: true,
+      network,
       type
     }
-  } catch (error) {
+
+  } catch (error: any) {
     return {
-      isValid: false,
-      type: 'unknown',
-      error: 'Failed to validate address'
+      valid: false,
+      network: 'unknown',
+      type: 'invalid',
+      error: error.message || 'Invalid Bitcoin address'
     }
   }
 }
 
-export function getBitcoinAddressTypeLabel(type: BitcoinAddressType): string {
-  switch (type) {
-    case 'taproot':
-      return 'Taproot (bc1p...)'
-    case 'segwit':
-      return 'SegWit (bc1q...)'
-    case 'legacy':
-      return 'Legacy (1.../3...)'
-    default:
-      return 'Unknown'
+/**
+ * Get human-readable label for Bitcoin address type
+ */
+export function getBitcoinAddressTypeLabel(address: string): string {
+  const validation = validateBitcoinAddress(address)
+  
+  if (!validation.valid) {
+    return 'Invalid Address'
   }
+
+  return `${validation.type} (${validation.network})`
+}
+
+/**
+ * Check if address is testnet
+ */
+export function isTestnetAddress(address: string): boolean {
+  const validation = validateBitcoinAddress(address)
+  return validation.network === 'testnet'
+}
+
+/**
+ * Check if address is mainnet
+ */
+export function isMainnetAddress(address: string): boolean {
+  const validation = validateBitcoinAddress(address)
+  return validation.network === 'mainnet'
 }

@@ -2,7 +2,6 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-// Используем environment variables из Vercel
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
@@ -12,10 +11,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: false
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false
   },
   global: {
     headers: {
+      'apikey': supabaseAnonKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
       'Prefer': 'return=minimal'
     }
   }

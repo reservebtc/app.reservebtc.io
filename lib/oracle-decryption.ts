@@ -69,48 +69,49 @@ export async function decryptOracleData(encryptedResponse: EncryptedOracleRespon
   try {
     console.log('🔐 PRIVACY: Starting data decryption...');
 
-    // Check for build mode or missing encryption key
-    const encryptionKey = process.env.NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY
-    if (!encryptionKey || (process.env.NODE_ENV === 'production' && !process.env.VERCEL_URL && !process.env.VERCEL)) {
-      console.log('🔧 BUILD: Skipping decryption during build or missing key');
+    // Get encryption key from environment
+    const encryptionKey = process.env.NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY;
+    
+    // Check if encryption key is available
+    if (!encryptionKey) {
+      console.error('❌ ENCRYPTION KEY MISSING - Add NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY to Vercel environment variables');
       return [];
     }
 
+    // Log key availability for debugging (client-side only)
+    if (typeof window !== 'undefined') {
+      console.log('🔐 RUNTIME: Browser encryption key available:', !!encryptionKey);
+    }
+
+    // Validate response structure
     if (!encryptedResponse.encrypted || !encryptedResponse.data) {
-      console.error('❌ PRIVACY: Invalid response format');
+      console.error('❌ PRIVACY: Invalid response format - missing encrypted data');
       return null;
     }
 
-    // Handle direct AES-256-GCM decryption
+    // Log decryption parameters
     console.log('🔓 PRIVACY: Using AES-256-GCM decryption...');
     console.log('🔍 PRIVACY: Algorithm:', encryptedResponse.algorithm);
     console.log('🔍 PRIVACY: IV length:', encryptedResponse.iv?.length);
     console.log('🔍 PRIVACY: Data length:', encryptedResponse.data?.length);
 
     try {
-      const encryptionKey = process.env.NEXT_PUBLIC_ORACLE_ENCRYPTION_KEY;
-      
-      if (!encryptionKey) {
-        console.error('❌ PRIVACY: No encryption key found');
-        throw new Error('No encryption key');
-      }
-      
-      // For browser environment, use Web Crypto API
+      // Client-side decryption using Web Crypto API
       if (typeof window !== 'undefined') {
-        console.log('🌐 PRIVACY: Using Web Crypto API for browser...');
+        console.log('🌐 PRIVACY: Using Web Crypto API for browser environment...');
         
+        // Convert hex strings to Uint8Array buffers
         const keyBuffer = new Uint8Array(
           encryptionKey.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
         );
         const ivBuffer = new Uint8Array(
           encryptedResponse.iv.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
         );
-        // For AES-GCM, encrypted data and authTag must be combined correctly
         const encryptedDataBuffer = new Uint8Array(
           encryptedResponse.data.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
         );
         
-        // For Web Crypto API, authTag must be appended to encrypted data
+        // Prepare encrypted buffer with authTag for AES-GCM
         let encryptedBuffer: Uint8Array;
         if (encryptedResponse.authTag) {
           const authTagBuffer = new Uint8Array(
@@ -118,15 +119,16 @@ export async function decryptOracleData(encryptedResponse: EncryptedOracleRespon
           );
           console.log('🔍 PRIVACY: AuthTag length:', authTagBuffer.length);
           
-          // Append authTag to encrypted data for Web Crypto API
+          // Web Crypto API requires authTag appended to encrypted data
           encryptedBuffer = new Uint8Array(encryptedDataBuffer.length + authTagBuffer.length);
           encryptedBuffer.set(encryptedDataBuffer);
           encryptedBuffer.set(authTagBuffer, encryptedDataBuffer.length);
         } else {
-          console.warn('⚠️ PRIVACY: No authTag found - this may fail for AES-GCM');
+          console.warn('⚠️ PRIVACY: No authTag found - AES-GCM decryption may fail');
           encryptedBuffer = encryptedDataBuffer;
         }
         
+        // Import encryption key for Web Crypto API
         const cryptoKey = await crypto.subtle.importKey(
           'raw',
           keyBuffer,
@@ -135,65 +137,77 @@ export async function decryptOracleData(encryptedResponse: EncryptedOracleRespon
           ['decrypt']
         );
         
-        // Prepare GCM parameters
+        // Prepare GCM decryption parameters
         const gcmParams: AesGcmParams = { 
           name: 'AES-GCM', 
           iv: ivBuffer 
         };
         
-        // Add additionalData if present
+        // Add additional authenticated data if present
         if (encryptedResponse.additionalData) {
           const additionalDataBuffer = new TextEncoder().encode(encryptedResponse.additionalData);
           gcmParams.additionalData = additionalDataBuffer;
           console.log('🔍 PRIVACY: Using additionalData:', encryptedResponse.additionalData);
         }
         
+        // Decrypt the data
         const decryptedBuffer = await crypto.subtle.decrypt(
           gcmParams,
           cryptoKey,
           encryptedBuffer.buffer as ArrayBuffer
         );
         
+        // Parse decrypted JSON
         const decryptedText = new TextDecoder().decode(decryptedBuffer);
         const userData = JSON.parse(decryptedText);
         
         console.log('✅ PRIVACY: Web Crypto API decryption successful!');
         return userData.users || [];
+        
       } else {
-        // For Node.js environment
-        console.log('💻 PRIVACY: Using Node.js crypto for server...');
+        // Server-side decryption using Node.js crypto module
+        console.log('💻 PRIVACY: Using Node.js crypto for server environment...');
         const crypto = await import('crypto');
         
+        // Convert hex strings to Node.js Buffers
         const keyBuffer = Buffer.from(encryptionKey, 'hex');
         const iv = Buffer.from(encryptedResponse.iv, 'hex');
         const encryptedData = Buffer.from(encryptedResponse.data, 'hex');
+        const authTag = encryptedResponse.authTag 
+          ? Buffer.from(encryptedResponse.authTag, 'hex') 
+          : Buffer.alloc(0);
         
-        // Node.js version must also use GCM for Professional Oracle
-        const authTag = encryptedResponse.authTag ? Buffer.from(encryptedResponse.authTag, 'hex') : Buffer.alloc(0);
-        
+        // Create decipher with AES-256-GCM
         const decipher = crypto.createDecipheriv('aes-256-gcm', keyBuffer, iv);
+        
+        // Set authTag if available
         if (authTag.length > 0) {
           decipher.setAuthTag(authTag);
         }
+        
+        // Set additional authenticated data if present
         if (encryptedResponse.additionalData) {
           decipher.setAAD(Buffer.from(encryptedResponse.additionalData));
         }
         
+        // Decrypt the data
         let decrypted = decipher.update(encryptedData);
         decrypted = Buffer.concat([decrypted, decipher.final()]);
         
+        // Parse decrypted JSON
         const userData = JSON.parse(decrypted.toString('utf8'));
         
         console.log('✅ PRIVACY: Node.js AES-GCM decryption successful!');
         return userData.users || [];
       }
+      
     } catch (aesError) {
       console.error('❌ PRIVACY: AES-GCM decryption failed:', aesError);
       return null;
     }
 
   } catch (error) {
-    console.error('❌ PRIVACY: Unexpected decryption error');
+    console.error('❌ PRIVACY: Unexpected decryption error:', error);
     return null;
   }
 }

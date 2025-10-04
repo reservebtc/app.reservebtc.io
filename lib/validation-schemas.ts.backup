@@ -6,7 +6,7 @@ export const bitcoinAddressSchema = z
   .min(1, 'Bitcoin address is required')
   .refine((address) => {
     const result = validateBitcoinAddress(address)
-    return result.valid
+    return result.isValid
   }, {
     message: 'Invalid Bitcoin address format'
   })

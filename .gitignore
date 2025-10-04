@@ -524,3 +524,6 @@ scripts/*-local.js
 *-management.js
 local-*.js
 personal-*.js
+
+test-validator.js
+test-validator-direct.mjs

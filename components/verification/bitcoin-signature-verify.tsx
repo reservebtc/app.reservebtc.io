@@ -169,9 +169,12 @@ export function BitcoinSignatureVerify({ onVerificationComplete }: BitcoinSignat
     conflictUser: null
   })
 
+  // CRITICAL FIX: Fixed timestamp for consistent signature verification
+  const [fixedTimestamp] = useState(() => Math.floor(Date.now() / 1000))
+
   const message = ethAddress 
     ? `ReserveBTC Wallet Verification
-Timestamp: ${Math.floor(Date.now() / 1000)}
+Timestamp: ${fixedTimestamp}
 MegaETH Address: ${ethAddress}
 I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
     : ''
@@ -233,7 +236,6 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
 
       const { oracleService } = await import('@/lib/oracle-service')
       const allUsers = await oracleService.getDecryptedUsers()
-      console.log('🔍 UNIQUENESS CHECK: Total users in Oracle:', allUsers?.length || 0)
       
       if (!allUsers) {
         throw new Error('Unable to fetch user data from Oracle')
@@ -241,12 +243,12 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
       
 
       for (const user of allUsers) {
-        console.log('🔍 CHECKING USER:', {
-          ethAddress: user.ethAddress,
-          bitcoinAddress: user.bitcoinAddress,
-          btcAddress: user.btcAddress,
-          currentUser: user.ethAddress?.toLowerCase() === ethAddress.toLowerCase()
-        })
+        // Check user addresses silently for privacy
+        const isCurrentUser = user.ethAddress?.toLowerCase() === ethAddress.toLowerCase()
+        
+        if (isCurrentUser) {
+          console.log('🔍 UNIQUENESS CHECK: Checking current user addresses')
+        }
         
         // Check all possible fields and Bitcoin address arrays
         const userDataAny = user as any
@@ -848,7 +850,7 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
                     <AlertCircle className="h-4 w-4" />
                     <div className="text-sm">
                       <div className="font-medium">
-                        {addressUniquenessCheck.conflictUser === 'current_user' ? '⚠️' : '❌'} {addressUniquenessCheck.message || 
+                        {addressUniquenessCheck.conflictUser === 'current_user' ? '' : '❌'} {addressUniquenessCheck.message || 
                         (addressUniquenessCheck.conflictUser === 'current_user'
                           ? "You have already verified this Bitcoin address" 
                           : "This Bitcoin address has already been verified by another user")}

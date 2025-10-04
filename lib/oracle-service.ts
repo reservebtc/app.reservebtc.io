@@ -65,7 +65,7 @@ class OracleService {
       const cached = this.cache.get(cacheKey)
       
       if (cached && (Date.now() - cached.timestamp < this.CACHE_TTL)) {
-        console.log('🔐 DEBUG: Using cached Oracle data:', cached.data?.length || 0, 'users')
+        console.log('🔐 DEBUG: Using cached Oracle data')
         return cached.data
       }
 
@@ -103,7 +103,7 @@ class OracleService {
         
         if (decryptedData) {
           this.cache.set(cacheKey, { data: decryptedData, timestamp: Date.now() })
-          console.log(`✅ ORACLE SERVICE: Decrypted data for ${decryptedData.length} users`)
+          console.log('✅ ORACLE SERVICE: Data ready')
         }
         
         return decryptedData

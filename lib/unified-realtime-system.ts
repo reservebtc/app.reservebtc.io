@@ -35,7 +35,7 @@ class UnifiedRealtimeSystem extends EventEmitter {
   // Supabase config
   private readonly supabase = {
     url: 'https://qoudozwmecstoxrqopqf.supabase.co',
-    key: process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
   };
 
   constructor() {
