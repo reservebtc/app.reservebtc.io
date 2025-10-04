@@ -2,10 +2,9 @@
 
 # ReserveBTC Protocol — Decentralized Bitcoin Reserves with Proof-of-Reserves
 
+<!-- BIP-322 Security Tests - Live Status from GitHub Actions -->
 [![BIP-322 Verified](https://img.shields.io/badge/BIP--322-Verified-brightgreen)](./docs/SECURITY_AUDIT_BIP322.md)
-[![Security Audit](https://img.shields.io/badge/Security%20Tests-32%2F32%20PASS-success)](./scripts/security-audit-bip322-professional.js)
-[![Vulnerabilities](https://img.shields.io/badge/Vulnerabilities-0%20Found-brightgreen)](./docs/SECURITY_AUDIT_BIP322.md)
-[![Production Ready](https://img.shields.io/badge/Production-Ready-brightgreen)]
+[![BIP-322 Security Tests](https://github.com/reservebtc/app.reservebtc.io/actions/workflows/security-tests.yml/badge.svg?branch=main)](https://github.com/reservebtc/app.reservebtc.io/actions/workflows/security-tests.yml)
 
 [![Frontend Test Suite](https://github.com/reservebtc/app.reservebtc.io/actions/workflows/frontend-test-suite.yml/badge.svg?branch=main)](https://github.com/reservebtc/app.reservebtc.io/actions/workflows/frontend-test-suite.yml)
 [![Smart Contract Tests](https://github.com/reservebtc/app.reservebtc.io/actions/workflows/smart-contract-tests.yml/badge.svg?branch=main)](https://github.com/reservebtc/app.reservebtc.io/actions/workflows/smart-contract-tests.yml)
