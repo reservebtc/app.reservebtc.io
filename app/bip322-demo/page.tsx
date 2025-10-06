@@ -1,30 +1,15 @@
 // app/bip322-demo/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Moon, Sun, Monitor, CheckCircle, XCircle, Loader2, Github, Package } from 'lucide-react'
+import { useState } from 'react'
+import { CheckCircle, XCircle, Loader2, Github, Package } from 'lucide-react'
 
-type Theme = 'light' | 'dark' | 'system'
 type WalletStatus = 'idle' | 'detecting' | 'detected' | 'signing' | 'success' | 'error'
 
 export default function BIP322Demo() {
-  const [theme, setTheme] = useState<Theme>('dark')
   const [walletDetected, setWalletDetected] = useState<string[]>([])
   const [status, setStatus] = useState<WalletStatus>('idle')
   const [result, setResult] = useState<any>(null)
-
-  // Apply theme
-  useEffect(() => {
-    const root = document.documentElement
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-      root.classList.remove('light', 'dark')
-      root.classList.add(systemTheme)
-    } else {
-      root.classList.remove('light', 'dark')
-      root.classList.add(theme)
-    }
-  }, [theme])
 
   const detectWallets = () => {
     setStatus('detecting')
@@ -69,51 +54,6 @@ export default function BIP322Demo() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
-      {/* Header with theme toggle */}
-      <div className="border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            BIP-322 Connector Demo
-          </h1>
-          
-          <div className="flex gap-2">
-            <button
-              onClick={() => setTheme('light')}
-              className={`p-2 rounded-lg transition-colors ${
-                theme === 'light' 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300' 
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
-              title="Light theme"
-            >
-              <Sun className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setTheme('dark')}
-              className={`p-2 rounded-lg transition-colors ${
-                theme === 'dark' 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300' 
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
-              title="Dark theme"
-            >
-              <Moon className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setTheme('system')}
-              className={`p-2 rounded-lg transition-colors ${
-                theme === 'system' 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300' 
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
-              title="System theme"
-            >
-              <Monitor className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </div>
-
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Hero Section */}
         <div className="text-center mb-12">
