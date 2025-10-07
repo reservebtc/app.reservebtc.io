@@ -5,11 +5,7 @@
  * with centralized Oracle database integration only (no localStorage dependencies)
  */
 
-import { 
-  getVerifiedAddressesFromOracle, 
-  saveAddressToOracle,
-  requestOracleSync
-} from './transaction-storage'
+// Transaction storage removed - now using Supabase real-time system only
 
 interface UserVerifiedAddress {
   address: string
@@ -17,8 +13,6 @@ interface UserVerifiedAddress {
   signature: string
   ethAddress: string
 }
-
-// UserData interface removed - no localStorage caching needed
 
 /**
  * Save verified Bitcoin address with professional Oracle database sync
@@ -28,59 +22,82 @@ export async function saveVerifiedBitcoinAddress(
   bitcoinAddress: string,
   signature: string
 ): Promise<void> {
-  console.log('💾 Saving verified Bitcoin address to centralized Oracle database...')
+  console.log('💾 USER_DATA: Saving verified Bitcoin address to centralized system...')
   
   try {
-    // Primary save to Oracle database (ONLY storage - no localStorage fallback)
-    await saveAddressToOracle(ethAddress, bitcoinAddress, signature)
-    console.log('✅ Address saved to Oracle database successfully')
+    // Save to Oracle via API endpoint
+    const response = await fetch('/api/verify-wallet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bitcoinAddress,
+        ethereumAddress: ethAddress,
+        signature,
+        network: bitcoinAddress.startsWith('tb1') || 
+                 bitcoinAddress.startsWith('2') || 
+                 bitcoinAddress.startsWith('m') || 
+                 bitcoinAddress.startsWith('n') ? 'testnet' : 'mainnet'
+      })
+    })
     
-    // Also trigger Oracle sync to update user data
-    await requestOracleSync(ethAddress)
-    console.log('✅ Oracle sync requested successfully')
+    if (!response.ok) {
+      throw new Error('Failed to save to database')
+    }
+    
+    console.log('✅ USER_DATA: Address saved to centralized system successfully')
     
   } catch (error) {
-    console.error('❌ Oracle save failed:', error)
+    console.error('❌ USER_DATA: Save failed:', error)
     throw error // Re-throw error to let caller know verification failed
   }
   
-  // NO localStorage fallback - system uses automatic browser cleanup
-  // All data must be retrieved from centralized Oracle server
-  console.log('✅ Verification completed - user card created in Oracle database')
+  console.log('✅ USER_DATA: Verification completed - user card created in database')
 }
 
 /**
- * Get verified Bitcoin addresses from centralized Oracle database only
- * No localStorage dependencies - system uses automatic browser cleanup
+ * Get verified Bitcoin addresses from centralized database via real-time hooks
+ * No localStorage dependencies - system uses Supabase real-time system
  */
 export async function getVerifiedBitcoinAddresses(ethAddress: string): Promise<UserVerifiedAddress[]> {
-  console.log('📋 Getting verified addresses for current user:', ethAddress.substring(0, 10) + '...')
+  console.log('📋 USER_DATA: Getting verified addresses for user:', ethAddress.substring(0, 10) + '...')
   
-  // Get addresses directly from centralized Oracle database (ONLY source of truth)
   try {
-    const oracleData = await getVerifiedAddressesFromOracle(ethAddress)
+    // Get addresses from Supabase via Oracle service
+    const { oracleService } = await import('./oracle-service')
+    const userData = await oracleService.getUserByAddress(ethAddress)
     
-    if (oracleData.length > 0) {
-      console.log('✅ Retrieved addresses from Oracle database:', oracleData.length)
+    if (userData) {
+      // Get all Bitcoin addresses from user data
+      const addresses: string[] = []
       
-      // Convert Oracle format to our interface format
-      const oracleAddresses = oracleData.map(addr => ({
-        address: addr.address,
-        verifiedAt: addr.verifiedAt,
-        signature: addr.signature,
+      // Check all possible fields
+      if (userData.bitcoinAddress) addresses.push(userData.bitcoinAddress)
+      if ((userData as any).btcAddresses && Array.isArray((userData as any).btcAddresses)) {
+        addresses.push(...(userData as any).btcAddresses)
+      }
+      if ((userData as any).bitcoinAddresses && Array.isArray((userData as any).bitcoinAddresses)) {
+        addresses.push(...(userData as any).bitcoinAddresses)
+      }
+      
+      // Convert to UserVerifiedAddress format
+      const verifiedAddresses = addresses.map((addr: string) => ({
+        address: addr,
+        verifiedAt: userData.registeredAt || new Date().toISOString(),
+        signature: userData.signature || '',
         ethAddress: ethAddress
       }))
       
-      return oracleAddresses
+      console.log('✅ USER_DATA: Retrieved addresses from database:', verifiedAddresses.length)
+      return verifiedAddresses
     } else {
-      console.log('ℹ️ No addresses found in Oracle database')
+      console.log('ℹ️ USER_DATA: No addresses found in database')
       return []
     }
   } catch (error) {
-    console.error('❌ Oracle database check failed:', error)
-    return [] // Return empty array if Oracle is unavailable
+    console.error('❌ USER_DATA: Database check failed:', error)
+    return [] // Return empty array if database is unavailable
   }
 }
 
-// All localStorage functions removed - system uses centralized Oracle database only
+// All localStorage functions removed - system uses centralized database with Supabase real-time sync
 // With automatic browser cleanup, no local storage or recovery functions needed

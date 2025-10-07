@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
+export const dynamic = 'force-dynamic'
 
 const RATE_LIMIT = 100 // requests per hour
 const rateLimit = new Map()

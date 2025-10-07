@@ -7,8 +7,9 @@
 
 import { createPublicClient, http, parseEventLogs, Log } from 'viem'
 import { CONTRACTS, MEGAETH_TESTNET, CONTRACT_ABIS } from '@/app/lib/contracts'
-import { requestOracleSync, reportTransactionToOracle } from './transaction-storage'
 import { saveVerifiedBitcoinAddress } from './user-data-storage'
+
+// Transaction storage removed - now using Supabase real-time system only
 
 // MegaETH public client for event monitoring
 const publicClient = createPublicClient({
@@ -57,12 +58,12 @@ export class BlockchainMonitor {
    */
   async startMonitoring(): Promise<void> {
     if (this.isMonitoring) {
-      console.log('🔄 Blockchain monitor already running')
+      console.log('🔄 MONITOR: Blockchain monitor already running')
       return
     }
 
-    console.log('🚀 Starting professional blockchain event monitoring...')
-    console.log('📡 Monitoring contracts:')
+    console.log('🚀 MONITOR: Starting professional blockchain event monitoring...')
+    console.log('📡 MONITOR: Monitoring contracts:')
     console.log(`  - rBTC-SYNTH: ${CONTRACTS.RBTC_SYNTH}`)
     console.log(`  - Oracle Aggregator: ${CONTRACTS.ORACLE_AGGREGATOR}`)
     console.log(`  - Fee Vault: ${CONTRACTS.FEE_VAULT}`)
@@ -72,9 +73,9 @@ export class BlockchainMonitor {
     // Get current block to start monitoring from
     try {
       this.lastProcessedBlock = await publicClient.getBlockNumber()
-      console.log(`📊 Starting from block: ${this.lastProcessedBlock}`)
+      console.log(`📊 MONITOR: Starting from block: ${this.lastProcessedBlock}`)
     } catch (error) {
-      console.error('❌ Failed to get current block:', error)
+      console.error('❌ MONITOR: Failed to get current block:', error)
       this.lastProcessedBlock = BigInt(0)
     }
 
@@ -83,7 +84,7 @@ export class BlockchainMonitor {
       await this.checkForNewEvents()
     }, 10000)
 
-    console.log('✅ Blockchain monitor started - automatic user detection active')
+    console.log('✅ MONITOR: Blockchain monitor started - automatic user detection active')
   }
 
   /**
@@ -92,7 +93,7 @@ export class BlockchainMonitor {
   stopMonitoring(): void {
     if (!this.isMonitoring) return
 
-    console.log('🛑 Stopping blockchain monitor...')
+    console.log('🛑 MONITOR: Stopping blockchain monitor...')
     this.isMonitoring = false
     
     if (this.monitoringInterval) {
@@ -100,7 +101,7 @@ export class BlockchainMonitor {
       this.monitoringInterval = null
     }
     
-    console.log('✅ Blockchain monitor stopped')
+    console.log('✅ MONITOR: Blockchain monitor stopped')
   }
 
   /**
@@ -115,7 +116,7 @@ export class BlockchainMonitor {
         return
       }
 
-      console.log(`🔍 Checking blocks ${this.lastProcessedBlock + BigInt(1)} to ${currentBlock}`)
+      console.log(`🔍 MONITOR: Checking blocks ${this.lastProcessedBlock + BigInt(1)} to ${currentBlock}`)
 
       // Monitor Oracle Aggregator Synced events (most important)
       await this.processSyncedEvents(this.lastProcessedBlock + BigInt(1), currentBlock)
@@ -129,7 +130,7 @@ export class BlockchainMonitor {
       this.lastProcessedBlock = currentBlock
 
     } catch (error) {
-      console.error('❌ Event monitoring error:', error)
+      console.error('❌ MONITOR: Event monitoring error:', error)
     }
   }
 
@@ -161,7 +162,7 @@ export class BlockchainMonitor {
       }
 
     } catch (error) {
-      console.error('❌ Failed to process Synced events:', error)
+      console.error('❌ MONITOR: Failed to process Synced events:', error)
     }
   }
 
@@ -209,7 +210,7 @@ export class BlockchainMonitor {
       }
 
     } catch (error) {
-      console.error('❌ Failed to process Mint/Burn events:', error)
+      console.error('❌ MONITOR: Failed to process Mint/Burn events:', error)
     }
   }
 
@@ -237,7 +238,7 @@ export class BlockchainMonitor {
       }
 
     } catch (error) {
-      console.error('❌ Failed to process Fee Vault events:', error)
+      console.error('❌ MONITOR: Failed to process Fee Vault events:', error)
     }
   }
 
@@ -257,26 +258,28 @@ export class BlockchainMonitor {
         transactionHash: log.transactionHash
       }
 
-      console.log('🎯 AUTOMATIC USER DETECTED - Oracle Synced Event:', syncEvent)
+      console.log('🎯 MONITOR: AUTOMATIC USER DETECTED - Oracle Synced Event:', syncEvent)
 
       // Automatically create user card for this new user
       await this.createUserCardAutomatically(syncEvent.user, syncEvent.transactionHash)
 
-      // Report to Oracle for centralized tracking
-      await reportTransactionToOracle(syncEvent.user, {
-        hash: syncEvent.transactionHash,
-        type: syncEvent.deltaSats.startsWith('-') ? 'burn' : 'mint',
-        amount: (parseInt(syncEvent.deltaSats) / 100000000).toString(),
-        timestamp: new Date(syncEvent.timestamp * 1000).toISOString(),
-        status: 'success',
-        blockNumber: Number(syncEvent.blockNumber),
-        userAddress: syncEvent.user
+      // Save transaction to Supabase via API
+      await this.saveTransactionToDatabase({
+        tx_hash: syncEvent.transactionHash,
+        block_number: Number(syncEvent.blockNumber),
+        block_timestamp: new Date(syncEvent.timestamp * 1000).toISOString(),
+        user_address: syncEvent.user,
+        tx_type: syncEvent.deltaSats.startsWith('-') ? 'BURN' : 'MINT',
+        amount: syncEvent.deltaSats,
+        delta: syncEvent.deltaSats,
+        fee_wei: syncEvent.feeWei,
+        status: 'confirmed'
       })
 
-      console.log(`✅ User card created automatically for ${syncEvent.user}`)
+      console.log(`✅ MONITOR: User card created automatically for ${syncEvent.user}`)
 
     } catch (error) {
-      console.error('❌ Failed to handle Synced event:', error)
+      console.error('❌ MONITOR: Failed to handle Synced event:', error)
     }
   }
 
@@ -293,21 +296,21 @@ export class BlockchainMonitor {
         timestamp: Date.now()
       }
 
-      console.log('🪙 Mint event detected:', mintEvent)
+      console.log('🪙 MONITOR: Mint event detected:', mintEvent)
 
-      // Report mint transaction
-      await reportTransactionToOracle(mintEvent.user, {
-        hash: mintEvent.transactionHash,
-        type: 'mint',
-        amount: (parseInt(mintEvent.amount) / 100000000).toString(),
-        timestamp: new Date().toISOString(),
-        status: 'success',
-        blockNumber: Number(mintEvent.blockNumber),
-        userAddress: mintEvent.user
+      // Save to Supabase
+      await this.saveTransactionToDatabase({
+        tx_hash: mintEvent.transactionHash,
+        block_number: Number(mintEvent.blockNumber),
+        block_timestamp: new Date(mintEvent.timestamp).toISOString(),
+        user_address: mintEvent.user,
+        tx_type: 'MINT',
+        amount: mintEvent.amount,
+        status: 'confirmed'
       })
 
     } catch (error) {
-      console.error('❌ Failed to handle Mint event:', error)
+      console.error('❌ MONITOR: Failed to handle Mint event:', error)
     }
   }
 
@@ -324,21 +327,21 @@ export class BlockchainMonitor {
         timestamp: Date.now()
       }
 
-      console.log('🔥 Burn event detected:', burnEvent)
+      console.log('🔥 MONITOR: Burn event detected:', burnEvent)
 
-      // Report burn transaction
-      await reportTransactionToOracle(burnEvent.user, {
-        hash: burnEvent.transactionHash,
-        type: 'burn',
-        amount: (parseInt(burnEvent.amount) / 100000000).toString(),
-        timestamp: new Date().toISOString(),
-        status: 'success',
-        blockNumber: Number(burnEvent.blockNumber),
-        userAddress: burnEvent.user
+      // Save to Supabase
+      await this.saveTransactionToDatabase({
+        tx_hash: burnEvent.transactionHash,
+        block_number: Number(burnEvent.blockNumber),
+        block_timestamp: new Date(burnEvent.timestamp).toISOString(),
+        user_address: burnEvent.user,
+        tx_type: 'BURN',
+        amount: burnEvent.amount,
+        status: 'confirmed'
       })
 
     } catch (error) {
-      console.error('❌ Failed to handle Burn event:', error)
+      console.error('❌ MONITOR: Failed to handle Burn event:', error)
     }
   }
 
@@ -347,7 +350,7 @@ export class BlockchainMonitor {
    */
   private async handleFeeDepositEvent(log: any): Promise<void> {
     try {
-      console.log('💰 Fee deposit event detected:', {
+      console.log('💰 MONITOR: Fee deposit event detected:', {
         user: log.args.user,
         amount: log.args.amount.toString(),
         transactionHash: log.transactionHash
@@ -356,7 +359,7 @@ export class BlockchainMonitor {
       // This indicates user is preparing for operations - they might mint soon
 
     } catch (error) {
-      console.error('❌ Failed to handle Fee Deposit event:', error)
+      console.error('❌ MONITOR: Failed to handle Fee Deposit event:', error)
     }
   }
 
@@ -365,7 +368,7 @@ export class BlockchainMonitor {
    */
   private async createUserCardAutomatically(userAddress: string, txHash: string): Promise<void> {
     try {
-      console.log(`🏗️ Creating automatic user card for: ${userAddress}`)
+      console.log(`🏗️ MONITOR: Creating automatic user card for: ${userAddress}`)
 
       // For automatic detection, we don't have the Bitcoin address yet
       // But we create a placeholder entry that will be updated when the user provides Bitcoin address
@@ -375,13 +378,31 @@ export class BlockchainMonitor {
         `auto_detected_${txHash}` // Signature showing this was auto-detected
       )
 
-      // Trigger Oracle sync to populate all data
-      await requestOracleSync(userAddress)
-
-      console.log(`✅ Automatic user card created for ${userAddress}`)
+      console.log(`✅ MONITOR: Automatic user card created for ${userAddress}`)
 
     } catch (error) {
-      console.error(`❌ Failed to create automatic user card for ${userAddress}:`, error)
+      console.error(`❌ MONITOR: Failed to create automatic user card for ${userAddress}:`, error)
+    }
+  }
+
+  /**
+   * Save transaction to Supabase database
+   */
+  private async saveTransactionToDatabase(transaction: any): Promise<void> {
+    try {
+      const response = await fetch('/api/cron/indexer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactions: [transaction] })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save transaction to database')
+      }
+
+      console.log('✅ MONITOR: Transaction saved to Supabase')
+    } catch (error) {
+      console.error('❌ MONITOR: Failed to save transaction:', error)
     }
   }
 }
@@ -393,7 +414,7 @@ export const blockchainMonitor = new BlockchainMonitor()
  * Initialize automatic blockchain monitoring for production deployment
  */
 export function initializeAutomaticMonitoring(): void {
-  console.log('🚀 Initializing automatic monitoring for 100k+ users...')
+  console.log('🚀 MONITOR: Initializing automatic monitoring for 100k+ users...')
   
   // Start monitoring immediately on app load
   blockchainMonitor.startMonitoring()
@@ -401,7 +422,7 @@ export function initializeAutomaticMonitoring(): void {
   // Restart monitoring if it stops for any reason
   setInterval(() => {
     if (!blockchainMonitor['isMonitoring']) {
-      console.log('🔄 Restarting blockchain monitor...')
+      console.log('🔄 MONITOR: Restarting blockchain monitor...')
       blockchainMonitor.startMonitoring()
     }
   }, 60000) // Check every minute
