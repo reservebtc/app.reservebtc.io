@@ -64,15 +64,6 @@ export async function requestOracleRegistration(data: OracleRegistrationRequest)
       needsRegistration: true
     };
     
-    // Store locally for tracking
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(`oracle_pending_${data.userAddress}`, JSON.stringify(userData));
-    }
-    
-    console.log('💾 User registration request stored locally');
-    console.log('⏳ Oracle server should detect FeeVault deposit and process automatically');
-    console.log('🔄 Expected processing time: 1-5 minutes');
-    
     return {
       success: true,
       message: 'Oracle monitoring request created - Oracle will process automatically within 1-5 minutes',

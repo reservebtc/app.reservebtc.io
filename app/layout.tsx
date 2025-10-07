@@ -1,8 +1,11 @@
+'use client';
+
 import './globals.css'
 import { Inter } from 'next/font/google'
 import { Providers } from './providers'
 import { Header } from '@/components/layout/header'
 import Link from 'next/link'
+import { useEffect } from 'react'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -18,6 +21,41 @@ export const metadata = {
     apple: '/apple-touch-icon.svg',
     shortcut: '/favicon.svg',
   },
+}
+
+// Client-side component for localStorage cleanup
+function LocalStorageCleanup() {
+  useEffect(() => {
+    // ONE-TIME CLEANUP: Remove all old localStorage data from previous versions
+    const keysToRemove = [
+      'mintedAddresses',
+      'mint_protection_state', 
+      'pending_mints',
+      'reservebtc_production_errors'
+    ]
+    
+    keysToRemove.forEach(key => {
+      if (localStorage.getItem(key)) {
+        localStorage.removeItem(key)
+        console.log('🧹 CLEANUP: Removed old localStorage key:', key)
+      }
+    })
+    
+    // Remove all keys starting with monitoring_ or oracle_pending_ or transaction_ or feevault_
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('monitoring_') || 
+          key.startsWith('oracle_pending_') ||
+          key.includes('transaction_') ||
+          key.includes('feevault_')) {
+        localStorage.removeItem(key)
+        console.log('🧹 CLEANUP: Removed old localStorage key:', key)
+      }
+    })
+    
+    console.log('✅ CLEANUP: localStorage cleanup completed - now using blockchain and Supabase only')
+  }, [])
+  
+  return null
 }
 
 export default function RootLayout({
@@ -40,6 +78,9 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} transition-colors duration-300 ease-in-out bg-background text-foreground overscroll-none`}>
         <Providers>
+          {/* One-time localStorage cleanup on app load */}
+          <LocalStorageCleanup />
+          
           <div className="min-h-screen bg-background">
             {/* Header */}
             <Header />

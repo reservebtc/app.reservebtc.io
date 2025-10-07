@@ -2,6 +2,7 @@
  * Professional Logging System for ReserveBTC Frontend
  * Security-focused, user-isolated logging with professional error handling
  * Ensures no cross-user data exposure in browser console
+ * NO localStorage - all critical errors sent to server API
  */
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'critical'
@@ -31,6 +32,20 @@ interface LogEntry {
   duration?: number
   errorCode?: string
   metadata?: Record<string, any>
+}
+
+interface ProductionError {
+  timestamp: string
+  level: LogLevel
+  category: LogCategory
+  action: string
+  message: string
+  userWallet?: string
+  sessionId: string
+  userAgent: string
+  url: string
+  stack?: string
+  metadata: Record<string, any>
 }
 
 class ProfessionalLogger {
@@ -115,9 +130,10 @@ class ProfessionalLogger {
 
   /**
    * Production Error Tracking
-   * Sends critical errors to external monitoring services in production
+   * Sends critical errors to server API endpoint in production
+   * NO localStorage - all errors sent to centralized logging system
    */
-  private trackProductionError(
+  private async trackProductionError(
     level: LogLevel,
     category: LogCategory,
     action: string,
@@ -125,10 +141,10 @@ class ProfessionalLogger {
     error?: Error | string,
     userWallet?: string,
     metadata?: Record<string, any>
-  ): void {
+  ): Promise<void> {
     if (this.isProductionMode && ['error', 'critical'].includes(level)) {
       // Enhanced production error tracking
-      const productionError = {
+      const productionError: ProductionError = {
         timestamp: new Date().toISOString(),
         level,
         category,
@@ -152,28 +168,28 @@ class ProfessionalLogger {
         sessionId: productionError.sessionId
       })
 
-      // TODO: Integrate with external error tracking service
+      // Send to centralized logging API endpoint
+      try {
+        await fetch('/api/log-error', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(productionError)
+        })
+        console.log('✅ LOGGER: Error logged to server successfully')
+      } catch (sendError) {
+        // If server logging fails, at least log to console
+        console.error('❌ LOGGER: Failed to send error to server:', sendError)
+        console.error('Original error data:', productionError)
+      }
+
+      // TODO: Integrate with external error tracking services
       // Examples:
       // - Sentry: Sentry.captureException(error, { extra: productionError })
       // - LogRocket: LogRocket.captureException(error)
       // - Datadog: DD_RUM.addError(error, productionError)
-      // - Custom API: fetch('/api/error-tracking', { method: 'POST', body: JSON.stringify(productionError) })
-      
-      // For now, store in localStorage for debugging (with size limit)
-      try {
-        const storedErrors = JSON.parse(localStorage.getItem('reservebtc_production_errors') || '[]')
-        storedErrors.push(productionError)
-        
-        // Keep only last 50 errors to prevent localStorage overflow
-        if (storedErrors.length > 50) {
-          storedErrors.splice(0, storedErrors.length - 50)
-        }
-        
-        localStorage.setItem('reservebtc_production_errors', JSON.stringify(storedErrors))
-      } catch (e) {
-        // Fail silently if localStorage is not available
-        console.warn('Unable to store production error in localStorage:', e)
-      }
+      // - Supabase: await supabase.from('error_logs').insert(productionError)
     }
   }
 
@@ -205,7 +221,7 @@ class ProfessionalLogger {
       metadata: options?.metadata
     }
 
-    // Add to history
+    // Add to history (in-memory only, no localStorage)
     this.logHistory.push(entry)
     if (this.logHistory.length > this.maxHistorySize) {
       this.logHistory.shift() // Remove oldest entry
@@ -357,7 +373,7 @@ class ProfessionalLogger {
     const errorMessage = error instanceof Error ? error.message : error
     const stack = error instanceof Error ? error.stack : undefined
     
-    // Track in production
+    // Track in production (async, don't await)
     this.trackProductionError('error', category, action, errorMessage, error, userWallet, {
       ...metadata,
       stack
@@ -378,7 +394,7 @@ class ProfessionalLogger {
     errorCode?: string,
     metadata?: Record<string, any>
   ): void {
-    // Track critical errors in production
+    // Track critical errors in production (async, don't await)
     this.trackProductionError('critical', category, action, message, message, userWallet, {
       errorCode,
       ...metadata
@@ -412,29 +428,10 @@ class ProfessionalLogger {
     return this.logHistory.filter(entry => entry.userWallet === userSuffix)
   }
 
-  // Get production errors from localStorage (development only)
-  public getProductionErrors(): any[] {
-    if (this.isProductionMode) return []
-    
-    try {
-      return JSON.parse(localStorage.getItem('reservebtc_production_errors') || '[]')
-    } catch {
-      return []
-    }
-  }
-
-  // Clear production errors (development only)
-  public clearProductionErrors(): void {
-    if (!this.isProductionMode) {
-      localStorage.removeItem('reservebtc_production_errors')
-      console.info('🗑️ Production error history cleared')
-    }
-  }
-
-  // Clear log history
+  // Clear log history (in-memory only)
   public clearHistory(): void {
     this.logHistory = []
-    console.info('🗑️ Log history cleared')
+    console.info('🗑️ LOGGER: Log history cleared')
   }
 
   // Get system statistics
@@ -444,7 +441,6 @@ class ProfessionalLogger {
     logsByCategory: Record<LogCategory, number>
     sessionId: string
     sessionDuration: string
-    productionErrors: number
   } {
     const logsByLevel = this.logHistory.reduce((acc, entry) => {
       acc[entry.level] = (acc[entry.level] || 0) + 1
@@ -464,8 +460,7 @@ class ProfessionalLogger {
       logsByLevel,
       logsByCategory,
       sessionId: this.sessionId.substring(0, 8),
-      sessionDuration: `${sessionDuration}s`,
-      productionErrors: this.getProductionErrors().length
+      sessionDuration: `${sessionDuration}s`
     }
   }
 }

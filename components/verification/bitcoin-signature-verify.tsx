@@ -426,22 +426,57 @@ I confirm ownership of this Bitcoin address for use with ReserveBTC protocol.`
       console.log('🔄 VERIFY: Creating Professional Oracle profile for user...')
       
       try {
-          const profileCreated = await createOracleProfile(cleanAddress, cleanSignature)
-          if (profileCreated) {
-            console.log('✅ VERIFY: Professional Oracle profile created successfully')
-            
-            if (typeof window !== 'undefined') {
-              console.log('🧹 VERIFY: Clearing verified users cache...')
-              localStorage.removeItem('verified_users')
+        const profileCreated = await createOracleProfile(cleanAddress, cleanSignature)
+        if (profileCreated) {
+          console.log('✅ VERIFY: Professional Oracle profile created successfully')
+          
+          console.log('✅ VERIFY: Verification completed!')
+          
+          // 🔥 SUPABASE: Save verified Bitcoin address to database
+          console.log('💾 SUPABASE: Saving Bitcoin address to database...')
+          console.log('   ETH:', ethAddress)
+          console.log('   BTC:', cleanAddress)
+          console.log('   Network:', cleanAddress.startsWith('tb1') || cleanAddress.startsWith('2') || cleanAddress.startsWith('m') || cleanAddress.startsWith('n') ? 'testnet' : 'mainnet')
+
+          try {
+            const supabasePayload = {
+              bitcoinAddress: cleanAddress,
+              ethereumAddress: ethAddress,
+              message: message,
+              signature: cleanSignature,
+              network: cleanAddress.startsWith('tb1') || cleanAddress.startsWith('2') || cleanAddress.startsWith('m') || cleanAddress.startsWith('n') ? 'testnet' : 'mainnet'
             }
             
-            console.log('✅ VERIFY: Verification completed!')
-          } else {
-            console.log('⚠️ VERIFY: Professional Oracle profile creation failed, but user can still proceed')
+            console.log('📤 SUPABASE: Sending payload to /api/verify-wallet...')
+            
+            const supabaseResponse = await fetch('/api/verify-wallet', {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(supabasePayload)
+            })
+            
+            const supabaseData = await supabaseResponse.json()
+            
+            if (supabaseResponse.ok && supabaseData.success) {
+              console.log('✅ SUPABASE: Bitcoin address saved to database successfully')
+              console.log('📊 SUPABASE: Response:', supabaseData)
+            } else {
+              console.log('⚠️ SUPABASE: Failed to save to database:', supabaseData.error || 'Unknown error')
+              console.log('   Oracle still has the data, so user can proceed')
+            }
+          } catch (supabaseError: any) {
+            console.error('❌ SUPABASE: Database save error:', supabaseError)
+            console.log('   Oracle has the data, user can still proceed')
           }
-        } catch (error) {
-          console.log('⚠️ VERIFY: Oracle profile creation failed:', error)
+          
+        } else {
+          console.log('⚠️ VERIFY: Professional Oracle profile creation failed, but user can still proceed')
         }
+      } catch (error) {
+        console.log('⚠️ VERIFY: Oracle profile creation failed:', error)
+      }
         
         if (onVerificationComplete) {
           onVerificationComplete({

@@ -6,7 +6,6 @@ import { parseEther, formatEther } from 'viem';
 import { CONTRACTS, CONTRACT_ABIS, FEE_CONFIG } from '@/app/lib/contracts';
 import { getOracleAbi } from '@/app/lib/abi-utils';
 import { Loader2, AlertCircle, CheckCircle, Wallet, Plus, Info, Activity } from 'lucide-react';
-import { getUserFeeVaultHistory, saveFeeVaultDeposit } from '@/lib/transaction-storage';
 import { useRealtimeUserData } from '@/lib/professional-realtime-hooks';
 
 // UI Badge component
@@ -35,7 +34,7 @@ export function DepositFeeVault() {
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
   
-  // Real-time integration
+  // Real-time integration with Supabase
   const userData = useRealtimeUserData();
   
   const [amount, setAmount] = useState('0.25');
@@ -50,7 +49,7 @@ export function DepositFeeVault() {
 
   // Calculate recommended deposit based on expected operations
   const calculateRecommendedDeposit = (operations: number = 10) => {
-    const avgSatoshis = 10_000_000; // 0.1 BTC
+    const avgSatoshis = 10_000_000; // 0.1 BTC average
     const feePerOperation = avgSatoshis * FEE_CONFIG.WEI_PER_SAT;
     const SAFETY_MULTIPLIER = 2.5;
     const totalWei = feePerOperation * operations * SAFETY_MULTIPLIER;
@@ -59,16 +58,15 @@ export function DepositFeeVault() {
 
   const recommendedAmount = calculateRecommendedDeposit(10);
 
-  // Real-time balance sync
+  // Real-time balance synchronization from Supabase
   useEffect(() => {
     if (userData.userData && !userData.loading) {
-      // Safe type checking for feeVaultBalance
       const userFeeBalance = (userData.userData as any).feeVaultBalance;
       if (userFeeBalance !== undefined) {
         const realtimeFeeBalance = formatEther(BigInt(userFeeBalance));
-        console.log('📡 FEE_VAULT: Real-time balance update:', realtimeFeeBalance, 'ETH');
+        console.log('📡 FEE_VAULT: Real-time balance update from Supabase:', realtimeFeeBalance, 'ETH');
         
-        // Update local state with real-time data
+        // Update local state with real-time data from Supabase
         setFeeVaultBalance(realtimeFeeBalance);
         
         if (parseFloat(realtimeFeeBalance) > 0) {
@@ -78,34 +76,44 @@ export function DepositFeeVault() {
     }
   }, [userData]);
 
-  // Check if user has ever deposited
+  // ✅ Check deposit status from blockchain instead of localStorage
   useEffect(() => {
     const checkDepositHistory = async () => {
-      if (!address) return;
+      if (!address || !publicClient) return;
       
       try {
-        const history = await getUserFeeVaultHistory(address);
-        console.log('💰 Fee vault deposit history:', history);
-        setHasEverDeposited(history.hasDeposited);
+        console.log('🔍 FEE_VAULT: Checking deposit history from blockchain...');
+        
+        // Read current balance directly from smart contract
+        const balance = await publicClient.readContract({
+          address: CONTRACTS.FEE_VAULT as `0x${string}`,
+          abi: getOracleAbi(CONTRACT_ABIS.FEE_VAULT),
+          functionName: 'balanceOf',
+          args: [address],
+        }) as unknown as bigint;
+        
+        const balanceInEth = formatEther(balance);
+        console.log('💰 FEE_VAULT: Blockchain balance check:', balanceInEth, 'ETH');
+        
+        // If user has any balance on blockchain, they have deposited before
+        setHasEverDeposited(parseFloat(balanceInEth) > 0);
       } catch (error) {
-        console.warn('⚠️ Failed to check deposit history:', error);
-        const storageKey = `feeVault_deposited_${address}`;
-        const hasDeposited = localStorage.getItem(storageKey) === 'true';
-        setHasEverDeposited(hasDeposited);
+        console.warn('⚠️ FEE_VAULT: Failed to check deposit history from blockchain:', error);
+        setHasEverDeposited(false);
       }
     };
     
     checkDepositHistory();
-  }, [address]);
+  }, [address, publicClient]);
 
   // Fetch FeeVault balance with retry logic (fallback if real-time not available)
   const fetchFeeVaultBalance = async (retries = 3) => {
     if (!address || !publicClient) return;
     
-    // Skip contract call if we have real-time data
+    // Skip contract call if we have real-time data from Supabase
     const userFeeBalance = userData.userData ? (userData.userData as any).feeVaultBalance : undefined;
     if (userData.userData && !userData.loading && userFeeBalance !== undefined) {
-      console.log('📡 FEE_VAULT: Using real-time balance, skipping contract call');
+      console.log('📡 FEE_VAULT: Using real-time balance from Supabase, skipping contract call');
       return;
     }
     
@@ -128,19 +136,18 @@ export function DepositFeeVault() {
         }
         
         setIsLoadingBalance(false);
-        return; // Success, exit
+        return; // Success, exit retry loop
         
       } catch (err: any) {
-        console.error(`Failed to fetch balance (attempt ${i + 1}/${retries}):`, err);
+        console.error(`❌ FEE_VAULT: Failed to fetch balance (attempt ${i + 1}/${retries}):`, err);
         
-        // If rate limited, wait before retry
+        // If rate limited, wait before retry with exponential backoff
         if (err.message?.includes('429') || err.message?.includes('rate limit')) {
-          await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1))); // Exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
         }
         
         if (i === retries - 1) {
-          // Last attempt failed
-          console.error('Failed to fetch FeeVault balance after retries');
+          console.error('❌ FEE_VAULT: Failed to fetch balance after all retries');
           setIsLoadingBalance(false);
         }
       }
@@ -150,7 +157,7 @@ export function DepositFeeVault() {
   useEffect(() => {
     fetchFeeVaultBalance();
     
-    // Refresh after successful deposit
+    // Refresh balance after successful deposit
     if (status === 'success') {
       const timer = setTimeout(() => fetchFeeVaultBalance(), 3000);
       return () => clearTimeout(timer);
@@ -169,26 +176,28 @@ export function DepositFeeVault() {
     
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        // Add delay between retries
+        // Add delay between retries for rate limiting
         if (attempt > 0) {
-          console.log(`⏳ Retry attempt ${attempt + 1}/${maxRetries} after delay...`);
+          console.log(`⏳ FEE_VAULT: Retry attempt ${attempt + 1}/${maxRetries} after delay...`);
           await new Promise(resolve => setTimeout(resolve, 3000 * attempt));
         }
         
-        // Try to deposit
+        console.log(`💰 FEE_VAULT: Attempting deposit of ${amount} ETH...`);
+        
+        // Execute deposit transaction
         const hash = await walletClient.writeContract({
           address: CONTRACTS.FEE_VAULT as `0x${string}`,
           abi: getOracleAbi(CONTRACT_ABIS.FEE_VAULT),
           functionName: 'depositETH',
           args: [address],
           value: parseEther(amount),
-          // Add gas limit to prevent compute unit issues
-          gas: BigInt(100000),
+          gas: BigInt(100000), // Prevent compute unit issues
         });
         
         setTxHash(hash);
+        console.log(`✅ FEE_VAULT: Transaction sent: ${hash}`);
         
-        // Wait for confirmation with timeout
+        // Wait for confirmation with timeout protection
         const receipt = await Promise.race([
           publicClient.waitForTransactionReceipt({
             hash,
@@ -199,23 +208,17 @@ export function DepositFeeVault() {
           )
         ]);
         
+        console.log('✅ FEE_VAULT: Deposit confirmed on blockchain');
         setStatus('success');
         setHasEverDeposited(true);
         
-        // Save to Oracle database
-        try {
-          await saveFeeVaultDeposit(address, amount, hash);
-          console.log('✅ Fee deposit saved to Oracle database');
-        } catch (error) {
-          console.warn('⚠️ Failed to save to Oracle:', error);
-          const storageKey = `feeVault_deposited_${address}`;
-          localStorage.setItem(storageKey, 'true');
-        }
+        // Real-time system will automatically update balance via Supabase
+        console.log('📡 FEE_VAULT: Real-time system will sync new balance via Supabase automatically');
         
-        break; // Success, exit loop
+        break; // Success, exit retry loop
         
       } catch (err: any) {
-        console.error(`Deposit attempt ${attempt + 1} failed:`, err);
+        console.error(`❌ FEE_VAULT: Deposit attempt ${attempt + 1} failed:`, err);
         setRetryCount(attempt + 1);
         
         // Check if it's a rate limit error
@@ -258,7 +261,7 @@ export function DepositFeeVault() {
 
   return (
     <div className="bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 border border-primary/20 rounded-xl p-6 space-y-4 transition-all hover:border-primary/30">
-      {/* Rate Limit Warning */}
+      {/* Network Congestion Warning */}
       {error?.includes('Network') && (
         <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-3">
           <div className="flex items-start space-x-2">
@@ -275,7 +278,7 @@ export function DepositFeeVault() {
         </div>
       )}
 
-      {/* Critical Warning Banner */}
+      {/* Critical Low Balance Warning */}
       {hasEverDeposited && parseFloat(feeVaultBalance) < 0.01 && (
         <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-lg mb-4">
           <div className="flex flex-col sm:flex-row sm:items-start space-y-2 sm:space-y-0 sm:space-x-3">
@@ -338,7 +341,7 @@ export function DepositFeeVault() {
           </div>
           {!userData.loading && userData.userData && (userData.userData as any).feeVaultBalance !== undefined && (
             <div className="text-xs text-green-600">
-              Real-time sync active
+              Real-time sync via Supabase
             </div>
           )}
         </div>
@@ -393,7 +396,7 @@ export function DepositFeeVault() {
               <p className="text-sm text-green-700 dark:text-green-300">
                 {amount} ETH has been added to your Fee Vault
                 {!userData.loading && (
-                  <span className="block text-xs mt-1">Real-time balance will update automatically</span>
+                  <span className="block text-xs mt-1">Real-time balance will update automatically via Supabase</span>
                 )}
               </p>
             </div>
