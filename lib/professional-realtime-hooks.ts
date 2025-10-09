@@ -55,7 +55,7 @@ export function useRealtimeUserData() {
 }
 
 /**
- * Hook for real-time balance data - OPTIMIZED UX VERSION
+ * Hook for real-time balance data - OPTIMIZED UX VERSION with ZERO CACHE
  * Fetches balance from /api/realtime/balances endpoint with silent background updates
  * Updates every 10 seconds WITHOUT showing loading spinner after initial load
  * 
@@ -64,6 +64,8 @@ export function useRealtimeUserData() {
  * - Background updates are silent (no UI flicker)
  * - Optimistic UI - always shows last known balance
  * - Separate isRefreshing state for background updates
+ * - NO CACHING - timestamp cache busting on every request
+ * - Professional headers to prevent CDN/Edge caching
  * 
  * API Response format:
  * {
@@ -104,8 +106,19 @@ export function useRealtimeBalance() {
       setError(null)
 
       try {
-        // Call the real-time balance API endpoint
-        const response = await fetch(`/api/realtime/balances?address=${address}`)
+        // 🔥 PROFESSIONAL: Cache busting with timestamp + no-store headers
+        const timestamp = Date.now()
+        const response = await fetch(
+          `/api/realtime/balances?address=${address}&_t=${timestamp}`,
+          {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            }
+          }
+        )
         
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`)
@@ -117,11 +130,11 @@ export function useRealtimeBalance() {
         
         // Extract balance from API response (in satoshis)
         // Try multiple fields for maximum compatibility
-        if (data.success && data.balance) {
-          setBalance(data.balance)
+        if (data.success && data.balance !== undefined) {
+          setBalance(data.balance.toString())
           console.log('💰 REALTIME HOOK: Balance updated to:', data.balance, 'sats')
         } else if (data.oracleSats !== undefined) {
-          // Fallback to oracleSats field (your API uses this)
+          // Fallback to oracleSats field
           setBalance(data.oracleSats.toString())
           console.log('💰 REALTIME HOOK: Balance from oracleSats:', data.oracleSats, 'sats')
         } else {
