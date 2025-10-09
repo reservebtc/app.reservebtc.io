@@ -94,13 +94,13 @@ export function DashboardContent() {
   const router = useRouter()
   const publicClient = usePublicClient()
   
-  // Real-time hooks 
+  // Real-time hooks
   const userData = useRealtimeUserData()
   const realtimeTransactions = useRealtimeTransactions(50)
   const formatBalance = useFormattedBalance()
   const formatTx = useTransactionFormatter()
   
-  // 🔥 CRITICAL FIX: 
+  // 🔥 CRITICAL FIX: Our own state for ACTUAL balance from Oracle contract
   const [currentBalance, setCurrentBalance] = useState<string>('0')
   const [isBalanceLoading, setIsBalanceLoading] = useState(true)
   const [isBalanceRefreshing, setIsBalanceRefreshing] = useState(false)
@@ -130,7 +130,7 @@ export function DashboardContent() {
     totalTVL: 0
   })
 
-  // 🔥 CRITICAL FIX: 
+  // 🔥 CRITICAL FIX: Format balance from our state (actual Oracle balance)
   const formattedRBTCBalance = useMemo(() => {
     if (isBalanceLoading) {
       console.log('⏳ DASHBOARD: Balance loading...')
@@ -145,7 +145,7 @@ export function DashboardContent() {
     return btc.toFixed(8)
   }, [currentBalance, isBalanceLoading])
 
-  // 🔥 CRITICAL FIX: 
+  // 🔥 CRITICAL FIX: Load ACTUAL balance directly from Oracle contract with cache busting
   const loadCurrentBalance = async () => {
     if (!address || !publicClient) {
       console.log('⚠️ DASHBOARD: No address or publicClient')
@@ -156,10 +156,10 @@ export function DashboardContent() {
     setIsBalanceRefreshing(true)
     
     try {
-      // 
+      // Get latest block to prevent caching
       const currentBlock = await publicClient.getBlockNumber()
       
-      // 
+      // Read directly from contract with latest block number
       const lastSats = await publicClient.readContract({
         address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
         abi: [
@@ -173,7 +173,7 @@ export function DashboardContent() {
         ],
         functionName: 'lastSats',
         args: [address],
-        blockNumber: currentBlock  // Force read from latest block
+        blockNumber: currentBlock  // 🔥 Force read from latest block - no cache
       }) as bigint
       
       const balanceInSats = Number(lastSats)
@@ -202,7 +202,8 @@ export function DashboardContent() {
     setLoadingSupabaseTransactions(true)
     
     try {
-      const response = await fetch(`/api/realtime/transactions?address=${address}&limit=50`)
+      // 🔥 Add timestamp to prevent caching
+      const response = await fetch(`/api/realtime/transactions?address=${address}&limit=50&_t=${Date.now()}`)
       
       if (response.ok) {
         const data = await response.json()
@@ -251,14 +252,15 @@ export function DashboardContent() {
     console.log('⚖️ DASHBOARD: Loading Yield Scales data...')
     
     try {
-      const participantResponse = await fetch(`/api/yield-scales/participant?address=${address}`)
+      // 🔥 Add timestamp to prevent caching
+      const participantResponse = await fetch(`/api/yield-scales/participant?address=${address}&_t=${Date.now()}`)
       if (participantResponse.ok) {
         const participantData = await participantResponse.json()
         
-        const statsResponse = await fetch('/api/yield-scales/stats')
+        const statsResponse = await fetch(`/api/yield-scales/stats?_t=${Date.now()}`)
         const statsData = await statsResponse.json()
         
-        const loyaltyResponse = await fetch(`/api/yield-scales/loyalty?address=${address}`)
+        const loyaltyResponse = await fetch(`/api/yield-scales/loyalty?address=${address}&_t=${Date.now()}`)
         const loyaltyData = await loyaltyResponse.json()
         
         setYieldScalesData({
