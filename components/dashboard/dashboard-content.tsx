@@ -127,6 +127,18 @@ export function DashboardContent() {
     totalTVL: 0
   })
 
+  // 🔥 CRITICAL FIX: Properly format rBTC balance from satoshis
+  const formattedRBTCBalance = useMemo(() => {
+    if (balance.loading) return '0.00000000'
+    
+    const sats = Number(balance.balance) || 0
+    const btc = sats / 100000000
+    
+    console.log('💰 DASHBOARD: rBTC Balance - Sats:', sats, 'BTC:', btc.toFixed(8))
+    
+    return btc.toFixed(8)
+  }, [balance.balance, balance.loading])
+
   // Load transactions from Supabase
   const loadTransactionsFromSupabase = async () => {
     if (!address) return
@@ -461,7 +473,7 @@ export function DashboardContent() {
 
       {/* Balance Cards - First Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* rBTC-SYNTH Balance - Real-time */}
+        {/* rBTC-SYNTH Balance - Real-time with FIXED formatting */}
         <div className="bg-card border rounded-xl p-6">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -471,10 +483,10 @@ export function DashboardContent() {
             <span className="text-xs bg-blue-500/10 text-blue-600 px-2 py-1 rounded">Soulbound</span>
           </div>
           <div className="text-2xl font-bold">
-            {formatBalance(balance.balance)}
+            {formattedRBTCBalance}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Non-transferable synthetic BTC
+            = {(Number(balance.balance) || 0).toLocaleString()} sats
           </p>
         </div>
 
