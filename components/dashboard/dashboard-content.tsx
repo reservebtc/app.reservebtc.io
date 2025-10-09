@@ -151,7 +151,7 @@ export function DashboardContent() {
     return btc.toFixed(8)
   }, [currentBalance, isBalanceLoading])
 
-  // 🔥 PRODUCTION-GRADE: Load balance with direct RPC calls (no viem cache)
+  // 🔥 PRODUCTION-GRADE: Load balance with viem (no CORS) and cache busting
   const loadCurrentBalance = async (): Promise<BalanceResult> => {
     if (!address) {
       console.log('⚠️ DASHBOARD: No address')
@@ -169,72 +169,47 @@ export function DashboardContent() {
       try {
         console.log(`📡 DASHBOARD: Attempt ${attempt}/${MAX_RETRIES}`)
         
-        // 🔥 STEP 1: Get latest block via direct RPC call (bypass all caches)
-        const blockResponse = await fetch('https://carrot.megaeth.com/rpc', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
+        // 🔥 STEP 1: Create fresh viem client with unique URL (cache busting)
+        const cacheBuster = `?_t=${Date.now()}&_r=${Math.random().toString(36).substring(7)}`
+        const rpcUrl = `https://carrot.megaeth.com/rpc${cacheBuster}`
+        
+        console.log(`🔗 DASHBOARD: Creating fresh client with cache buster: ${cacheBuster}`)
+        
+        const freshPublicClient = createPublicClient({
+          chain: {
+            id: 6342,
+            name: 'MegaETH Testnet',
+            nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+            rpcUrls: { default: { http: [rpcUrl] } }
           },
-          cache: 'no-store',
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            method: 'eth_blockNumber',
-            params: [],
-            id: Date.now()  // Unique ID prevents any response caching
-          })
+          transport: http(rpcUrl, {
+            timeout: 8000,
+            retryCount: 0,  // We handle retries ourselves
+            retryDelay: 0
+          }),
+          cacheTime: 0,  // Disable viem cache
+          pollingInterval: 0  // Disable polling
         })
         
-        if (!blockResponse.ok) {
-          throw new Error(`Block number request failed: ${blockResponse.status}`)
-        }
+        // 🔥 STEP 2: Get latest block number
+        const currentBlock = await freshPublicClient.getBlockNumber()
         
-        const blockData = await blockResponse.json()
-        const currentBlockHex = blockData.result
-        const currentBlock = BigInt(currentBlockHex)
+        console.log(`📊 DASHBOARD: Latest block from RPC: ${currentBlock.toString()}`)
         
-        console.log(`📊 DASHBOARD: Latest block from RPC: ${currentBlock.toString()} (${currentBlockHex})`)
-        
-        // 🔥 STEP 2: Read balance from exact block via direct RPC call
-        // Build calldata for lastSats(address)
-        const functionSelector = '0x6be25fe1'  // keccak256("lastSats(address)")[:4]
-        const paddedAddress = address.slice(2).toLowerCase().padStart(64, '0')
-        const callData = functionSelector + paddedAddress
-        
-        console.log(`🔍 DASHBOARD: Reading balance with calldata: ${callData}`)
-        
-        const balanceResponse = await fetch('https://carrot.megaeth.com/rpc', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          },
-          cache: 'no-store',
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            method: 'eth_call',
-            params: [{
-              to: CONTRACTS.ORACLE_AGGREGATOR,
-              data: callData
-            }, currentBlockHex],  // Use exact block number in hex
-            id: Date.now()
-          })
-        })
-        
-        if (!balanceResponse.ok) {
-          throw new Error(`Balance request failed: ${balanceResponse.status}`)
-        }
-        
-        const balanceData = await balanceResponse.json()
-        
-        if (balanceData.error) {
-          throw new Error(`RPC error: ${balanceData.error.message}`)
-        }
-        
-        const lastSatsHex = balanceData.result
-        const lastSats = BigInt(lastSatsHex)
+        // 🔥 STEP 3: Read balance from specific block (no cache)
+        const lastSats = await freshPublicClient.readContract({
+          address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
+          abi: [{
+            name: 'lastSats',
+            type: 'function',
+            stateMutability: 'view',
+            inputs: [{ name: 'user', type: 'address' }],
+            outputs: [{ name: '', type: 'uint64' }]
+          }],
+          functionName: 'lastSats',
+          args: [address],
+          blockNumber: currentBlock  // Force read from latest block
+        }) as bigint
         
         const balanceInSats = Number(lastSats)
         const balanceStr = balanceInSats.toString()
@@ -265,16 +240,10 @@ export function DashboardContent() {
         const delay = RETRY_DELAY * attempt
         console.log(`⏳ DASHBOARD: Waiting ${delay}ms before retry...`)
         await new Promise(resolve => setTimeout(resolve, delay))
-      } finally {
-        // Only set loading states to false after final attempt
-        if (attempt === MAX_RETRIES) {
-          setIsBalanceRefreshing(false)
-          setIsBalanceLoading(false)
-        }
       }
     }
     
-    // Should never reach here, but TypeScript needs it
+    // Fallback (should never reach here)
     setIsBalanceRefreshing(false)
     setIsBalanceLoading(false)
     return { sats: 0, btc: '0.00000000' }
