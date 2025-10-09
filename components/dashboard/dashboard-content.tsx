@@ -90,6 +90,12 @@ interface TransactionRecord {
   status: string
 }
 
+// 🔥 NEW: Interface for balance result to avoid state closure issues
+interface BalanceResult {
+  sats: number
+  btc: string
+}
+
 export function DashboardContent() {
   const { address, isConnected } = useAccount()
   const router = useRouter()
@@ -145,14 +151,15 @@ export function DashboardContent() {
     return btc.toFixed(8)
   }, [currentBalance, isBalanceLoading])
 
-  // 🔥 CRITICAL FIX: Load ACTUAL balance directly from Oracle contract with NO CACHE
-  const loadCurrentBalance = async () => {
+  // 🔥 CRITICAL FIX: Load balance and RETURN result to avoid state closure
+  const loadCurrentBalance = async (): Promise<BalanceResult> => {
     if (!address) {
       console.log('⚠️ DASHBOARD: No address')
-      return
+      return { sats: 0, btc: '0.00000000' }
     }
 
     console.log('🔄 DASHBOARD: Loading current balance from Oracle contract...')
+    console.log('🔍 DASHBOARD: Current address:', address)
     setIsBalanceRefreshing(true)
     
     try {
@@ -196,16 +203,23 @@ export function DashboardContent() {
       
       const balanceInSats = Number(lastSats)
       const balanceStr = balanceInSats.toString()
+      const btcBalance = (balanceInSats / 1e8).toFixed(8)
       
       console.log('✅ DASHBOARD: Fresh Oracle balance loaded:', balanceInSats, 'sats from block:', currentBlock.toString())
+      console.log('💰 DASHBOARD: Setting balance to:', balanceStr, 'sats =', btcBalance, 'BTC')
       
+      // Update state
       setCurrentBalance(balanceStr)
-      setOracleBalance((balanceInSats / 1e8).toFixed(8))
+      setOracleBalance(btcBalance)
+      
+      // 🔥 RETURN the values immediately for use in caller
+      return { sats: balanceInSats, btc: btcBalance }
       
     } catch (error) {
       console.error('❌ DASHBOARD: Balance loading error:', error)
       setCurrentBalance('0')
       setOracleBalance('0.00000000')
+      return { sats: 0, btc: '0.00000000' }
     } finally {
       setIsBalanceRefreshing(false)
       setIsBalanceLoading(false)
@@ -304,7 +318,7 @@ export function DashboardContent() {
     }
   }
 
-  // Load additional data
+  // 🔥 CRITICAL FIX: Load additional data using returned balance value
   const loadAdditionalData = async () => {
     if (!address) return
     
@@ -312,14 +326,18 @@ export function DashboardContent() {
     setIsLoading(true)
     
     try {
-      // 🔥 PRIORITY: Load current balance first
-      await loadCurrentBalance()
+      // 🔥 PRIORITY: Load current balance first and GET THE RESULT
+      const balanceResult = await loadCurrentBalance()
+      
+      console.log('🔍 DASHBOARD: Balance result received:', balanceResult)
       
       // Get Oracle data for Bitcoin addresses
       const oracleData = await oracleService.getUserByAddress(address)
       
       let monitoredAddr: string | null = null
-      const currentOracleBalanceNum = Number(oracleBalance)
+      
+      // 🔥 USE RETURNED VALUE instead of state to avoid closure issue
+      const currentOracleBalanceNum = balanceResult.sats / 1e8
       
       if (oracleData) {
         console.log('✅ DASHBOARD: Oracle data loaded, processing Bitcoin addresses...')
@@ -343,9 +361,9 @@ export function DashboardContent() {
           btcAddresses.forEach((addr: string) => allAddresses.push(addr))
         }
         
-        // Determine monitored address
+        // Determine monitored address using fresh balance value
         if (currentOracleBalanceNum > 0) {
-          console.log('🔍 DASHBOARD: Oracle has balance, checking monitored address...')
+          console.log('🔍 DASHBOARD: Oracle has balance:', currentOracleBalanceNum, 'BTC, checking monitored address...')
           
           for (const btcAddr of allAddresses) {
             if (processedAddresses.has(btcAddr)) continue
@@ -365,6 +383,7 @@ export function DashboardContent() {
           }
         } else {
           setCurrentlyMonitoredAddress(null)
+          console.log('ℹ️ DASHBOARD: Balance is zero, no monitoring active')
         }
         
         // Add all addresses
