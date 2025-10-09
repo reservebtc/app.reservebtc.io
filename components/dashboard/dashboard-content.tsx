@@ -261,6 +261,9 @@ export function DashboardContent() {
       
       if (publicClient) {
         try {
+          // 🔥 PROFESSIONAL: Get latest block to prevent viem caching
+          const currentBlock = await publicClient.getBlockNumber()
+          
           // Get Oracle lastSats to determine monitoring status
           const lastSats = await publicClient.readContract({
             address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
@@ -274,13 +277,14 @@ export function DashboardContent() {
               }
             ],
             functionName: 'lastSats',
-            args: [address]
+            args: [address],
+            blockNumber: currentBlock  // 🔥 Force read from latest block - no cache
           }) as bigint
           
           currentOracleBalance = Number(lastSats) / 1e8;
           const oracleFormatted = currentOracleBalance.toFixed(8)
           setOracleBalance(oracleFormatted)
-          console.log('✅ DASHBOARD: Oracle balance from contract:', oracleFormatted)
+          console.log('✅ DASHBOARD: Oracle balance from latest block:', oracleFormatted, 'Block:', currentBlock)
           
         } catch (error) {
           console.error('❌ DASHBOARD: Oracle balance fetch error:', error)
