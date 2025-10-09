@@ -55,9 +55,18 @@ export function useRealtimeUserData() {
 }
 
 /**
- * Hook for real-time balance data - FIXED VERSION
- * Fetches balance from /api/realtime/balance endpoint with proper error handling
+ * Hook for real-time balance data - PRODUCTION READY VERSION
+ * Fetches balance from /api/realtime/balances endpoint with proper error handling
  * Updates every 10 seconds for real-time synchronization
+ * 
+ * API Response format:
+ * {
+ *   success: boolean,
+ *   balance: string,      // Balance in satoshis (string)
+ *   oracleSats: number,   // Same balance as number
+ *   btc: string,          // Formatted BTC value
+ *   lastUpdate: string
+ * }
  */
 export function useRealtimeBalance() {
   const { address } = useAccount()
@@ -80,7 +89,7 @@ export function useRealtimeBalance() {
 
       try {
         // Call the real-time balance API endpoint
-        const response = await fetch(`/api/realtime/balance?address=${address}`)
+        const response = await fetch(`/api/realtime/balances?address=${address}`)
         
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`)
@@ -91,9 +100,14 @@ export function useRealtimeBalance() {
         console.log('✅ REALTIME HOOK: Received data:', data)
         
         // Extract balance from API response (in satoshis)
+        // Try multiple fields for maximum compatibility
         if (data.success && data.balance) {
           setBalance(data.balance)
           console.log('💰 REALTIME HOOK: Balance set to:', data.balance, 'sats')
+        } else if (data.oracleSats !== undefined) {
+          // Fallback to oracleSats field (your API uses this)
+          setBalance(data.oracleSats.toString())
+          console.log('💰 REALTIME HOOK: Balance from oracleSats:', data.oracleSats, 'sats')
         } else {
           console.warn('⚠️ REALTIME HOOK: No balance in response, using 0')
           setBalance('0')
