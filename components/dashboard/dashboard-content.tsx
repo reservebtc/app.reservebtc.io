@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { CONTRACTS } from '@/app/lib/contracts'
-import { useRealtimeUserData, useRealtimeBalance, useRealtimeTransactions, useFormattedBalance, useTransactionFormatter } from '@/lib/professional-realtime-hooks'
+import { useRealtimeUserData, useRealtimeTransactions, useFormattedBalance, useTransactionFormatter } from '@/lib/professional-realtime-hooks'
 import { oracleService } from '@/lib/oracle-service'
 import { mempoolService } from '@/lib/mempool-service'
 
@@ -69,7 +69,6 @@ interface YieldScalesData {
   totalTVL: number
 }
 
-// Define transaction type to match real-time system
 interface TransactionRecord {
   id?: string
   tx_hash?: string
@@ -95,19 +94,16 @@ export function DashboardContent() {
   const router = useRouter()
   const publicClient = usePublicClient()
   
-  // 🔥 PRIMARY DATA SOURCE: Real-time hooks with proper destructuring
+  // Real-time hooks 
   const userData = useRealtimeUserData()
-  const { balance: balanceData, loading: balanceLoading, isRefreshing: balanceRefreshing, error: balanceError } = useRealtimeBalance()
   const realtimeTransactions = useRealtimeTransactions(50)
   const formatBalance = useFormattedBalance()
   const formatTx = useTransactionFormatter()
   
-  // Create balance object for backward compatibility
-  const balance = {
-    balance: balanceData,
-    loading: balanceLoading,
-    error: balanceError
-  }
+  // 🔥 CRITICAL FIX: 
+  const [currentBalance, setCurrentBalance] = useState<string>('0')
+  const [isBalanceLoading, setIsBalanceLoading] = useState(true)
+  const [isBalanceRefreshing, setIsBalanceRefreshing] = useState(false)
   
   // Local state for Bitcoin addresses and Oracle data
   const [bitcoinAddresses, setBitcoinAddresses] = useState<BitcoinAddress[]>([])
@@ -120,7 +116,7 @@ export function DashboardContent() {
   const [supabaseTransactions, setSupabaseTransactions] = useState<TransactionRecord[]>([])
   const [loadingSupabaseTransactions, setLoadingSupabaseTransactions] = useState(false)
   
-  // New Yield Scales state
+  // Yield Scales state
   const [yieldScalesData, setYieldScalesData] = useState<YieldScalesData>({
     isParticipant: false,
     participantType: null,
@@ -134,21 +130,69 @@ export function DashboardContent() {
     totalTVL: 0
   })
 
-  // 🔥 CRITICAL FIX: Properly format rBTC balance from satoshis using real-time API
+  // 🔥 CRITICAL FIX: 
   const formattedRBTCBalance = useMemo(() => {
-    if (balance.loading) {
-      console.log('⏳ DASHBOARD: Real-time balance loading...')
+    if (isBalanceLoading) {
+      console.log('⏳ DASHBOARD: Balance loading...')
       return '0.00000000'
     }
     
-    // Balance comes directly from /api/realtime/balance in satoshis
-    const sats = Number(balance.balance) || 0
+    const sats = Number(currentBalance) || 0
     const btc = sats / 100000000
     
-    console.log('💰 DASHBOARD: Real-time balance - Sats:', sats, 'BTC:', btc.toFixed(8))
+    console.log('💰 DASHBOARD: Current balance - Sats:', sats, 'BTC:', btc.toFixed(8))
     
     return btc.toFixed(8)
-  }, [balance.balance, balance.loading])
+  }, [currentBalance, isBalanceLoading])
+
+  // 🔥 CRITICAL FIX: 
+  const loadCurrentBalance = async () => {
+    if (!address || !publicClient) {
+      console.log('⚠️ DASHBOARD: No address or publicClient')
+      return
+    }
+
+    console.log('🔄 DASHBOARD: Loading current balance from Oracle contract...')
+    setIsBalanceRefreshing(true)
+    
+    try {
+      // 
+      const currentBlock = await publicClient.getBlockNumber()
+      
+      // 
+      const lastSats = await publicClient.readContract({
+        address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
+        abi: [
+          {
+            name: 'lastSats',
+            type: 'function',
+            stateMutability: 'view',
+            inputs: [{ name: 'user', type: 'address' }],
+            outputs: [{ name: '', type: 'uint64' }]
+          }
+        ],
+        functionName: 'lastSats',
+        args: [address],
+        blockNumber: currentBlock  // Force read from latest block
+      }) as bigint
+      
+      const balanceInSats = Number(lastSats)
+      const balanceStr = balanceInSats.toString()
+      
+      console.log('✅ DASHBOARD: Oracle balance loaded:', balanceInSats, 'sats from block:', currentBlock)
+      
+      setCurrentBalance(balanceStr)
+      setOracleBalance((balanceInSats / 1e8).toFixed(8))
+      
+    } catch (error) {
+      console.error('❌ DASHBOARD: Balance loading error:', error)
+      setCurrentBalance('0')
+      setOracleBalance('0.00000000')
+    } finally {
+      setIsBalanceRefreshing(false)
+      setIsBalanceLoading(false)
+    }
+  }
 
   // Load transactions from Supabase
   const loadTransactionsFromSupabase = async () => {
@@ -180,13 +224,13 @@ export function DashboardContent() {
   const allTransactions = useMemo(() => {
     const txMap = new Map<string, TransactionRecord>()
     
-    // Add Supabase transactions first (historical data)
+    // Add Supabase transactions first
     supabaseTransactions.forEach(tx => {
       const hash = tx.tx_hash || tx.txHash || `${tx.block_number}_${tx.amount}`
       txMap.set(hash, tx)
     })
     
-    // Add real-time transactions (will override if same hash exists)
+    // Add real-time transactions
     realtimeTransactions.transactions.forEach((tx: any) => {
       const hash = tx.tx_hash || tx.txHash || `${tx.blockNumber}_${tx.amount}`
       txMap.set(hash, tx)
@@ -207,20 +251,16 @@ export function DashboardContent() {
     console.log('⚖️ DASHBOARD: Loading Yield Scales data...')
     
     try {
-      // Get participant data
       const participantResponse = await fetch(`/api/yield-scales/participant?address=${address}`)
       if (participantResponse.ok) {
         const participantData = await participantResponse.json()
         
-        // Get stats data
         const statsResponse = await fetch('/api/yield-scales/stats')
         const statsData = await statsResponse.json()
         
-        // Get loyalty data
         const loyaltyResponse = await fetch(`/api/yield-scales/loyalty?address=${address}`)
         const loyaltyData = await loyaltyResponse.json()
         
-        // Update state with real-time data
         setYieldScalesData({
           isParticipant: participantData.isParticipant || false,
           participantType: participantData.participantType || null,
@@ -244,61 +284,30 @@ export function DashboardContent() {
     }
   }
 
-  // Load additional data not covered by real-time system
+  // Load additional data
   const loadAdditionalData = async () => {
     if (!address) return
     
-    console.log('📊 DASHBOARD: Loading additional Oracle and Bitcoin address data...')
+    console.log('📊 DASHBOARD: Loading additional data...')
     setIsLoading(true)
     
     try {
+      // 🔥 PRIORITY: Load current balance first
+      await loadCurrentBalance()
+      
       // Get Oracle data for Bitcoin addresses
       const oracleData = await oracleService.getUserByAddress(address)
       
-      // Get Oracle balance from contract
-      let currentOracleBalance = 0;
-      let monitoredAddr: string | null = null;
-      
-      if (publicClient) {
-        try {
-          // 🔥 PROFESSIONAL: Get latest block to prevent viem caching
-          const currentBlock = await publicClient.getBlockNumber()
-          
-          // Get Oracle lastSats to determine monitoring status
-          const lastSats = await publicClient.readContract({
-            address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
-            abi: [
-              {
-                name: 'lastSats',
-                type: 'function',
-                stateMutability: 'view',
-                inputs: [{ name: 'user', type: 'address' }],
-                outputs: [{ name: '', type: 'uint64' }]
-              }
-            ],
-            functionName: 'lastSats',
-            args: [address],
-            blockNumber: currentBlock  // 🔥 Force read from latest block - no cache
-          }) as bigint
-          
-          currentOracleBalance = Number(lastSats) / 1e8;
-          const oracleFormatted = currentOracleBalance.toFixed(8)
-          setOracleBalance(oracleFormatted)
-          console.log('✅ DASHBOARD: Oracle balance from latest block:', oracleFormatted, 'Block:', currentBlock)
-          
-        } catch (error) {
-          console.error('❌ DASHBOARD: Oracle balance fetch error:', error)
-        }
-      }
+      let monitoredAddr: string | null = null
+      const currentOracleBalanceNum = Number(oracleBalance)
       
       if (oracleData) {
         console.log('✅ DASHBOARD: Oracle data loaded, processing Bitcoin addresses...')
         
-        // Extract Bitcoin addresses from Oracle
         const btcAddrs: BitcoinAddress[] = []
         const processedAddresses = new Set<string>()
         
-        // Collect all addresses from Oracle data
+        // Collect all addresses
         const allAddresses: string[] = []
         
         if (oracleData.bitcoinAddress) allAddresses.push(oracleData.bitcoinAddress)
@@ -314,17 +323,17 @@ export function DashboardContent() {
           btcAddresses.forEach((addr: string) => allAddresses.push(addr))
         }
         
-        // Determine which address is being monitored
-        if (currentOracleBalance > 0) {
+        // Determine monitored address
+        if (currentOracleBalanceNum > 0) {
           console.log('🔍 DASHBOARD: Oracle has balance, checking monitored address...')
           
           for (const btcAddr of allAddresses) {
-            if (processedAddresses.has(btcAddr)) continue;
+            if (processedAddresses.has(btcAddr)) continue
             
             try {
               const balanceData = await mempoolService.getAddressBalance(btcAddr)
               
-              if (balanceData && Math.abs(balanceData.balance - currentOracleBalance) < 0.00000001) {
+              if (balanceData && Math.abs(balanceData.balance - currentOracleBalanceNum) < 0.00000001) {
                 monitoredAddr = btcAddr
                 setCurrentlyMonitoredAddress(btcAddr)
                 console.log(`✅ DASHBOARD: Found monitored address: ${btcAddr}`)
@@ -338,9 +347,9 @@ export function DashboardContent() {
           setCurrentlyMonitoredAddress(null)
         }
         
-        // Add all addresses with correct monitoring status
+        // Add all addresses
         for (const addr of allAddresses) {
-          if (!addr || processedAddresses.has(addr)) continue;
+          if (!addr || processedAddresses.has(addr)) continue
           processedAddresses.add(addr)
           
           const isMonitored = monitoredAddr === addr
@@ -360,7 +369,7 @@ export function DashboardContent() {
       // Load Yield Scales data
       await loadYieldScalesData()
       
-      // Load transactions from Supabase
+      // Load transactions
       await loadTransactionsFromSupabase()
       
     } catch (error) {
@@ -372,10 +381,23 @@ export function DashboardContent() {
     }
   }
 
+  // Initial load
   useEffect(() => {
-    if (address) {
+    if (address && publicClient) {
       loadAdditionalData()
     }
+  }, [address, publicClient])
+
+  // 🔥 CRITICAL: Background refresh every 30 seconds
+  useEffect(() => {
+    if (!address || !publicClient) return
+
+    const interval = setInterval(() => {
+      console.log('🔄 DASHBOARD: Background balance refresh...')
+      loadCurrentBalance()
+    }, 30000) // 30 seconds
+
+    return () => clearInterval(interval)
   }, [address, publicClient])
 
   const handleRefresh = () => {
@@ -445,11 +467,11 @@ export function DashboardContent() {
           </p>
         </div>
       </div>
-    );
+    )
   }
 
-  // Show full loader ONLY on initial load
-  if (isLoading || balance.loading) {
+  // Show loader only on initial load
+  if (isLoading || isBalanceLoading) {
     return (
       <div className="container max-w-6xl mx-auto p-6">
         <div className="text-center py-12">
@@ -460,7 +482,7 @@ export function DashboardContent() {
           </p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -475,28 +497,26 @@ export function DashboardContent() {
           <Badge variant="outline" className="flex items-center gap-1">
             <Activity className="h-3 w-3 text-green-500" />
             Real-time
-            {/* 🔥 Professional: Pulsating dot for background refresh */}
-            {balanceRefreshing && (
+            {isBalanceRefreshing && (
               <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse ml-1" />
             )}
           </Badge>
           <button 
             onClick={handleRefresh}
-            disabled={isRefreshing || balanceRefreshing}
+            disabled={isRefreshing || isBalanceRefreshing}
             title="Refresh data"
             className="p-2 hover:bg-accent rounded transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`h-4 w-4 text-muted-foreground hover:text-primary transition-colors ${(isRefreshing || balanceRefreshing) ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 text-muted-foreground hover:text-primary transition-colors ${(isRefreshing || isBalanceRefreshing) ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
 
       {/* Balance Cards - First Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 🔥 rBTC-SYNTH Balance - Real-time with FIXED formatting + Professional indicators */}
+        {/* rBTC-SYNTH Balance - FIXED with actual Oracle data */}
         <div className="bg-card border rounded-xl p-6 relative overflow-hidden">
-          {/* 🔥 Professional: Thin progress line at top during refresh */}
-          {balanceRefreshing && (
+          {isBalanceRefreshing && (
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/20 overflow-hidden">
               <div className="h-full bg-primary animate-pulse w-full" />
             </div>
@@ -510,30 +530,23 @@ export function DashboardContent() {
             <span className="text-xs bg-blue-500/10 text-blue-600 px-2 py-1 rounded">Soulbound</span>
           </div>
           
-          {/* 🔥 Professional: Small spinner next to balance during refresh */}
           <div className="flex items-center gap-2">
             <div className="text-2xl font-bold">
               {formattedRBTCBalance}
             </div>
-            {balanceRefreshing && (
+            {isBalanceRefreshing && (
               <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
             )}
           </div>
           
           <p className="text-sm text-muted-foreground mt-1">
-            = {(Number(balance.balance) || 0).toLocaleString()} sats
+            = {Number(currentBalance).toLocaleString()} sats
           </p>
-          {balance.error && (
-            <p className="text-xs text-red-500 mt-1">
-              Error loading balance
-            </p>
-          )}
         </div>
 
-        {/* Oracle Sync Status */}
+        {/* Oracle Sync Status - FIXED with actual Oracle data */}
         <div className="bg-card border rounded-xl p-6 relative overflow-hidden">
-          {/* 🔥 Progress line for Oracle sync */}
-          {(isRefreshing || balanceRefreshing) && (
+          {(isRefreshing || isBalanceRefreshing) && (
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-green-500/20 overflow-hidden">
               <div className="h-full bg-green-500 animate-pulse w-full" />
             </div>
@@ -553,7 +566,7 @@ export function DashboardContent() {
             <div className="text-2xl font-bold">
               {oracleBalance} BTC
             </div>
-            {(isRefreshing || balanceRefreshing) && (
+            {(isRefreshing || isBalanceRefreshing) && (
               <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
             )}
           </div>
@@ -565,8 +578,7 @@ export function DashboardContent() {
 
         {/* Yield APY Card */}
         <div className="bg-card border rounded-xl p-6 relative overflow-hidden">
-          {/* 🔥 Progress line for Yield data */}
-          {(isRefreshing || balanceRefreshing) && (
+          {(isRefreshing || isBalanceRefreshing) && (
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-green-500/20 overflow-hidden">
               <div className="h-full bg-green-500 animate-pulse w-full" />
             </div>
@@ -579,7 +591,7 @@ export function DashboardContent() {
             </div>
             <Badge variant="outline" className="text-xs flex items-center gap-1">
               Live
-              {(isRefreshing || balanceRefreshing) && (
+              {(isRefreshing || isBalanceRefreshing) && (
                 <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
               )}
             </Badge>
@@ -589,7 +601,7 @@ export function DashboardContent() {
             <div className="text-2xl font-bold">
               {yieldScalesData.currentAPY.toFixed(2)}%
             </div>
-            {(isRefreshing || balanceRefreshing) && (
+            {(isRefreshing || isBalanceRefreshing) && (
               <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
             )}
           </div>
@@ -601,9 +613,8 @@ export function DashboardContent() {
           </p>
         </div>
 
-        {/* Total Transactions - Real-time + Supabase */}
+        {/* Total Transactions */}
         <div className="bg-card border rounded-xl p-6 relative overflow-hidden">
-          {/* 🔥 Progress line for transactions */}
           {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-orange-500/20 overflow-hidden">
               <div className="h-full bg-orange-500 animate-pulse w-full" />
@@ -635,11 +646,10 @@ export function DashboardContent() {
         </div>
       </div>
 
-      {/* Yield Scales Section - Only show if participant or has rBTC */}
-      {(yieldScalesData.isParticipant || Number(balance.balance) > 0) && (
+      {/* Yield Scales Section */}
+      {(yieldScalesData.isParticipant || Number(currentBalance) > 0) && (
         <div className="bg-card border rounded-xl p-6 relative overflow-hidden">
-          {/* 🔥 Progress line for Yield Scales section */}
-          {(isRefreshing || balanceRefreshing) && (
+          {(isRefreshing || isBalanceRefreshing) && (
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-purple-500/20 overflow-hidden">
               <div className="h-full bg-purple-500 animate-pulse w-full" />
             </div>
@@ -649,8 +659,7 @@ export function DashboardContent() {
             <div className="flex items-center gap-2">
               <Scale className="h-5 w-5 text-purple-500" />
               <h2 className="text-xl font-semibold">Yield Scales Protocol</h2>
-              {/* 🔥 Pulsating dot for live updates */}
-              {(isRefreshing || balanceRefreshing) && (
+              {(isRefreshing || isBalanceRefreshing) && (
                 <span className="inline-block w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
               )}
             </div>
@@ -668,7 +677,7 @@ export function DashboardContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Scales Balance */}
             <div className="bg-muted/50 rounded-lg p-4 relative overflow-hidden">
-              {(isRefreshing || balanceRefreshing) && (
+              {(isRefreshing || isBalanceRefreshing) && (
                 <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/20">
                   <div className="h-full bg-primary animate-pulse w-full" />
                 </div>
@@ -676,7 +685,7 @@ export function DashboardContent() {
               <div className="flex items-center gap-2 mb-2">
                 <Scale className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">Scale Balance</span>
-                {(isRefreshing || balanceRefreshing) && (
+                {(isRefreshing || isBalanceRefreshing) && (
                   <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                 )}
               </div>
@@ -824,9 +833,8 @@ export function DashboardContent() {
         )}
       </div>
 
-      {/* Transaction History - Real-time + Supabase */}
+      {/* Transaction History */}
       <div className="bg-card border rounded-xl p-6 relative overflow-hidden">
-        {/* 🔥 Professional: Progress line for transactions section */}
         {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-500/20 overflow-hidden">
             <div className="h-full bg-blue-500 animate-pulse w-full" />
@@ -840,7 +848,6 @@ export function DashboardContent() {
             <Badge variant="outline" className="flex items-center gap-1">
               <Activity className="h-3 w-3 text-green-500" />
               Live
-              {/* 🔥 Pulsating dot for live transaction updates */}
               {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
                 <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse ml-1" />
               )}
@@ -851,7 +858,6 @@ export function DashboardContent() {
               <span className="text-sm text-muted-foreground">
                 Total: {allTransactions.length}
               </span>
-              {/* 🔥 Small spinner during refresh */}
               {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
                 <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
               )}
@@ -956,5 +962,5 @@ export function DashboardContent() {
         </Link>
       </div>
     </div>
-  );
+  )
 }
