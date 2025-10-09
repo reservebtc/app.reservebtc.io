@@ -151,7 +151,7 @@ export function DashboardContent() {
     return btc.toFixed(8)
   }, [currentBalance, isBalanceLoading])
 
-  // 🔥 PRODUCTION-GRADE: Load balance with viem (no CORS) and cache busting
+  // 🔥 PRODUCTION-GRADE: Load balance with direct RPC calls (no viem cache)
   const loadCurrentBalance = async (): Promise<BalanceResult> => {
     if (!address) {
       console.log('⚠️ DASHBOARD: No address')
@@ -169,47 +169,65 @@ export function DashboardContent() {
       try {
         console.log(`📡 DASHBOARD: Attempt ${attempt}/${MAX_RETRIES}`)
         
-        // 🔥 STEP 1: Create fresh viem client with unique URL (cache busting)
-        const cacheBuster = `?_t=${Date.now()}&_r=${Math.random().toString(36).substring(7)}`
-        const rpcUrl = `https://carrot.megaeth.com/rpc${cacheBuster}`
-        
-        console.log(`🔗 DASHBOARD: Creating fresh client with cache buster: ${cacheBuster}`)
-        
-        const freshPublicClient = createPublicClient({
-          chain: {
-            id: 6342,
-            name: 'MegaETH Testnet',
-            nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-            rpcUrls: { default: { http: [rpcUrl] } }
+        // 🔥 STEP 1: Get latest block via proxy (NO CORS!)
+        const blockResponse = await fetch('/api/rpc-proxy', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
           },
-          transport: http(rpcUrl, {
-            timeout: 8000,
-            retryCount: 0,  // We handle retries ourselves
-            retryDelay: 0
-          }),
-          cacheTime: 0,  // Disable viem cache
-          pollingInterval: 0  // Disable polling
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'eth_blockNumber',
+            params: [],
+            id: Date.now()
+          })
         })
         
-        // 🔥 STEP 2: Get latest block number
-        const currentBlock = await freshPublicClient.getBlockNumber()
+        if (!blockResponse.ok) {
+          throw new Error(`Block number request failed: ${blockResponse.status}`)
+        }
         
-        console.log(`📊 DASHBOARD: Latest block from RPC: ${currentBlock.toString()}`)
+        const blockData = await blockResponse.json()
+        const currentBlockHex = blockData.result
+        const currentBlock = BigInt(currentBlockHex)
         
-        // 🔥 STEP 3: Read balance from specific block (no cache)
-        const lastSats = await freshPublicClient.readContract({
-          address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
-          abi: [{
-            name: 'lastSats',
-            type: 'function',
-            stateMutability: 'view',
-            inputs: [{ name: 'user', type: 'address' }],
-            outputs: [{ name: '', type: 'uint64' }]
-          }],
-          functionName: 'lastSats',
-          args: [address],
-          blockNumber: currentBlock  // Force read from latest block
-        }) as bigint
+        console.log(`📊 DASHBOARD: Latest block from RPC: ${currentBlock.toString()} (${currentBlockHex})`)
+        
+        // 🔥 STEP 2: Read balance from exact block via proxy (NO CORS!)
+        const functionSelector = '0x6be25fe1'
+        const paddedAddress = address.slice(2).toLowerCase().padStart(64, '0')
+        const callData = functionSelector + paddedAddress
+        
+        console.log(`🔍 DASHBOARD: Reading balance with calldata: ${callData}`)
+        
+        const balanceResponse = await fetch('/api/rpc-proxy', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'eth_call',
+            params: [{
+              to: CONTRACTS.ORACLE_AGGREGATOR,
+              data: callData
+            }, currentBlockHex],
+            id: Date.now()
+          })
+        })
+        
+        if (!balanceResponse.ok) {
+          throw new Error(`Balance request failed: ${balanceResponse.status}`)
+        }
+        
+        const balanceData = await balanceResponse.json()
+        
+        if (balanceData.error) {
+          throw new Error(`RPC error: ${balanceData.error.message}`)
+        }
+        
+        const lastSatsHex = balanceData.result
+        const lastSats = BigInt(lastSatsHex)
         
         const balanceInSats = Number(lastSats)
         const balanceStr = balanceInSats.toString()
@@ -222,7 +240,7 @@ export function DashboardContent() {
         setCurrentBalance(balanceStr)
         setOracleBalance(btcBalance)
         
-        // 🔥 CRITICAL: Set loading to false on success
+        // 🔥 CRITICAL: Clear loading states on success
         setIsBalanceRefreshing(false)
         setIsBalanceLoading(false)
         
