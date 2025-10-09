@@ -2,7 +2,7 @@ import { createConfig, http } from 'wagmi'
 import { megaeth } from './chains/megaeth'
 import { metaMask, walletConnect, injected } from '@wagmi/connectors'
 
-const projectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || 'e8b2f3c4d5a6b7c8d9e0f1a2b3c4d5e6'
+const projectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || '53859cecd826f1d2c2eebdd38461a8c1'
 
 export const config = createConfig({
   chains: [megaeth],
