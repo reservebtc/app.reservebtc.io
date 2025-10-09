@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react'
-import { useAccount, usePublicClient } from 'wagmi'
+import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
+import { createPublicClient, http } from 'viem'
 import { 
   Wallet, 
   Bitcoin, 
@@ -92,7 +93,6 @@ interface TransactionRecord {
 export function DashboardContent() {
   const { address, isConnected } = useAccount()
   const router = useRouter()
-  const publicClient = usePublicClient()
   
   // Real-time hooks
   const userData = useRealtimeUserData()
@@ -145,10 +145,10 @@ export function DashboardContent() {
     return btc.toFixed(8)
   }, [currentBalance, isBalanceLoading])
 
-  // 🔥 CRITICAL FIX: Load ACTUAL balance directly from Oracle contract with cache busting
+  // 🔥 CRITICAL FIX: Load ACTUAL balance directly from Oracle contract with NO CACHE
   const loadCurrentBalance = async () => {
-    if (!address || !publicClient) {
-      console.log('⚠️ DASHBOARD: No address or publicClient')
+    if (!address) {
+      console.log('⚠️ DASHBOARD: No address')
       return
     }
 
@@ -156,11 +156,29 @@ export function DashboardContent() {
     setIsBalanceRefreshing(true)
     
     try {
-      // Get latest block to prevent caching
-      const currentBlock = await publicClient.getBlockNumber()
+      // 🔥 CREATE FRESH CLIENT EVERY TIME - NO WAGMI CACHE!
+      const freshPublicClient = createPublicClient({
+        chain: {
+          id: 6342,
+          name: 'MegaETH Testnet',
+          nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } }
+        },
+        transport: http('https://carrot.megaeth.com/rpc', {
+          timeout: 8000,
+          retryCount: 2,
+          retryDelay: 500
+        }),
+        cacheTime: 0  // 🔥 Disable viem internal cache completely
+      })
+      
+      // Get latest block to prevent any caching
+      const currentBlock = await freshPublicClient.getBlockNumber()
+      
+      console.log('📊 DASHBOARD: Reading from latest block:', currentBlock.toString())
       
       // Read directly from contract with latest block number
-      const lastSats = await publicClient.readContract({
+      const lastSats = await freshPublicClient.readContract({
         address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
         abi: [
           {
@@ -179,7 +197,7 @@ export function DashboardContent() {
       const balanceInSats = Number(lastSats)
       const balanceStr = balanceInSats.toString()
       
-      console.log('✅ DASHBOARD: Oracle balance loaded:', balanceInSats, 'sats from block:', currentBlock)
+      console.log('✅ DASHBOARD: Fresh Oracle balance loaded:', balanceInSats, 'sats from block:', currentBlock.toString())
       
       setCurrentBalance(balanceStr)
       setOracleBalance((balanceInSats / 1e8).toFixed(8))
@@ -383,16 +401,16 @@ export function DashboardContent() {
     }
   }
 
-  // Initial load
+  // 🔥 FIXED: Initial load without publicClient dependency
   useEffect(() => {
-    if (address && publicClient) {
+    if (address) {
       loadAdditionalData()
     }
-  }, [address, publicClient])
+  }, [address])
 
-  // 🔥 CRITICAL: Background refresh every 30 seconds
+  // 🔥 FIXED: Background refresh every 30 seconds without publicClient dependency
   useEffect(() => {
-    if (!address || !publicClient) return
+    if (!address) return
 
     const interval = setInterval(() => {
       console.log('🔄 DASHBOARD: Background balance refresh...')
@@ -400,7 +418,7 @@ export function DashboardContent() {
     }, 30000) // 30 seconds
 
     return () => clearInterval(interval)
-  }, [address, publicClient])
+  }, [address])
 
   const handleRefresh = () => {
     setIsRefreshing(true)
