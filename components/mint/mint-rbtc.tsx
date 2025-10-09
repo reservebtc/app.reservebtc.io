@@ -16,7 +16,7 @@ import { CONTRACTS, CONTRACT_ABIS } from '@/app/lib/contracts'
 import { oracleService } from '@/lib/oracle-service'
 import { mempoolService } from '@/lib/mempool-service'
 import { useMintProtection } from '@/lib/mint-protection'
-import { useRealtimeUserData, useRealtimeBalance } from '@/lib/professional-realtime-hooks'
+import { useRealtimeUserData } from '@/lib/professional-realtime-hooks'
 
 interface OracleUserData {
   ethAddress?: string;
@@ -72,7 +72,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     mintTxHash?: string
   }[]>([])
   
-  // 🔥 CRITICAL FIX: Real Oracle balance state (no cache)
+  // 🔥 ONLY REAL ORACLE BALANCE - NO CACHE
   const [currentBalance, setCurrentBalance] = useState<string>('0')
   const [isBalanceLoading, setIsBalanceLoading] = useState(true)
   const [isBalanceRefreshing, setIsBalanceRefreshing] = useState(false)
@@ -93,7 +93,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const { data: walletClient } = useWalletClient()
   
   const userData = useRealtimeUserData()
-  const realtimeBalance = useRealtimeBalance()
   
   const {
     checkCanMint,
@@ -112,7 +111,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
   })
 
-  // 🔥 CRITICAL: Format balance from actual Oracle state
+  // 🔥 CRITICAL: Format balance from actual Oracle state (NO CACHE)
   const formattedBitcoinBalance = useMemo(() => {
     if (isBalanceLoading) {
       console.log('⏳ MINT: Balance loading...')
@@ -145,78 +144,29 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
       try {
         console.log(`📡 MINT: Attempt ${attempt}/${MAX_RETRIES}`)
         
-        // 🔥 STEP 1: Get latest block via direct RPC call (bypass all caches)
-        const blockResponse = await fetch('https://carrot.megaeth.com/rpc', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          },
-          cache: 'no-store',
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            method: 'eth_blockNumber',
-            params: [],
-            id: Date.now()
-          })
+        // 🔥 USE API ENDPOINT to bypass CORS
+        const response = await fetch(`/api/blockchain/balance?address=${address}&_t=${Date.now()}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store'
         })
         
-        if (!blockResponse.ok) {
-          throw new Error(`Block number request failed: ${blockResponse.status}`)
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`)
         }
         
-        const blockData = await blockResponse.json()
-        const currentBlockHex = blockData.result
-        const currentBlock = BigInt(currentBlockHex)
+        const data = await response.json()
         
-        console.log(`📊 MINT: Latest block from RPC: ${currentBlock.toString()} (${currentBlockHex})`)
-        
-        // 🔥 STEP 2: Read balance from exact block via direct RPC call
-        const functionSelector = '0x6be25fe1'
-        const paddedAddress = address.slice(2).toLowerCase().padStart(64, '0')
-        const callData = functionSelector + paddedAddress
-        
-        console.log(`🔍 MINT: Reading balance with calldata: ${callData}`)
-        
-        const balanceResponse = await fetch('https://carrot.megaeth.com/rpc', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          },
-          cache: 'no-store',
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            method: 'eth_call',
-            params: [{
-              to: CONTRACTS.ORACLE_AGGREGATOR,
-              data: callData
-            }, currentBlockHex],
-            id: Date.now()
-          })
-        })
-        
-        if (!balanceResponse.ok) {
-          throw new Error(`Balance request failed: ${balanceResponse.status}`)
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to load balance')
         }
         
-        const balanceData = await balanceResponse.json()
-        
-        if (balanceData.error) {
-          throw new Error(`RPC error: ${balanceData.error.message}`)
-        }
-        
-        const lastSatsHex = balanceData.result
-        const lastSats = BigInt(lastSatsHex)
-        
-        const balanceInSats = Number(lastSats)
+        const balanceInSats = Number(data.balance)
         const balanceStr = balanceInSats.toString()
-        const btcBalance = (balanceInSats / 1e8).toFixed(8)
+        const btcBalance = data.btc
         
-        console.log(`✅ MINT: Fresh Oracle balance loaded: ${balanceInSats} sats from block: ${currentBlock.toString()}`)
-        console.log(`💰 MINT: Setting balance to: ${balanceStr} sats = ${btcBalance} BTC`)
+        console.log(`✅ MINT: Fresh Oracle balance loaded: ${balanceInSats} sats = ${btcBalance} BTC`)
+        console.log(`💰 MINT: Setting balance to: ${balanceStr} sats`)
         
         setCurrentBalance(balanceStr)
         setCurrentOracleBalance(balanceInSats / 1e8)
@@ -302,7 +252,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     try {
       console.log('🔍 MINT: Checking if user has active monitoring')
       
-      // 🔥 USE DIRECT BALANCE LOAD INSTEAD
+      // 🔥 USE DIRECT BALANCE LOAD
       const balanceResult = await loadCurrentBalance()
       
       const hasMonitoring = balanceResult.sats > 0
@@ -425,7 +375,6 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
           
           console.log(`📋 MINT: Selected address ${selectedAddress}, monitored: ${isSelectedMonitored}`)
           
-          // 🔥 USE REAL BALANCE instead of mempool fetch
           setValue('amount', balanceResult.btc)
         }
       } catch (error) {
