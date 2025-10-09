@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAccount, usePublicClient } from 'wagmi'
 import { useRouter } from 'next/navigation'
 import { 
@@ -10,21 +10,15 @@ import {
   History, 
   Shield,
   TrendingUp,
-  Copy,
   CheckCircle,
-  AlertCircle,
-  Info,
-  ArrowUpRight,
   RefreshCw,
-  Link2,
   Plus,
   ExternalLink,
   Activity,
   Scale,
   Trophy,
   DollarSign,
-  Percent,
-  Clock
+  Percent
 } from 'lucide-react'
 import Link from 'next/link'
 import { CONTRACTS } from '@/app/lib/contracts'
@@ -104,7 +98,7 @@ export function DashboardContent() {
   // Real-time hooks
   const userData = useRealtimeUserData()
   const balance = useRealtimeBalance()
-  const transactions = useRealtimeTransactions(50)
+  const realtimeTransactions = useRealtimeTransactions(50)
   const formatBalance = useFormattedBalance()
   const formatTx = useTransactionFormatter()
   
@@ -114,6 +108,10 @@ export function DashboardContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [currentlyMonitoredAddress, setCurrentlyMonitoredAddress] = useState<string | null>(null)
+  
+  // Supabase transactions state
+  const [supabaseTransactions, setSupabaseTransactions] = useState<TransactionRecord[]>([])
+  const [loadingSupabaseTransactions, setLoadingSupabaseTransactions] = useState(false)
   
   // New Yield Scales state
   const [yieldScalesData, setYieldScalesData] = useState<YieldScalesData>({
@@ -128,6 +126,56 @@ export function DashboardContent() {
     nextTierIn: 180,
     totalTVL: 0
   })
+
+  // Load transactions from Supabase
+  const loadTransactionsFromSupabase = async () => {
+    if (!address) return
+    
+    console.log('📊 DASHBOARD: Loading transactions from Supabase...')
+    setLoadingSupabaseTransactions(true)
+    
+    try {
+      const response = await fetch(`/api/realtime/transactions?address=${address}&limit=50`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log(`✅ DASHBOARD: Loaded ${data.length} transactions from Supabase`)
+        setSupabaseTransactions(data)
+      } else {
+        console.error('❌ DASHBOARD: Failed to load transactions:', response.status)
+        setSupabaseTransactions([])
+      }
+    } catch (error) {
+      console.error('❌ DASHBOARD: Transaction loading error:', error)
+      setSupabaseTransactions([])
+    } finally {
+      setLoadingSupabaseTransactions(false)
+    }
+  }
+
+  // Merge real-time and Supabase transactions
+  const allTransactions = useMemo(() => {
+    const txMap = new Map<string, TransactionRecord>()
+    
+    // Add Supabase transactions first (historical data)
+    supabaseTransactions.forEach(tx => {
+      const hash = tx.tx_hash || tx.txHash || `${tx.block_number}_${tx.amount}`
+      txMap.set(hash, tx)
+    })
+    
+    // Add real-time transactions (will override if same hash exists)
+    realtimeTransactions.transactions.forEach((tx: any) => {
+      const hash = tx.tx_hash || tx.txHash || `${tx.blockNumber}_${tx.amount}`
+      txMap.set(hash, tx)
+    })
+    
+    // Convert to array and sort by timestamp (newest first)
+    return Array.from(txMap.values()).sort((a, b) => {
+      const timeA = new Date(a.block_timestamp || a.blockTimestamp || 0).getTime()
+      const timeB = new Date(b.block_timestamp || b.blockTimestamp || 0).getTime()
+      return timeB - timeA
+    })
+  }, [supabaseTransactions, realtimeTransactions.transactions])
 
   // Load Yield Scales data
   const loadYieldScalesData = async () => {
@@ -149,7 +197,7 @@ export function DashboardContent() {
         const loyaltyResponse = await fetch(`/api/yield-scales/loyalty?address=${address}`)
         const loyaltyData = await loyaltyResponse.json()
         
-        // Update state with decrypted data
+        // Update state with real-time data
         setYieldScalesData({
           isParticipant: participantData.isParticipant || false,
           participantType: participantData.participantType || null,
@@ -285,6 +333,9 @@ export function DashboardContent() {
       // Load Yield Scales data
       await loadYieldScalesData()
       
+      // Load transactions from Supabase
+      await loadTransactionsFromSupabase()
+      
     } catch (error) {
       console.error('❌ DASHBOARD: Additional data loading error:', error)
     } finally {
@@ -377,7 +428,7 @@ export function DashboardContent() {
           <RefreshCw className="h-12 w-12 animate-spin mx-auto text-primary mb-4" />
           <h2 className="text-2xl font-bold mb-2">Loading Dashboard...</h2>
           <p className="text-muted-foreground mb-6">
-            Fetching your real-time data...
+            Fetching your real-time data from blockchain and database...
           </p>
         </div>
       </div>
@@ -424,7 +475,6 @@ export function DashboardContent() {
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Non-transferable synthetic BTC
-            {/* Balance updated timestamp would go here */}
           </p>
         </div>
 
@@ -468,19 +518,19 @@ export function DashboardContent() {
           </p>
         </div>
 
-        {/* Total Transactions - Real-time */}
+        {/* Total Transactions - Real-time + Supabase */}
         <div className="bg-card border rounded-xl p-6">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <History className="h-5 w-5 text-orange-500" />
               <span className="font-medium">Transactions</span>
             </div>
-            {transactions.loading && (
+            {(loadingSupabaseTransactions || realtimeTransactions.loading) && (
               <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
             )}
           </div>
           <div className="text-2xl font-bold">
-            {transactions.transactions.length}
+            {allTransactions.length}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Total operations
@@ -658,7 +708,7 @@ export function DashboardContent() {
         )}
       </div>
 
-      {/* Transaction History - Real-time */}
+      {/* Transaction History - Real-time + Supabase */}
       <div className="bg-card border rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -669,14 +719,14 @@ export function DashboardContent() {
               Live
             </Badge>
           </div>
-          {transactions.transactions.length > 0 && (
+          {allTransactions.length > 0 && (
             <span className="text-sm text-muted-foreground">
-              Total: {transactions.transactions.length}
+              Total: {allTransactions.length}
             </span>
           )}
         </div>
 
-        {transactions.loading ? (
+        {(loadingSupabaseTransactions || realtimeTransactions.loading) ? (
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg animate-pulse">
@@ -691,7 +741,7 @@ export function DashboardContent() {
               </div>
             ))}
           </div>
-        ) : transactions.transactions.length === 0 ? (
+        ) : allTransactions.length === 0 ? (
           <div className="text-center py-8">
             <History className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-medium mb-2">No transactions yet</h3>
@@ -701,7 +751,7 @@ export function DashboardContent() {
           </div>
         ) : (
           <div className="space-y-3">
-            {transactions.transactions.map((tx: any) => {
+            {allTransactions.map((tx: any) => {
               const txType = getTransactionType(tx)
               const txHash = getTransactionHash(tx)
               const txTimestamp = getTransactionTimestamp(tx)
@@ -772,8 +822,6 @@ export function DashboardContent() {
           <span className="font-medium">Yield Scales</span>
         </Link>
       </div>
-
-      {/* Real-time data loaded */}
     </div>
   );
 }

@@ -82,6 +82,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const [hasAnyActiveMonitoring, setHasAnyActiveMonitoring] = useState<boolean>(false)
   const [currentOracleBalance, setCurrentOracleBalance] = useState<number>(0)
   const [realActiveMonitoring, setRealActiveMonitoring] = useState<boolean>(false)
+  const [forceRefresh, setForceRefresh] = useState<number>(0)
   
   const { address, isConnected } = useAccount()
   const publicClient = usePublicClient()
@@ -247,13 +248,14 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     return false;
   }, []);
 
+  // 🔥 CRITICAL FIX: This useEffect loads addresses and should trigger when forceRefresh changes
   useEffect(() => {
     const loadVerifiedAddresses = async () => {
       const specificAddress = searchParams.get('address')
       
       if (!address) return
       
-      console.log('📋 MINT: Loading verified addresses for user:', address)
+      console.log('📋 MINT: Loading verified addresses for user:', address, 'forceRefresh:', forceRefresh)
       
       try {
         const { hasMonitoring, oracleBalance } = await checkIfUserHasActiveMonitoring()
@@ -345,7 +347,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
     }
     
     loadVerifiedAddresses()
-  }, [address, searchParams, setValue, fetchBitcoinBalance, checkIfUserHasActiveMonitoring, checkRealActiveMonitoring, Number(realtimeBalance.balance)])
+  }, [address, searchParams, setValue, fetchBitcoinBalance, checkIfUserHasActiveMonitoring, checkRealActiveMonitoring, Number(realtimeBalance.balance), forceRefresh])
 
   const refreshBalance = useCallback(() => {
     if (verifiedBitcoinAddress) {
@@ -498,6 +500,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         setMintTxHash(result.transactionHash);
         setMintStatus('success');
         
+        // 🔥 CRITICAL FIX: Force immediate state update
         const newMonitoringMap = new Map<string, boolean>();
         newMonitoringMap.set(data.bitcoinAddress, true);
         setMonitoredAddressesMap(newMonitoringMap);
@@ -511,6 +514,12 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         setIsAddressMonitored(true);
         setHasAnyActiveMonitoring(true);
         setRealActiveMonitoring(true);
+        
+        // 🔥 CRITICAL FIX: Trigger refresh of all data after 2 seconds
+        setTimeout(() => {
+          console.log('🔄 MINT: Triggering post-mint data refresh...')
+          setForceRefresh(prev => prev + 1)
+        }, 2000);
         
         toast.success(
           <div className="flex flex-col gap-2">
@@ -934,7 +943,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
                       Activating Oracle Monitoring...
                     </div>
                   ) : bitcoinBalance === 0 ? (
-                    'No Balance to Mint'
+                    'No Bitcoin Balance to Mint'
                   ) : (
                     `Mint ${bitcoinBalance.toFixed(8)} rBTC-SYNTH`
                   )}
