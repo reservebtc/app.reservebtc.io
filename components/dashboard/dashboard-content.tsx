@@ -95,7 +95,7 @@ export function DashboardContent() {
   const router = useRouter()
   const publicClient = usePublicClient()
   
-  // Real-time hooks
+  // 🔥 PRIMARY DATA SOURCE: Real-time hooks for balance
   const userData = useRealtimeUserData()
   const balance = useRealtimeBalance()
   const realtimeTransactions = useRealtimeTransactions(50)
@@ -127,14 +127,18 @@ export function DashboardContent() {
     totalTVL: 0
   })
 
-  // 🔥 CRITICAL FIX: Properly format rBTC balance from satoshis
+  // 🔥 CRITICAL FIX: Properly format rBTC balance from satoshis using real-time API
   const formattedRBTCBalance = useMemo(() => {
-    if (balance.loading) return '0.00000000'
+    if (balance.loading) {
+      console.log('⏳ DASHBOARD: Real-time balance loading...')
+      return '0.00000000'
+    }
     
+    // Balance comes directly from /api/realtime/balance in satoshis
     const sats = Number(balance.balance) || 0
     const btc = sats / 100000000
     
-    console.log('💰 DASHBOARD: rBTC Balance - Sats:', sats, 'BTC:', btc.toFixed(8))
+    console.log('💰 DASHBOARD: Real-time balance - Sats:', sats, 'BTC:', btc.toFixed(8))
     
     return btc.toFixed(8)
   }, [balance.balance, balance.loading])
@@ -473,7 +477,7 @@ export function DashboardContent() {
 
       {/* Balance Cards - First Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* rBTC-SYNTH Balance - Real-time with FIXED formatting */}
+        {/* 🔥 rBTC-SYNTH Balance - Real-time with FIXED formatting */}
         <div className="bg-card border rounded-xl p-6">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -488,6 +492,11 @@ export function DashboardContent() {
           <p className="text-sm text-muted-foreground mt-1">
             = {(Number(balance.balance) || 0).toLocaleString()} sats
           </p>
+          {balance.error && (
+            <p className="text-xs text-red-500 mt-1">
+              Error loading balance
+            </p>
+          )}
         </div>
 
         {/* Oracle Sync Status */}

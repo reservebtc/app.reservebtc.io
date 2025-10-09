@@ -19,6 +19,7 @@ export interface TransactionData {
 
 /**
  * Hook for real-time user data
+ * Fetches and subscribes to user profile updates from Oracle server
  */
 export function useRealtimeUserData() {
   const { address } = useAccount()
@@ -30,7 +31,7 @@ export function useRealtimeUserData() {
 
     setLoading(true)
 
-    // Get initial data
+    // Get initial data from Oracle server
     realtimeAPI.getUserData(address)
       .then(data => {
         setUserData(data as unknown as UserData)
@@ -40,7 +41,7 @@ export function useRealtimeUserData() {
         setLoading(false)
       })
 
-    // Subscribe to real-time updates
+    // Subscribe to real-time updates via WebSocket/polling
     const cleanup = realtimeAPI.subscribeToUser(address, (event: string, data: any) => {
       if (event === 'userDataUpdate') {
         setUserData(data)
@@ -54,44 +55,74 @@ export function useRealtimeUserData() {
 }
 
 /**
- * Hook for real-time balance data
+ * Hook for real-time balance data - FIXED VERSION
+ * Fetches balance from /api/realtime/balance endpoint with proper error handling
+ * Updates every 10 seconds for real-time synchronization
  */
 export function useRealtimeBalance() {
   const { address } = useAccount()
-  const [balance, setBalance] = useState('0')
-  const [loading, setLoading] = useState(false)
+  const [balance, setBalance] = useState<string>('0')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!address) return
+    // Reset state if no wallet connected
+    if (!address) {
+      setBalance('0')
+      setLoading(false)
+      return
+    }
 
-    setLoading(true)
+    const fetchBalance = async () => {
+      console.log('🔄 REALTIME HOOK: Fetching balance for', address)
+      setLoading(true)
+      setError(null)
 
-    // Get initial balance
-    realtimeAPI.getUserData(address)
-      .then(data => {
-        const userData = data as unknown as UserData
-        setBalance(userData.balance || '0')
+      try {
+        // Call the real-time balance API endpoint
+        const response = await fetch(`/api/realtime/balance?address=${address}`)
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`)
+        }
+
+        const data = await response.json()
+        
+        console.log('✅ REALTIME HOOK: Received data:', data)
+        
+        // Extract balance from API response (in satoshis)
+        if (data.success && data.balance) {
+          setBalance(data.balance)
+          console.log('💰 REALTIME HOOK: Balance set to:', data.balance, 'sats')
+        } else {
+          console.warn('⚠️ REALTIME HOOK: No balance in response, using 0')
+          setBalance('0')
+        }
+      } catch (err) {
+        console.error('❌ REALTIME HOOK: Fetch error:', err)
+        setError(err instanceof Error ? err.message : 'Unknown error')
+        setBalance('0')
+      } finally {
         setLoading(false)
-      })
-      .catch(() => {
-        setLoading(false)
-      })
-
-    // Subscribe to balance updates
-    const cleanup = realtimeAPI.subscribeToUser(address, (event: string, data: any) => {
-      if (event === 'balanceUpdate') {
-        setBalance(data.balance || '0')
       }
-    })
+    }
 
-    return cleanup
+    // Initial fetch on mount/address change
+    fetchBalance()
+
+    // Refresh balance every 10 seconds for real-time updates
+    const interval = setInterval(fetchBalance, 10000)
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval)
   }, [address])
 
-  return { balance, loading }
+  return { balance, loading, error }
 }
 
 /**
  * Hook for real-time transactions
+ * Fetches transaction history and subscribes to new transaction events
  */
 export function useRealtimeTransactions(limit: number = 50) {
   const { address } = useAccount()
@@ -103,13 +134,14 @@ export function useRealtimeTransactions(limit: number = 50) {
 
     setLoading(true)
 
-    // Initialize with empty array for now
+    // Initialize with empty array - could fetch from API here if needed
     setTransactions([])
     setLoading(false)
 
-    // Subscribe to transaction updates
+    // Subscribe to transaction updates from Oracle server
     const cleanup = realtimeAPI.subscribeToUser(address, (event: string, data: any) => {
       if (event === 'transactionUpdate') {
+        // Add new transaction to top of list, keep only recent transactions
         setTransactions(prev => [data, ...prev].slice(0, limit))
       }
     })
@@ -122,13 +154,14 @@ export function useRealtimeTransactions(limit: number = 50) {
 
 /**
  * Hook for formatted balance display
+ * Converts raw balance to human-readable format with proper decimals
  */
 export function useFormattedBalance() {
   const formatBalance = useCallback((balance: string | number, decimals: number = 8) => {
     const num = typeof balance === 'string' ? parseFloat(balance) : balance
     if (isNaN(num)) return '0'
 
-    // Convert from wei/smallest unit if needed
+    // Convert from satoshis/smallest unit to standard decimal format
     const formatted = num / Math.pow(10, decimals)
     return formatted.toFixed(8)
   }, [])
@@ -138,12 +171,15 @@ export function useFormattedBalance() {
 
 /**
  * Hook for transaction formatting
+ * Transforms raw transaction data into user-friendly display format
  */
 export function useTransactionFormatter() {
   const formatTx = useCallback((tx: TransactionData) => {
     return {
       ...tx,
+      // Format amount to 8 decimal places
       formattedAmount: parseFloat(tx.amount).toFixed(8),
+      // Convert Unix timestamp to readable date
       formattedTime: new Date(tx.timestamp * 1000).toLocaleDateString()
     }
   }, [])
