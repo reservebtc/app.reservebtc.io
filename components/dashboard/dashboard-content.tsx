@@ -222,6 +222,10 @@ export function DashboardContent() {
         setCurrentBalance(balanceStr)
         setOracleBalance(btcBalance)
         
+        // 🔥 CRITICAL: Set loading to false on success
+        setIsBalanceRefreshing(false)
+        setIsBalanceLoading(false)
+        
         // 🔥 RETURN the values immediately for use in caller
         return { sats: balanceInSats, btc: btcBalance }
         
@@ -233,6 +237,8 @@ export function DashboardContent() {
           console.error('❌ DASHBOARD: All retry attempts exhausted')
           setCurrentBalance('0')
           setOracleBalance('0.00000000')
+          setIsBalanceRefreshing(false)
+          setIsBalanceLoading(false)
           return { sats: 0, btc: '0.00000000' }
         }
         
