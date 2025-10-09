@@ -43,7 +43,11 @@ export async function GET(request: NextRequest) {
     try {
       const publicClient = createPublicClient({
         chain: megaeth,
-        transport: http()
+        transport: http('https://carrot.megaeth.com/rpc', {
+          timeout: 10000,
+          retryCount: 2,
+          retryDelay: 500
+        })
       })
       
       console.log('🔗 REALTIME API: Calling Oracle contract...')
@@ -80,7 +84,8 @@ export async function GET(request: NextRequest) {
         oracleSats: satsBalance,                   // Same as balance
         btc: (satsBalance / 100000000).toFixed(8), // Balance in BTC
         lastUpdate: new Date().toISOString(),
-        source: 'oracle_contract'
+        source: 'oracle_contract',
+        _timestamp: Date.now() // Force cache bust
       }
     } catch (error) {
       console.error('❌ REALTIME API: Oracle balance fetch error:', error)
@@ -94,7 +99,16 @@ export async function GET(request: NextRequest) {
     
     console.log('✅ REALTIME API: Returning balance data:', balanceData)
     
-    return NextResponse.json(balanceData)
+    // 🔥 CRITICAL: Disable ALL caching
+    return NextResponse.json(balanceData, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'CDN-Cache-Control': 'no-store',
+        'Vercel-CDN-Cache-Control': 'no-store'
+      }
+    })
   } catch (error) {
     // Return fallback data on timeout or error
     console.error('❌ REALTIME API: Timeout/error:', error)
@@ -106,11 +120,21 @@ export async function GET(request: NextRequest) {
       btc: '0.00000000',
       lastUpdate: new Date().toISOString(),
       error: 'Network timeout - using fallback values',
-      source: 'fallback'
-    }, { status: 200 }) // Return 200 even on error for graceful degradation
+      source: 'fallback',
+      _timestamp: Date.now()
+    }, { 
+      status: 200,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
   }
 }
 
-// Add edge runtime for better performance
+// 🔥 CRITICAL: Disable edge caching
 export const runtime = 'edge'
 export const maxDuration = 10
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
