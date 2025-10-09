@@ -45,92 +45,76 @@ export async function GET(request: NextRequest) {
   
   console.log('💰 REALTIME API: Fetching balance for', address)
   
-  // Create timeout promise for 5 seconds
-  const timeoutPromise = new Promise((_, reject) => 
-    setTimeout(() => reject(new Error('Request timeout')), 5000)
-  )
-  
-  // Main data fetch promise - ONLY from Oracle smart contract with LATEST BLOCK
-  const dataPromise = (async () => {
-    try {
-      const publicClient = createPublicClient({
-        chain: megaeth,
-        transport: http('https://carrot.megaeth.com/rpc', {
-          timeout: 10000,
-          retryCount: 2,
-          retryDelay: 500
-        })
-      })
-      
-      console.log('🔗 REALTIME API: Calling Oracle contract...')
-      
-      // 🔥 CRITICAL FIX: Get latest block number to prevent viem caching
-      const currentBlock = await publicClient.getBlockNumber()
-      console.log('📊 REALTIME API: Reading from block', currentBlock.toString())
-      
-      // 🔥 CRITICAL FIX: Read contract with blockNumber parameter to force fresh read
-      const contractPromise = publicClient.readContract({
-        address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
-        abi: [{
-          name: 'lastSats',
-          type: 'function',
-          stateMutability: 'view',
-          inputs: [{ name: 'user', type: 'address' }],
-          outputs: [{ name: '', type: 'uint64' }]
-        }],
-        functionName: 'lastSats',
-        args: [address as `0x${string}`],
-        blockNumber: currentBlock  // 🔥 THIS IS THE FIX - prevents viem internal caching
-      })
-      
-      // Add 4 second timeout for contract call
-      const lastSats = await Promise.race([
-        contractPromise,
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Contract timeout')), 4000)
-        )
-      ]) as bigint
-      
-      const satsBalance = Number(lastSats)
-      
-      console.log('✅ REALTIME API: Oracle balance fetched:', satsBalance, 'sats from block', currentBlock.toString())
-      
-      return {
-        success: true,
-        address: address.toLowerCase(),
-        balance: satsBalance.toString(),           // Balance in satoshis
-        oracleSats: satsBalance,                   // Same as balance
-        btc: (satsBalance / 100000000).toFixed(8), // Balance in BTC
-        lastUpdate: new Date().toISOString(),
-        source: 'oracle_contract',
-        blockNumber: currentBlock.toString(),      // Include block number in response
-        _timestamp: Date.now()                     // Cache busting timestamp
-      }
-    } catch (error) {
-      console.error('❌ REALTIME API: Oracle balance fetch error:', error)
-      throw error
-    }
-  })()
-  
   try {
-    // Race between data fetch and timeout
-    const balanceData = await Promise.race([dataPromise, timeoutPromise]) as any
+    // 🔥 CRITICAL FIX: Create completely new client every time with cache disabled
+    // This prevents viem from using any internal caching mechanisms
+    const publicClient = createPublicClient({
+      chain: megaeth,
+      transport: http('https://carrot.megaeth.com/rpc', {
+        timeout: 8000,
+        retryCount: 2,
+        retryDelay: 500
+      }),
+      cacheTime: 0  // 🔥 Disable viem internal cache completely
+    })
     
-    console.log('✅ REALTIME API: Returning balance data:', balanceData)
+    console.log('🔗 REALTIME API: Reading from Oracle contract...')
     
-    // 🔥 CRITICAL: Disable ALL caching at every level
-    return NextResponse.json(balanceData, {
+    // 🔥 CRITICAL: Get latest block to ensure fresh data
+    const currentBlock = await publicClient.getBlockNumber()
+    console.log('📊 REALTIME API: Latest block:', currentBlock.toString())
+    
+    // 🔥 CRITICAL: Read from specific block with cache disabled
+    const lastSats = await publicClient.readContract({
+      address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
+      abi: [{
+        name: 'lastSats',
+        type: 'function',
+        stateMutability: 'view',
+        inputs: [{ name: 'user', type: 'address' }],
+        outputs: [{ name: '', type: 'uint64' }]
+      }],
+      functionName: 'lastSats',
+      args: [address as `0x${string}`],
+      blockNumber: currentBlock  // Read from latest block
+    })
+    
+    const satsBalance = Number(lastSats)
+    
+    console.log('✅ REALTIME API: Fresh balance from block', currentBlock.toString(), ':', satsBalance, 'sats')
+    
+    const responseData = {
+      success: true,
+      address: address.toLowerCase(),
+      balance: satsBalance.toString(),           // Balance in satoshis
+      oracleSats: satsBalance,                   // Same as balance
+      btc: (satsBalance / 100000000).toFixed(8), // Balance in BTC
+      lastUpdate: new Date().toISOString(),
+      source: 'oracle_contract',
+      blockNumber: currentBlock.toString(),
+      _timestamp: Date.now(),                    // Cache busting timestamp
+      _fresh: true                               // Indicator that data is fresh
+    }
+    
+    console.log('✅ REALTIME API: Returning fresh balance data:', responseData)
+    
+    // 🔥 CRITICAL: Maximum cache prevention headers
+    return NextResponse.json(responseData, {
       headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
         'Pragma': 'no-cache',
         'Expires': '0',
+        'Surrogate-Control': 'no-store',
         'CDN-Cache-Control': 'no-store',
-        'Vercel-CDN-Cache-Control': 'no-store'
+        'Vercel-CDN-Cache-Control': 'no-store',
+        'X-Accel-Expires': '0'
       }
     })
+    
   } catch (error) {
-    // Return fallback data on timeout or error
-    console.error('❌ REALTIME API: Timeout/error:', error)
+    console.error('❌ REALTIME API: Error fetching balance:', error)
+    
+    // Return error response with fallback
     return NextResponse.json({
       success: false,
       address: address.toLowerCase(),
@@ -138,11 +122,11 @@ export async function GET(request: NextRequest) {
       oracleSats: 0,
       btc: '0.00000000',
       lastUpdate: new Date().toISOString(),
-      error: 'Network timeout - using fallback values',
-      source: 'fallback',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      source: 'error_fallback',
       _timestamp: Date.now()
     }, { 
-      status: 200,
+      status: 200,  // Still return 200 to not break frontend
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
         'Pragma': 'no-cache',

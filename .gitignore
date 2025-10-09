@@ -529,3 +529,7 @@ test-validator.js
 test-validator-direct.mjs
 !scripts/security-audit-bip322.js
 !TEST-STATUS.md
+check-oracle-balance.js
+check-contract-state.js
+debug-oracle-data.js
+check-current-state.js
