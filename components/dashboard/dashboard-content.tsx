@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
-import { createPublicClient, http } from 'viem'
 import { 
   Wallet, 
   Bitcoin, 
@@ -23,11 +22,11 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { CONTRACTS } from '@/app/lib/contracts'
-import { useRealtimeUserData, useRealtimeTransactions, useFormattedBalance, useTransactionFormatter } from '@/lib/professional-realtime-hooks'
+import { useRealtimeUserData, useRealtimeTransactions } from '@/lib/professional-realtime-hooks'
 import { oracleService } from '@/lib/oracle-service'
 import { mempoolService } from '@/lib/mempool-service'
 
-// UI Badge component (local implementation)
+// UI Badge component
 interface BadgeProps {
   variant?: 'default' | 'outline'
   className?: string
@@ -90,12 +89,6 @@ interface TransactionRecord {
   status: string
 }
 
-// 🔥 NEW: Interface for balance result to avoid state closure issues
-interface BalanceResult {
-  sats: number
-  btc: string
-}
-
 export function DashboardContent() {
   const { address, isConnected } = useAccount()
   const router = useRouter()
@@ -103,26 +96,23 @@ export function DashboardContent() {
   // Real-time hooks
   const userData = useRealtimeUserData()
   const realtimeTransactions = useRealtimeTransactions(50)
-  const formatBalance = useFormattedBalance()
-  const formatTx = useTransactionFormatter()
   
-  // 🔥 CRITICAL FIX: Our own state for ACTUAL balance from Oracle contract
-  const [currentBalance, setCurrentBalance] = useState<string>('0')
+  // 🔥 PRODUCTION: Real Bitcoin balance from blockchain (same as Mint page)
+  const [realBitcoinBalance, setRealBitcoinBalance] = useState<number>(0)
   const [isBalanceLoading, setIsBalanceLoading] = useState(true)
   const [isBalanceRefreshing, setIsBalanceRefreshing] = useState(false)
   
-  // Local state for Bitcoin addresses and Oracle data
+  // Local state
   const [bitcoinAddresses, setBitcoinAddresses] = useState<BitcoinAddress[]>([])
-  const [oracleBalance, setOracleBalance] = useState('0.00000000')
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [currentlyMonitoredAddress, setCurrentlyMonitoredAddress] = useState<string | null>(null)
   
-  // Supabase transactions state
+  // Supabase transactions
   const [supabaseTransactions, setSupabaseTransactions] = useState<TransactionRecord[]>([])
   const [loadingSupabaseTransactions, setLoadingSupabaseTransactions] = useState(false)
   
-  // Yield Scales state
+  // Yield Scales
   const [yieldScalesData, setYieldScalesData] = useState<YieldScalesData>({
     isParticipant: false,
     participantType: null,
@@ -136,164 +126,76 @@ export function DashboardContent() {
     totalTVL: 0
   })
 
-  // 🔥 CRITICAL FIX: Format balance from our state (actual Oracle balance)
+  // 🔥 PRODUCTION: Format balance from REAL blockchain data
   const formattedRBTCBalance = useMemo(() => {
     if (isBalanceLoading) {
       console.log('⏳ DASHBOARD: Balance loading...')
       return '0.00000000'
     }
     
-    const sats = Number(currentBalance) || 0
-    const btc = sats / 100000000
-    
-    console.log('💰 DASHBOARD: Current balance - Sats:', sats, 'BTC:', btc.toFixed(8))
-    
-    return btc.toFixed(8)
-  }, [currentBalance, isBalanceLoading])
+    console.log('💰 DASHBOARD: Real balance:', realBitcoinBalance.toFixed(8), 'BTC')
+    return realBitcoinBalance.toFixed(8)
+  }, [realBitcoinBalance, isBalanceLoading])
 
-  // 🔥 PRODUCTION-GRADE: Load balance with direct RPC calls (no viem cache)
-  const loadCurrentBalance = async (): Promise<BalanceResult> => {
+  // 🔥 PRODUCTION: Load REAL balance from blockchain API (same as Mint page)
+  const loadRealBalance = useCallback(async (): Promise<number> => {
     if (!address) {
       console.log('⚠️ DASHBOARD: No address')
-      return { sats: 0, btc: '0.00000000' }
+      return 0
     }
 
-    console.log('🔄 DASHBOARD: Loading current balance from Oracle contract...')
-    console.log('🔍 DASHBOARD: Current address:', address)
+    console.log('🔄 DASHBOARD: Loading REAL balance from blockchain API...')
     setIsBalanceRefreshing(true)
     
-    const MAX_RETRIES = 3
-    const RETRY_DELAY = 1000
-    
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        console.log(`📡 DASHBOARD: Attempt ${attempt}/${MAX_RETRIES}`)
-        
-        // 🔥 STEP 1: Get latest block via direct RPC call (bypass all caches)
-        const blockResponse = await fetch('https://carrot.megaeth.com/rpc', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          },
-          cache: 'no-store',
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            method: 'eth_blockNumber',
-            params: [],
-            id: Date.now()  // Unique ID prevents any response caching
-          })
-        })
-        
-        if (!blockResponse.ok) {
-          throw new Error(`Block number request failed: ${blockResponse.status}`)
-        }
-        
-        const blockData = await blockResponse.json()
-        const currentBlockHex = blockData.result
-        const currentBlock = BigInt(currentBlockHex)
-        
-        console.log(`📊 DASHBOARD: Latest block from RPC: ${currentBlock.toString()} (${currentBlockHex})`)
-        
-        // 🔥 STEP 2: Read balance from exact block via direct RPC call
-        // Build calldata for lastSats(address)
-        const functionSelector = '0x6be25fe1'  // keccak256("lastSats(address)")[:4]
-        const paddedAddress = address.slice(2).toLowerCase().padStart(64, '0')
-        const callData = functionSelector + paddedAddress
-        
-        console.log(`🔍 DASHBOARD: Reading balance with calldata: ${callData}`)
-        
-        const balanceResponse = await fetch('https://carrot.megaeth.com/rpc', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          },
-          cache: 'no-store',
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            method: 'eth_call',
-            params: [{
-              to: CONTRACTS.ORACLE_AGGREGATOR,
-              data: callData
-            }, currentBlockHex],  // Use exact block number in hex
-            id: Date.now()
-          })
-        })
-        
-        if (!balanceResponse.ok) {
-          throw new Error(`Balance request failed: ${balanceResponse.status}`)
-        }
-        
-        const balanceData = await balanceResponse.json()
-        
-        if (balanceData.error) {
-          throw new Error(`RPC error: ${balanceData.error.message}`)
-        }
-        
-        const lastSatsHex = balanceData.result
-        const lastSats = BigInt(lastSatsHex)
-        
-        const balanceInSats = Number(lastSats)
-        const balanceStr = balanceInSats.toString()
-        const btcBalance = (balanceInSats / 1e8).toFixed(8)
-        
-        console.log(`✅ DASHBOARD: Fresh Oracle balance loaded: ${balanceInSats} sats from block: ${currentBlock.toString()}`)
-        console.log(`💰 DASHBOARD: Setting balance to: ${balanceStr} sats = ${btcBalance} BTC`)
-        
-        // Update state
-        setCurrentBalance(balanceStr)
-        setOracleBalance(btcBalance)
-        
-        // 🔥 RETURN the values immediately for use in caller
-        return { sats: balanceInSats, btc: btcBalance }
-        
-      } catch (error) {
-        console.error(`❌ DASHBOARD: Attempt ${attempt} failed:`, error)
-        
-        // If this was the last attempt, give up
-        if (attempt === MAX_RETRIES) {
-          console.error('❌ DASHBOARD: All retry attempts exhausted')
-          setCurrentBalance('0')
-          setOracleBalance('0.00000000')
-          return { sats: 0, btc: '0.00000000' }
-        }
-        
-        // Wait before retrying (exponential backoff)
-        const delay = RETRY_DELAY * attempt
-        console.log(`⏳ DASHBOARD: Waiting ${delay}ms before retry...`)
-        await new Promise(resolve => setTimeout(resolve, delay))
-      } finally {
-        // Only set loading states to false after final attempt
-        if (attempt === MAX_RETRIES) {
-          setIsBalanceRefreshing(false)
-          setIsBalanceLoading(false)
-        }
+    try {
+      // 🔥 USE SAME API as Mint page - NO CACHE
+      const response = await fetch(`/api/blockchain/balance?address=${address}&_t=${Date.now()}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store'
+      })
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
       }
+      
+      const data = await response.json()
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to load balance')
+      }
+      
+      const balanceInSats = Number(data.balance)
+      const btcBalance = balanceInSats / 100000000
+      
+      console.log(`✅ DASHBOARD: Real balance loaded: ${balanceInSats} sats = ${btcBalance.toFixed(8)} BTC`)
+      
+      setRealBitcoinBalance(btcBalance)
+      return btcBalance
+      
+    } catch (error) {
+      console.error('❌ DASHBOARD: Failed to load balance:', error)
+      setRealBitcoinBalance(0)
+      return 0
+    } finally {
+      setIsBalanceRefreshing(false)
+      setIsBalanceLoading(false)
     }
-    
-    // Should never reach here, but TypeScript needs it
-    setIsBalanceRefreshing(false)
-    setIsBalanceLoading(false)
-    return { sats: 0, btc: '0.00000000' }
-  }
+  }, [address])
 
   // Load transactions from Supabase
-  const loadTransactionsFromSupabase = async () => {
+  const loadTransactionsFromSupabase = useCallback(async () => {
     if (!address) return
     
     console.log('📊 DASHBOARD: Loading transactions from Supabase...')
     setLoadingSupabaseTransactions(true)
     
     try {
-      // 🔥 Add timestamp to prevent caching
       const response = await fetch(`/api/realtime/transactions?address=${address}&limit=50&_t=${Date.now()}`)
       
       if (response.ok) {
         const data = await response.json()
-        console.log(`✅ DASHBOARD: Loaded ${data.length} transactions from Supabase`)
+        console.log(`✅ DASHBOARD: Loaded ${data.length} transactions`)
         setSupabaseTransactions(data)
       } else {
         console.error('❌ DASHBOARD: Failed to load transactions:', response.status)
@@ -305,25 +207,22 @@ export function DashboardContent() {
     } finally {
       setLoadingSupabaseTransactions(false)
     }
-  }
+  }, [address])
 
-  // Merge real-time and Supabase transactions
+  // Merge transactions
   const allTransactions = useMemo(() => {
     const txMap = new Map<string, TransactionRecord>()
     
-    // Add Supabase transactions first
     supabaseTransactions.forEach(tx => {
       const hash = tx.tx_hash || tx.txHash || `${tx.block_number}_${tx.amount}`
       txMap.set(hash, tx)
     })
     
-    // Add real-time transactions
     realtimeTransactions.transactions.forEach((tx: any) => {
       const hash = tx.tx_hash || tx.txHash || `${tx.blockNumber}_${tx.amount}`
       txMap.set(hash, tx)
     })
     
-    // Convert to array and sort by timestamp (newest first)
     return Array.from(txMap.values()).sort((a, b) => {
       const timeA = new Date(a.block_timestamp || a.blockTimestamp || 0).getTime()
       const timeB = new Date(b.block_timestamp || b.blockTimestamp || 0).getTime()
@@ -332,13 +231,12 @@ export function DashboardContent() {
   }, [supabaseTransactions, realtimeTransactions.transactions])
 
   // Load Yield Scales data
-  const loadYieldScalesData = async () => {
+  const loadYieldScalesData = useCallback(async () => {
     if (!address) return
     
     console.log('⚖️ DASHBOARD: Loading Yield Scales data...')
     
     try {
-      // 🔥 Add timestamp to prevent caching
       const participantResponse = await fetch(`/api/yield-scales/participant?address=${address}&_t=${Date.now()}`)
       if (participantResponse.ok) {
         const participantData = await participantResponse.json()
@@ -365,137 +263,90 @@ export function DashboardContent() {
           totalTVL: statsData.totalTVL || 0
         })
         
-        console.log('✅ DASHBOARD: Yield Scales data loaded successfully')
+        console.log('✅ DASHBOARD: Yield Scales data loaded')
       }
     } catch (error) {
       console.error('❌ DASHBOARD: Failed to load Yield Scales data:', error)
     }
-  }
+  }, [address])
 
-  // 🔥 CRITICAL FIX: Load additional data using returned balance value
-  const loadAdditionalData = async () => {
+  // 🔥 PRODUCTION: Load all data
+  const loadAllData = useCallback(async () => {
     if (!address) return
     
-    console.log('📊 DASHBOARD: Loading additional data...')
+    console.log('📊 DASHBOARD: Loading all data...')
     setIsLoading(true)
     
     try {
-      // 🔥 PRIORITY: Load current balance first and GET THE RESULT
-      const balanceResult = await loadCurrentBalance()
+      // 🔥 STEP 1: Load REAL balance first
+      const balance = await loadRealBalance()
       
-      console.log('🔍 DASHBOARD: Balance result received:', balanceResult)
+      // 🔥 STEP 2: Get Bitcoin addresses from Supabase
+      const addressesResponse = await fetch(`/api/supabase/bitcoin-addresses?eth_address=${address}&_t=${Date.now()}`)
       
-      // Get Oracle data for Bitcoin addresses
-      const oracleData = await oracleService.getUserByAddress(address)
-      
-      let monitoredAddr: string | null = null
-      
-      // 🔥 USE RETURNED VALUE instead of state to avoid closure issue
-      const currentOracleBalanceNum = balanceResult.sats / 1e8
-      
-      if (oracleData) {
-        console.log('✅ DASHBOARD: Oracle data loaded, processing Bitcoin addresses...')
+      if (addressesResponse.ok) {
+        const addressesData = await addressesResponse.json()
         
-        const btcAddrs: BitcoinAddress[] = []
-        const processedAddresses = new Set<string>()
-        
-        // Collect all addresses
-        const allAddresses: string[] = []
-        
-        if (oracleData.bitcoinAddress) allAddresses.push(oracleData.bitcoinAddress)
-        if ((oracleData as any).btcAddress) allAddresses.push((oracleData as any).btcAddress)
-        
-        const bitcoinAddressesFromOracle = (oracleData as any).bitcoinAddresses
-        if (Array.isArray(bitcoinAddressesFromOracle)) {
-          bitcoinAddressesFromOracle.forEach((addr: string) => allAddresses.push(addr))
-        }
-        
-        const btcAddresses = (oracleData as any).btcAddresses
-        if (Array.isArray(btcAddresses)) {
-          btcAddresses.forEach((addr: string) => allAddresses.push(addr))
-        }
-        
-        // Determine monitored address using fresh balance value
-        if (currentOracleBalanceNum > 0) {
-          console.log('🔍 DASHBOARD: Oracle has balance:', currentOracleBalanceNum, 'BTC, checking monitored address...')
+        if (addressesData.success && addressesData.addresses) {
+          const btcAddrs: BitcoinAddress[] = addressesData.addresses.map((addr: any) => ({
+            bitcoin_address: addr.bitcoin_address,
+            network: addr.network,
+            verified_at: addr.verified_at,
+            is_monitoring: addr.is_monitoring
+          }))
           
-          for (const btcAddr of allAddresses) {
-            if (processedAddresses.has(btcAddr)) continue
-            
-            try {
-              const balanceData = await mempoolService.getAddressBalance(btcAddr)
-              
-              if (balanceData && Math.abs(balanceData.balance - currentOracleBalanceNum) < 0.00000001) {
-                monitoredAddr = btcAddr
-                setCurrentlyMonitoredAddress(btcAddr)
-                console.log(`✅ DASHBOARD: Found monitored address: ${btcAddr}`)
-                break
-              }
-            } catch (err) {
-              console.error(`Error checking balance for ${btcAddr}:`, err)
-            }
+          setBitcoinAddresses(btcAddrs)
+          
+          // Find monitored address
+          const monitoredAddr = btcAddrs.find(addr => addr.is_monitoring)
+          if (monitoredAddr) {
+            setCurrentlyMonitoredAddress(monitoredAddr.bitcoin_address)
+            console.log(`✅ DASHBOARD: Monitored address: ${monitoredAddr.bitcoin_address}`)
+          } else {
+            setCurrentlyMonitoredAddress(null)
           }
-        } else {
-          setCurrentlyMonitoredAddress(null)
-          console.log('ℹ️ DASHBOARD: Balance is zero, no monitoring active')
-        }
-        
-        // Add all addresses
-        for (const addr of allAddresses) {
-          if (!addr || processedAddresses.has(addr)) continue
-          processedAddresses.add(addr)
           
-          const isMonitored = monitoredAddr === addr
-          
-          btcAddrs.push({
-            bitcoin_address: addr,
-            network: addr.startsWith('tb1') || addr.startsWith('m') || addr.startsWith('n') ? 'testnet' : 'mainnet',
-            verified_at: oracleData.registeredAt || new Date().toISOString(),
-            is_monitoring: isMonitored
-          })
+          console.log(`✅ DASHBOARD: Loaded ${btcAddrs.length} Bitcoin addresses`)
         }
-        
-        setBitcoinAddresses(btcAddrs)
-        console.log('✅ DASHBOARD: Bitcoin addresses processed:', btcAddrs.length)
       }
       
-      // Load Yield Scales data
+      // 🔥 STEP 3: Load Yield Scales
       await loadYieldScalesData()
       
-      // Load transactions
+      // 🔥 STEP 4: Load transactions
       await loadTransactionsFromSupabase()
       
     } catch (error) {
-      console.error('❌ DASHBOARD: Additional data loading error:', error)
+      console.error('❌ DASHBOARD: Data loading error:', error)
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)
-      console.log('✅ DASHBOARD: Additional data loading complete')
+      console.log('✅ DASHBOARD: All data loaded')
     }
-  }
+  }, [address, loadRealBalance, loadYieldScalesData, loadTransactionsFromSupabase])
 
-  // 🔥 FIXED: Initial load without publicClient dependency
+  // Initial load
   useEffect(() => {
     if (address) {
-      loadAdditionalData()
+      loadAllData()
     }
-  }, [address])
+  }, [address, loadAllData])
 
-  // 🔥 FIXED: Background refresh every 30 seconds without publicClient dependency
+  // Background refresh every 30 seconds
   useEffect(() => {
     if (!address) return
 
     const interval = setInterval(() => {
-      console.log('🔄 DASHBOARD: Background balance refresh...')
-      loadCurrentBalance()
-    }, 30000) // 30 seconds
+      console.log('🔄 DASHBOARD: Background refresh...')
+      loadRealBalance()
+    }, 30000)
 
     return () => clearInterval(interval)
-  }, [address])
+  }, [address, loadRealBalance])
 
   const handleRefresh = () => {
     setIsRefreshing(true)
-    loadAdditionalData()
+    loadAllData()
   }
 
   // Format timestamp
@@ -519,7 +370,7 @@ export function DashboardContent() {
     return tx.block_timestamp || tx.blockTimestamp || new Date().toISOString()
   }
 
-  // Get transaction icon and color
+  // Get transaction style
   const getTransactionStyle = (type: string) => {
     const baseStyles = {
       'MINT': { bg: 'bg-green-500/10', prefix: '+', suffix: 'rBTC' },
@@ -539,7 +390,7 @@ export function DashboardContent() {
     }
   }
 
-  // Format loyalty tier display
+  // Format loyalty tier
   const getLoyaltyDisplay = (tier: string) => {
     const displays = {
       'bronze': { icon: '🥉', label: 'Bronze', color: 'text-orange-600' },
@@ -563,7 +414,6 @@ export function DashboardContent() {
     )
   }
 
-  // Show loader only on initial load
   if (isLoading || isBalanceLoading) {
     return (
       <div className="container max-w-6xl mx-auto p-6">
@@ -571,7 +421,7 @@ export function DashboardContent() {
           <RefreshCw className="h-12 w-12 animate-spin mx-auto text-primary mb-4" />
           <h2 className="text-2xl font-bold mb-2">Loading Dashboard...</h2>
           <p className="text-muted-foreground mb-6">
-            Fetching your real-time data from blockchain and database...
+            Fetching real-time data from blockchain...
           </p>
         </div>
       </div>
@@ -605,9 +455,9 @@ export function DashboardContent() {
         </div>
       </div>
 
-      {/* Balance Cards - First Row */}
+      {/* Balance Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* rBTC-SYNTH Balance - FIXED with actual Oracle data */}
+        {/* rBTC-SYNTH Balance - REAL from blockchain */}
         <div className="bg-card border rounded-xl p-6 relative overflow-hidden">
           {isBalanceRefreshing && (
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/20 overflow-hidden">
@@ -633,11 +483,11 @@ export function DashboardContent() {
           </div>
           
           <p className="text-sm text-muted-foreground mt-1">
-            = {Number(currentBalance).toLocaleString()} sats
+            = {Math.round(realBitcoinBalance * 100000000).toLocaleString()} sats
           </p>
         </div>
 
-        {/* Oracle Sync Status - FIXED with actual Oracle data */}
+        {/* Oracle Status */}
         <div className="bg-card border rounded-xl p-6 relative overflow-hidden">
           {(isRefreshing || isBalanceRefreshing) && (
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-green-500/20 overflow-hidden">
@@ -651,13 +501,13 @@ export function DashboardContent() {
               <span className="font-medium">Oracle Status</span>
             </div>
             <span className="text-xs bg-green-500/10 text-green-600 px-2 py-1 rounded">
-              {Number(oracleBalance) > 0 ? 'Synced' : 'Not Synced'}
+              {realBitcoinBalance > 0 ? 'Synced' : 'Not Synced'}
             </span>
           </div>
           
           <div className="flex items-center gap-2">
             <div className="text-2xl font-bold">
-              {oracleBalance} BTC
+              {formattedRBTCBalance} BTC
             </div>
             {(isRefreshing || isBalanceRefreshing) && (
               <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
@@ -669,7 +519,7 @@ export function DashboardContent() {
           </p>
         </div>
 
-        {/* Yield APY Card */}
+        {/* Yield APY */}
         <div className="bg-card border rounded-xl p-6 relative overflow-hidden">
           {(isRefreshing || isBalanceRefreshing) && (
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-green-500/20 overflow-hidden">
@@ -684,9 +534,6 @@ export function DashboardContent() {
             </div>
             <Badge variant="outline" className="text-xs flex items-center gap-1">
               Live
-              {(isRefreshing || isBalanceRefreshing) && (
-                <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-              )}
             </Badge>
           </div>
           
@@ -694,9 +541,6 @@ export function DashboardContent() {
             <div className="text-2xl font-bold">
               {yieldScalesData.currentAPY.toFixed(2)}%
             </div>
-            {(isRefreshing || isBalanceRefreshing) && (
-              <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
-            )}
           </div>
           
           <p className="text-sm text-muted-foreground mt-1">
@@ -719,18 +563,12 @@ export function DashboardContent() {
               <History className="h-5 w-5 text-orange-500" />
               <span className="font-medium">Transactions</span>
             </div>
-            {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
-              <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
-            )}
           </div>
           
           <div className="flex items-center gap-2">
             <div className="text-2xl font-bold">
               {allTransactions.length}
             </div>
-            {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
-              <span className="inline-block w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
-            )}
           </div>
           
           <p className="text-sm text-muted-foreground mt-1">
@@ -740,7 +578,7 @@ export function DashboardContent() {
       </div>
 
       {/* Yield Scales Section */}
-      {(yieldScalesData.isParticipant || Number(currentBalance) > 0) && (
+      {(yieldScalesData.isParticipant || realBitcoinBalance > 0) && (
         <div className="bg-card border rounded-xl p-6 relative overflow-hidden">
           {(isRefreshing || isBalanceRefreshing) && (
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-purple-500/20 overflow-hidden">
@@ -752,9 +590,6 @@ export function DashboardContent() {
             <div className="flex items-center gap-2">
               <Scale className="h-5 w-5 text-purple-500" />
               <h2 className="text-xl font-semibold">Yield Scales Protocol</h2>
-              {(isRefreshing || isBalanceRefreshing) && (
-                <span className="inline-block w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
-              )}
             </div>
             {!yieldScalesData.isParticipant && (
               <Link
@@ -769,18 +604,10 @@ export function DashboardContent() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Scales Balance */}
-            <div className="bg-muted/50 rounded-lg p-4 relative overflow-hidden">
-              {(isRefreshing || isBalanceRefreshing) && (
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/20">
-                  <div className="h-full bg-primary animate-pulse w-full" />
-                </div>
-              )}
+            <div className="bg-muted/50 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Scale className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">Scale Balance</span>
-                {(isRefreshing || isBalanceRefreshing) && (
-                  <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                )}
               </div>
               <div className="flex items-center gap-4">
                 <div>
@@ -864,7 +691,7 @@ export function DashboardContent() {
         </div>
 
         {/* Quantum Protection Warning */}
-        {bitcoinAddresses.length > 0 && Number(oracleBalance) === 0 && (
+        {bitcoinAddresses.length > 0 && realBitcoinBalance === 0 && (
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-4">
             <div className="flex items-start gap-3">
               <Shield className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
@@ -873,14 +700,14 @@ export function DashboardContent() {
                   ⚠️ Balance Zero - Quantum Protection Active
                 </h4>
                 <p className="text-xs text-yellow-800 dark:text-yellow-300">
-                  Bitcoin's quantum protection automatically moves ALL funds to new addresses after ANY outgoing transaction. This is normal and protects against quantum attacks.
+                  Bitcoin's quantum protection automatically moves ALL funds to new addresses after ANY outgoing transaction. Verify a fresh address to continue monitoring.
                 </p>
                 <Link 
                   href="/verify" 
                   className="inline-flex items-center gap-2 px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-xs font-medium transition-all mt-2"
                 >
                   <Shield className="h-3 w-3" />
-                  Verify New Quantum-Safe Address
+                  Verify New Address
                 </Link>
               </div>
             </div>
@@ -941,9 +768,6 @@ export function DashboardContent() {
             <Badge variant="outline" className="flex items-center gap-1">
               <Activity className="h-3 w-3 text-green-500" />
               Live
-              {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
-                <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse ml-1" />
-              )}
             </Badge>
           </div>
           {allTransactions.length > 0 && (
@@ -951,9 +775,6 @@ export function DashboardContent() {
               <span className="text-sm text-muted-foreground">
                 Total: {allTransactions.length}
               </span>
-              {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
-                <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
-              )}
             </div>
           )}
         </div>
@@ -978,7 +799,7 @@ export function DashboardContent() {
             <History className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-medium mb-2">No transactions yet</h3>
             <p className="text-muted-foreground text-sm">
-              Your transaction history will appear here in real-time
+              Your transaction history will appear here
             </p>
           </div>
         ) : (
@@ -1017,7 +838,7 @@ export function DashboardContent() {
                       rel="noopener noreferrer"
                       className="text-xs text-primary hover:underline flex items-center gap-1 justify-end"
                     >
-                      View Transaction
+                      View
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   </div>
