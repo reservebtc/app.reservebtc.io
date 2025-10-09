@@ -55,9 +55,15 @@ export function useRealtimeUserData() {
 }
 
 /**
- * Hook for real-time balance data - PRODUCTION READY VERSION
- * Fetches balance from /api/realtime/balances endpoint with proper error handling
- * Updates every 10 seconds for real-time synchronization
+ * Hook for real-time balance data - OPTIMIZED UX VERSION
+ * Fetches balance from /api/realtime/balances endpoint with silent background updates
+ * Updates every 10 seconds WITHOUT showing loading spinner after initial load
+ * 
+ * Features:
+ * - Initial load shows loading state
+ * - Background updates are silent (no UI flicker)
+ * - Optimistic UI - always shows last known balance
+ * - Separate isRefreshing state for background updates
  * 
  * API Response format:
  * {
@@ -71,20 +77,30 @@ export function useRealtimeUserData() {
 export function useRealtimeBalance() {
   const { address } = useAccount()
   const [balance, setBalance] = useState<string>('0')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true)  // Only for INITIAL load
+  const [isRefreshing, setIsRefreshing] = useState(false)  // For background updates
   const [error, setError] = useState<string | null>(null)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)  // Track first load
 
   useEffect(() => {
     // Reset state if no wallet connected
     if (!address) {
       setBalance('0')
       setLoading(false)
+      setIsInitialLoad(true)
       return
     }
 
-    const fetchBalance = async () => {
-      console.log('🔄 REALTIME HOOK: Fetching balance for', address)
-      setLoading(true)
+    const fetchBalance = async (isBackground = false) => {
+      console.log(`🔄 REALTIME HOOK: ${isBackground ? 'Background' : 'Initial'} fetch for`, address)
+      
+      // Only show main loading on FIRST load
+      if (!isBackground && isInitialLoad) {
+        setLoading(true)
+      } else if (isBackground) {
+        setIsRefreshing(true)  // Silent background indicator
+      }
+      
       setError(null)
 
       try {
@@ -97,41 +113,64 @@ export function useRealtimeBalance() {
 
         const data = await response.json()
         
-        console.log('✅ REALTIME HOOK: Received data:', data)
+        console.log(`✅ REALTIME HOOK: ${isBackground ? 'Background' : 'Initial'} data:`, data)
         
         // Extract balance from API response (in satoshis)
         // Try multiple fields for maximum compatibility
         if (data.success && data.balance) {
           setBalance(data.balance)
-          console.log('💰 REALTIME HOOK: Balance set to:', data.balance, 'sats')
+          console.log('💰 REALTIME HOOK: Balance updated to:', data.balance, 'sats')
         } else if (data.oracleSats !== undefined) {
           // Fallback to oracleSats field (your API uses this)
           setBalance(data.oracleSats.toString())
           console.log('💰 REALTIME HOOK: Balance from oracleSats:', data.oracleSats, 'sats')
         } else {
-          console.warn('⚠️ REALTIME HOOK: No balance in response, using 0')
+          console.warn('⚠️ REALTIME HOOK: No balance in response, keeping current value')
+          // Don't set to '0' on refresh - keep existing balance
+        }
+        
+        // Mark initial load as complete
+        if (isInitialLoad) {
+          setIsInitialLoad(false)
+        }
+        
+      } catch (err) {
+        console.error(`❌ REALTIME HOOK: ${isBackground ? 'Background' : 'Initial'} fetch error:`, err)
+        setError(err instanceof Error ? err.message : 'Unknown error')
+        
+        // On background error, keep existing balance
+        // Only set to '0' on initial load error
+        if (!isBackground) {
           setBalance('0')
         }
-      } catch (err) {
-        console.error('❌ REALTIME HOOK: Fetch error:', err)
-        setError(err instanceof Error ? err.message : 'Unknown error')
-        setBalance('0')
       } finally {
-        setLoading(false)
+        if (!isBackground && isInitialLoad) {
+          setLoading(false)
+        }
+        if (isBackground) {
+          setIsRefreshing(false)
+        }
       }
     }
 
     // Initial fetch on mount/address change
-    fetchBalance()
+    fetchBalance(false)
 
-    // Refresh balance every 10 seconds for real-time updates
-    const interval = setInterval(fetchBalance, 10000)
+    // Background refresh every 10 seconds (silent updates)
+    const interval = setInterval(() => {
+      fetchBalance(true)  // Pass true = background refresh
+    }, 10000)
 
     // Cleanup interval on unmount
     return () => clearInterval(interval)
   }, [address])
 
-  return { balance, loading, error }
+  return { 
+    balance, 
+    loading,        // Only true during INITIAL load
+    isRefreshing,   // True during background updates
+    error 
+  }
 }
 
 /**

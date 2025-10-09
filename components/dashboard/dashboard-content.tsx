@@ -95,12 +95,19 @@ export function DashboardContent() {
   const router = useRouter()
   const publicClient = usePublicClient()
   
-  // 🔥 PRIMARY DATA SOURCE: Real-time hooks for balance
+  // 🔥 PRIMARY DATA SOURCE: Real-time hooks with proper destructuring
   const userData = useRealtimeUserData()
-  const balance = useRealtimeBalance()
+  const { balance: balanceData, loading: balanceLoading, isRefreshing: balanceRefreshing, error: balanceError } = useRealtimeBalance()
   const realtimeTransactions = useRealtimeTransactions(50)
   const formatBalance = useFormattedBalance()
   const formatTx = useTransactionFormatter()
+  
+  // Create balance object for backward compatibility
+  const balance = {
+    balance: balanceData,
+    loading: balanceLoading,
+    error: balanceError
+  }
   
   // Local state for Bitcoin addresses and Oracle data
   const [bitcoinAddresses, setBitcoinAddresses] = useState<BitcoinAddress[]>([])
@@ -437,6 +444,7 @@ export function DashboardContent() {
     );
   }
 
+  // Show full loader ONLY on initial load
   if (isLoading || balance.loading) {
     return (
       <div className="container max-w-6xl mx-auto p-6">
@@ -463,22 +471,33 @@ export function DashboardContent() {
           <Badge variant="outline" className="flex items-center gap-1">
             <Activity className="h-3 w-3 text-green-500" />
             Real-time
+            {/* 🔥 Professional: Pulsating dot for background refresh */}
+            {balanceRefreshing && (
+              <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse ml-1" />
+            )}
           </Badge>
           <button 
             onClick={handleRefresh}
-            disabled={isRefreshing}
+            disabled={isRefreshing || balanceRefreshing}
             title="Refresh data"
             className="p-2 hover:bg-accent rounded transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`h-4 w-4 text-muted-foreground hover:text-primary transition-colors ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 text-muted-foreground hover:text-primary transition-colors ${(isRefreshing || balanceRefreshing) ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
 
       {/* Balance Cards - First Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 🔥 rBTC-SYNTH Balance - Real-time with FIXED formatting */}
-        <div className="bg-card border rounded-xl p-6">
+        {/* 🔥 rBTC-SYNTH Balance - Real-time with FIXED formatting + Professional indicators */}
+        <div className="bg-card border rounded-xl p-6 relative overflow-hidden">
+          {/* 🔥 Professional: Thin progress line at top during refresh */}
+          {balanceRefreshing && (
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/20 overflow-hidden">
+              <div className="h-full bg-primary animate-pulse w-full" />
+            </div>
+          )}
+          
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-blue-500" />
@@ -486,9 +505,17 @@ export function DashboardContent() {
             </div>
             <span className="text-xs bg-blue-500/10 text-blue-600 px-2 py-1 rounded">Soulbound</span>
           </div>
-          <div className="text-2xl font-bold">
-            {formattedRBTCBalance}
+          
+          {/* 🔥 Professional: Small spinner next to balance during refresh */}
+          <div className="flex items-center gap-2">
+            <div className="text-2xl font-bold">
+              {formattedRBTCBalance}
+            </div>
+            {balanceRefreshing && (
+              <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
+            )}
           </div>
+          
           <p className="text-sm text-muted-foreground mt-1">
             = {(Number(balance.balance) || 0).toLocaleString()} sats
           </p>
@@ -500,7 +527,14 @@ export function DashboardContent() {
         </div>
 
         {/* Oracle Sync Status */}
-        <div className="bg-card border rounded-xl p-6">
+        <div className="bg-card border rounded-xl p-6 relative overflow-hidden">
+          {/* 🔥 Progress line for Oracle sync */}
+          {(isRefreshing || balanceRefreshing) && (
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-green-500/20 overflow-hidden">
+              <div className="h-full bg-green-500 animate-pulse w-full" />
+            </div>
+          )}
+          
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-green-500" />
@@ -510,28 +544,52 @@ export function DashboardContent() {
               {Number(oracleBalance) > 0 ? 'Synced' : 'Not Synced'}
             </span>
           </div>
-          <div className="text-2xl font-bold">
-            {oracleBalance} BTC
+          
+          <div className="flex items-center gap-2">
+            <div className="text-2xl font-bold">
+              {oracleBalance} BTC
+            </div>
+            {(isRefreshing || balanceRefreshing) && (
+              <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
+            )}
           </div>
+          
           <p className="text-sm text-muted-foreground mt-1">
             {currentlyMonitoredAddress ? 'Monitoring active' : 'No active monitoring'}
           </p>
         </div>
 
         {/* Yield APY Card */}
-        <div className="bg-card border rounded-xl p-6">
+        <div className="bg-card border rounded-xl p-6 relative overflow-hidden">
+          {/* 🔥 Progress line for Yield data */}
+          {(isRefreshing || balanceRefreshing) && (
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-green-500/20 overflow-hidden">
+              <div className="h-full bg-green-500 animate-pulse w-full" />
+            </div>
+          )}
+          
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Percent className="h-5 w-5 text-green-500" />
               <span className="font-medium">Current APY</span>
             </div>
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs flex items-center gap-1">
               Live
+              {(isRefreshing || balanceRefreshing) && (
+                <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+              )}
             </Badge>
           </div>
-          <div className="text-2xl font-bold">
-            {yieldScalesData.currentAPY.toFixed(2)}%
+          
+          <div className="flex items-center gap-2">
+            <div className="text-2xl font-bold">
+              {yieldScalesData.currentAPY.toFixed(2)}%
+            </div>
+            {(isRefreshing || balanceRefreshing) && (
+              <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
+            )}
           </div>
+          
           <p className="text-sm text-muted-foreground mt-1">
             <Link href="/yield-scales" className="text-primary hover:underline">
               View Yield Scales
@@ -540,19 +598,33 @@ export function DashboardContent() {
         </div>
 
         {/* Total Transactions - Real-time + Supabase */}
-        <div className="bg-card border rounded-xl p-6">
+        <div className="bg-card border rounded-xl p-6 relative overflow-hidden">
+          {/* 🔥 Progress line for transactions */}
+          {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-orange-500/20 overflow-hidden">
+              <div className="h-full bg-orange-500 animate-pulse w-full" />
+            </div>
+          )}
+          
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <History className="h-5 w-5 text-orange-500" />
               <span className="font-medium">Transactions</span>
             </div>
-            {(loadingSupabaseTransactions || realtimeTransactions.loading) && (
+            {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
               <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
             )}
           </div>
-          <div className="text-2xl font-bold">
-            {allTransactions.length}
+          
+          <div className="flex items-center gap-2">
+            <div className="text-2xl font-bold">
+              {allTransactions.length}
+            </div>
+            {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
+              <span className="inline-block w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+            )}
           </div>
+          
           <p className="text-sm text-muted-foreground mt-1">
             Total operations
           </p>
@@ -561,11 +633,22 @@ export function DashboardContent() {
 
       {/* Yield Scales Section - Only show if participant or has rBTC */}
       {(yieldScalesData.isParticipant || Number(balance.balance) > 0) && (
-        <div className="bg-card border rounded-xl p-6">
+        <div className="bg-card border rounded-xl p-6 relative overflow-hidden">
+          {/* 🔥 Progress line for Yield Scales section */}
+          {(isRefreshing || balanceRefreshing) && (
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-purple-500/20 overflow-hidden">
+              <div className="h-full bg-purple-500 animate-pulse w-full" />
+            </div>
+          )}
+          
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <Scale className="h-5 w-5 text-purple-500" />
               <h2 className="text-xl font-semibold">Yield Scales Protocol</h2>
+              {/* 🔥 Pulsating dot for live updates */}
+              {(isRefreshing || balanceRefreshing) && (
+                <span className="inline-block w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
+              )}
             </div>
             {!yieldScalesData.isParticipant && (
               <Link
@@ -580,10 +663,18 @@ export function DashboardContent() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Scales Balance */}
-            <div className="bg-muted/50 rounded-lg p-4">
+            <div className="bg-muted/50 rounded-lg p-4 relative overflow-hidden">
+              {(isRefreshing || balanceRefreshing) && (
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/20">
+                  <div className="h-full bg-primary animate-pulse w-full" />
+                </div>
+              )}
               <div className="flex items-center gap-2 mb-2">
                 <Scale className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">Scale Balance</span>
+                {(isRefreshing || balanceRefreshing) && (
+                  <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                )}
               </div>
               <div className="flex items-center gap-4">
                 <div>
@@ -730,7 +821,14 @@ export function DashboardContent() {
       </div>
 
       {/* Transaction History - Real-time + Supabase */}
-      <div className="bg-card border rounded-xl p-6">
+      <div className="bg-card border rounded-xl p-6 relative overflow-hidden">
+        {/* 🔥 Professional: Progress line for transactions section */}
+        {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-500/20 overflow-hidden">
+            <div className="h-full bg-blue-500 animate-pulse w-full" />
+          </div>
+        )}
+        
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <History className="h-5 w-5 text-blue-500" />
@@ -738,16 +836,26 @@ export function DashboardContent() {
             <Badge variant="outline" className="flex items-center gap-1">
               <Activity className="h-3 w-3 text-green-500" />
               Live
+              {/* 🔥 Pulsating dot for live transaction updates */}
+              {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
+                <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse ml-1" />
+              )}
             </Badge>
           </div>
           {allTransactions.length > 0 && (
-            <span className="text-sm text-muted-foreground">
-              Total: {allTransactions.length}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                Total: {allTransactions.length}
+              </span>
+              {/* 🔥 Small spinner during refresh */}
+              {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
+                <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
+              )}
+            </div>
           )}
         </div>
 
-        {(loadingSupabaseTransactions || realtimeTransactions.loading) ? (
+        {(loadingSupabaseTransactions || realtimeTransactions.loading) && allTransactions.length === 0 ? (
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg animate-pulse">
