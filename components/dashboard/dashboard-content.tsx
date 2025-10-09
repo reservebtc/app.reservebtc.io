@@ -169,17 +169,20 @@ export function DashboardContent() {
       try {
         console.log(`📡 DASHBOARD: Attempt ${attempt}/${MAX_RETRIES}`)
         
-        // 🔥 STEP 1: Get latest block via proxy (NO CORS!)
-        const blockResponse = await fetch('/api/rpc-proxy', {
+        // 🔥 STEP 1: Get latest block via direct RPC call (bypass all caches)
+        const blockResponse = await fetch('https://carrot.megaeth.com/rpc', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
           },
+          cache: 'no-store',
           body: JSON.stringify({
             jsonrpc: '2.0',
             method: 'eth_blockNumber',
             params: [],
-            id: Date.now()
+            id: Date.now()  // Unique ID prevents any response caching
           })
         })
         
@@ -193,25 +196,29 @@ export function DashboardContent() {
         
         console.log(`📊 DASHBOARD: Latest block from RPC: ${currentBlock.toString()} (${currentBlockHex})`)
         
-        // 🔥 STEP 2: Read balance from exact block via proxy (NO CORS!)
-        const functionSelector = '0x6be25fe1'
+        // 🔥 STEP 2: Read balance from exact block via direct RPC call
+        // Build calldata for lastSats(address)
+        const functionSelector = '0x6be25fe1'  // keccak256("lastSats(address)")[:4]
         const paddedAddress = address.slice(2).toLowerCase().padStart(64, '0')
         const callData = functionSelector + paddedAddress
         
         console.log(`🔍 DASHBOARD: Reading balance with calldata: ${callData}`)
         
-        const balanceResponse = await fetch('/api/rpc-proxy', {
+        const balanceResponse = await fetch('https://carrot.megaeth.com/rpc', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
           },
+          cache: 'no-store',
           body: JSON.stringify({
             jsonrpc: '2.0',
             method: 'eth_call',
             params: [{
               to: CONTRACTS.ORACLE_AGGREGATOR,
               data: callData
-            }, currentBlockHex],
+            }, currentBlockHex],  // Use exact block number in hex
             id: Date.now()
           })
         })
@@ -240,10 +247,6 @@ export function DashboardContent() {
         setCurrentBalance(balanceStr)
         setOracleBalance(btcBalance)
         
-        // 🔥 CRITICAL: Clear loading states on success
-        setIsBalanceRefreshing(false)
-        setIsBalanceLoading(false)
-        
         // 🔥 RETURN the values immediately for use in caller
         return { sats: balanceInSats, btc: btcBalance }
         
@@ -255,8 +258,6 @@ export function DashboardContent() {
           console.error('❌ DASHBOARD: All retry attempts exhausted')
           setCurrentBalance('0')
           setOracleBalance('0.00000000')
-          setIsBalanceRefreshing(false)
-          setIsBalanceLoading(false)
           return { sats: 0, btc: '0.00000000' }
         }
         
@@ -264,10 +265,16 @@ export function DashboardContent() {
         const delay = RETRY_DELAY * attempt
         console.log(`⏳ DASHBOARD: Waiting ${delay}ms before retry...`)
         await new Promise(resolve => setTimeout(resolve, delay))
+      } finally {
+        // Only set loading states to false after final attempt
+        if (attempt === MAX_RETRIES) {
+          setIsBalanceRefreshing(false)
+          setIsBalanceLoading(false)
+        }
       }
     }
     
-    // Fallback (should never reach here)
+    // Should never reach here, but TypeScript needs it
     setIsBalanceRefreshing(false)
     setIsBalanceLoading(false)
     return { sats: 0, btc: '0.00000000' }
