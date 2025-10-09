@@ -170,7 +170,7 @@ export function DashboardContent() {
         console.log(`📡 DASHBOARD: Attempt ${attempt}/${MAX_RETRIES}`)
         
         // 🔥 STEP 1: Get latest block via direct RPC call (bypass all caches)
-        const blockResponse = await fetch('https://carrot.megaeth.com/rpc', {
+        const blockResponse = await fetch('/api/rpc-proxy', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -204,7 +204,7 @@ export function DashboardContent() {
         
         console.log(`🔍 DASHBOARD: Reading balance with calldata: ${callData}`)
         
-        const balanceResponse = await fetch('https://carrot.megaeth.com/rpc', {
+        const balanceResponse = await fetch('/api/rpc-proxy', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',

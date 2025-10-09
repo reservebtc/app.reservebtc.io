@@ -1,5 +1,5 @@
 // app/api/rpc-proxy/route.ts
-// Professional RPC Proxy with zero caching and error handling
+// Professional RPC Proxy - Zero caching, CORS-safe
 
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -15,10 +15,10 @@ export async function POST(request: NextRequest) {
     
     console.log('🔄 RPC PROXY: Request received', {
       method: body.method,
-      params: body.params?.slice(0, 2) // Log first 2 params only
+      params: body.params?.length || 0
     })
     
-    // Add unique identifier to prevent any caching
+    // Unique ID to prevent any caching
     const requestId = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
     
     const response = await fetch(MEGAETH_RPC, {
@@ -26,20 +26,20 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         'X-Request-ID': requestId,
-        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
-        'Pragma': 'no-cache',
-        'Expires': '0'
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
       },
       body: JSON.stringify({
-        ...body,
-        id: requestId // Unique ID for each request
+        jsonrpc: '2.0',
+        method: body.method,
+        params: body.params || [],
+        id: body.id || requestId
       }),
-      cache: 'no-store',
-      next: { revalidate: 0 }
+      cache: 'no-store'
     })
 
     if (!response.ok) {
-      console.error('❌ RPC PROXY: MegaETH returned error', response.status)
+      console.error('❌ RPC PROXY: MegaETH error', response.status)
       throw new Error(`MegaETH RPC error: ${response.status}`)
     }
 
@@ -55,10 +55,9 @@ export async function POST(request: NextRequest) {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
-        'Expires': '0',
-        'X-Request-ID': requestId
+        'Expires': '0'
       }
     })
 
@@ -85,7 +84,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Handle OPTIONS for CORS
+// CORS preflight
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
