@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createPublicClient, http } from 'viem'
 import { CONTRACTS } from '@/app/lib/contracts'
 
+// 🔥 CRITICAL: Force no caching for real-time blockchain data
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
+export const runtime = 'edge'
+export const maxDuration = 10
+
 const megaeth = {
   id: 6342,
   name: 'MegaETH Testnet',
@@ -28,7 +35,12 @@ export async function GET(request: NextRequest) {
       error: 'Address required',
       balance: '0',
       oracleSats: 0
-    }, { status: 400 })
+    }, { 
+      status: 400,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0'
+      }
+    })
   }
   
   console.log('💰 REALTIME API: Fetching balance for', address)
@@ -38,7 +50,7 @@ export async function GET(request: NextRequest) {
     setTimeout(() => reject(new Error('Request timeout')), 5000)
   )
   
-  // Main data fetch promise - ONLY from Oracle smart contract
+  // Main data fetch promise - ONLY from Oracle smart contract with LATEST BLOCK
   const dataPromise = (async () => {
     try {
       const publicClient = createPublicClient({
@@ -52,6 +64,11 @@ export async function GET(request: NextRequest) {
       
       console.log('🔗 REALTIME API: Calling Oracle contract...')
       
+      // 🔥 CRITICAL FIX: Get latest block number to prevent viem caching
+      const currentBlock = await publicClient.getBlockNumber()
+      console.log('📊 REALTIME API: Reading from block', currentBlock.toString())
+      
+      // 🔥 CRITICAL FIX: Read contract with blockNumber parameter to force fresh read
       const contractPromise = publicClient.readContract({
         address: CONTRACTS.ORACLE_AGGREGATOR as `0x${string}`,
         abi: [{
@@ -62,7 +79,8 @@ export async function GET(request: NextRequest) {
           outputs: [{ name: '', type: 'uint64' }]
         }],
         functionName: 'lastSats',
-        args: [address as `0x${string}`]
+        args: [address as `0x${string}`],
+        blockNumber: currentBlock  // 🔥 THIS IS THE FIX - prevents viem internal caching
       })
       
       // Add 4 second timeout for contract call
@@ -75,7 +93,7 @@ export async function GET(request: NextRequest) {
       
       const satsBalance = Number(lastSats)
       
-      console.log('✅ REALTIME API: Oracle balance fetched:', satsBalance, 'sats')
+      console.log('✅ REALTIME API: Oracle balance fetched:', satsBalance, 'sats from block', currentBlock.toString())
       
       return {
         success: true,
@@ -85,7 +103,8 @@ export async function GET(request: NextRequest) {
         btc: (satsBalance / 100000000).toFixed(8), // Balance in BTC
         lastUpdate: new Date().toISOString(),
         source: 'oracle_contract',
-        _timestamp: Date.now() // Force cache bust
+        blockNumber: currentBlock.toString(),      // Include block number in response
+        _timestamp: Date.now()                     // Cache busting timestamp
       }
     } catch (error) {
       console.error('❌ REALTIME API: Oracle balance fetch error:', error)
@@ -99,7 +118,7 @@ export async function GET(request: NextRequest) {
     
     console.log('✅ REALTIME API: Returning balance data:', balanceData)
     
-    // 🔥 CRITICAL: Disable ALL caching
+    // 🔥 CRITICAL: Disable ALL caching at every level
     return NextResponse.json(balanceData, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
@@ -132,9 +151,3 @@ export async function GET(request: NextRequest) {
     })
   }
 }
-
-// 🔥 CRITICAL: Disable edge caching
-export const runtime = 'edge'
-export const maxDuration = 10
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
