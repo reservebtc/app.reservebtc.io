@@ -10,6 +10,9 @@ const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ||
 const PRIVATE_RPC = process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 
                     'https://carrot.megaeth.com/rpc'
 
+// 🔍 DEBUG: Log WalletConnect configuration
+console.log('🔗 WalletConnect Project ID:', projectId.slice(0, 10) + '...')
+
 /**
  * PRODUCTION-READY wagmi configuration
  * 
@@ -45,14 +48,11 @@ export const config = createConfig({
         themeVariables: {
           '--wcm-z-index': '9999'
         }
-      }
-      // WalletConnect automatically uses wss://relay.walletconnect.com
-      // This is SEPARATE from MegaETH WebSocket - no conflicts!
+      }, // ← ✅ ДОБАВЛЕНА ЗАПЯТАЯ!
     }),
     
     // 💉 Injected Wallets (Rabby, Coinbase Wallet, etc.)
     injected({
-      // Support any injected wallet
       shimDisconnect: true
     })
   ],
