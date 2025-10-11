@@ -2,22 +2,16 @@ import { createConfig, http } from 'wagmi'
 import { megaeth } from './chains/megaeth'
 import { metaMask, walletConnect, injected } from '@wagmi/connectors'
 
-// 🔒 PRODUCTION: Environment variables
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 
                   process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || 
                   '53859cecd826f1d2c2eebdd38461a8c1'
 
+// 🔒 PRODUCTION: Use private RPC from environment
 const PRIVATE_RPC = process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 
                     'https://carrot.megaeth.com/rpc'
 
 /**
  * PRODUCTION-READY wagmi configuration
- * 
- * Architecture:
- * - HTTP-only transport for blockchain queries (no WebSocket conflicts)
- * - WalletConnect configured with optimized settings
- * - Supports MetaMask extension, WalletConnect (mobile), and injected wallets
- * - Compatible with unified-realtime-system.ts WebSocket monitoring
  * 
  * WebSocket Strategy:
  * - WalletConnect uses its OWN relay WebSocket (wss://relay.walletconnect.com)
@@ -32,11 +26,9 @@ export const config = createConfig({
       dappMetadata: {
         name: 'ReserveBTC',
         url: 'https://app.reservebtc.io',
-      },
-      // Prefer extension over mobile if both available
-      extensionOnly: false,
+      }
     }),
-
+    
     // 🔗 WalletConnect - Mobile & Desktop Wallets via QR Code
     walletConnect({
       projectId,
@@ -46,47 +38,40 @@ export const config = createConfig({
         url: 'https://app.reservebtc.io',
         icons: ['https://app.reservebtc.io/favicon.ico']
       },
-      // ✅ CRITICAL: WalletConnect configuration to prevent conflicts
-      showQrModal: true,  // Show QR code modal automatically
+      // ✅ Show QR modal for mobile wallet connection
+      showQrModal: true,
       qrModalOptions: {
         themeMode: 'light',
         themeVariables: {
           '--wcm-z-index': '9999'
         }
-      },
-      // ✅ IMPORTANT: Use official WalletConnect relay (separate from MegaETH WebSocket)
-      // This WebSocket connects to relay.walletconnect.com, NOT to MegaETH
-      // No conflicts with unified-realtime-system.ts!
+      }
+      // WalletConnect automatically uses wss://relay.walletconnect.com
+      // This is SEPARATE from MegaETH WebSocket - no conflicts!
     }),
-
+    
     // 💉 Injected Wallets (Rabby, Coinbase Wallet, etc.)
     injected({
-      // Support any injected wallet, not just MetaMask
-      shimDisconnect: true,
+      // Support any injected wallet
+      shimDisconnect: true
     })
   ],
-
+  
   transports: {
-    // 🔥 CRITICAL: HTTP-only transport for MegaETH
-    // This prevents wagmi from creating WebSocket to MegaETH
-    // WebSocket monitoring is handled by unified-realtime-system.ts
+    // 🔥 CRITICAL: Use HTTP-only transport
+    // This prevents wagmi from creating WebSocket connections to MegaETH
+    // WebSocket is handled separately by unified-realtime-system.ts
     [megaeth.id]: http(PRIVATE_RPC, {
-      batch: true,        // ✅ FIXED: Simplified batch option
+      batch: true,
       retryCount: 3,
-      retryDelay: 1000,
-      timeout: 10_000,    // 10 second timeout
+      retryDelay: 1000
     })
   },
-
-  // ✅ SSR support for Next.js
+  
   ssr: true,
-
-  // 🔥 CRITICAL: Use HTTP polling instead of WebSocket for state updates
-  // This prevents wagmi from trying to create WebSocket to MegaETH
-  pollingInterval: 4_000,  // Poll every 4 seconds
-
-  // ✅ Enable batch calls for better performance
-  multiInjectedProviderDiscovery: true,
+  
+  // 🔥 CRITICAL: Disable automatic WebSocket connections to MegaETH
+  pollingInterval: 4000, // Use HTTP polling instead
 })
 
 declare module 'wagmi' {
