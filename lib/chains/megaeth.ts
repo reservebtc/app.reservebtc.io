@@ -3,12 +3,16 @@ import { Chain } from 'viem'
 // 🔒 SECURITY: Private MegaETH endpoints (provided by MegaETH team)
 // These endpoints are NOT public and should NEVER be shared or committed to Git
 // They are stored securely in Vercel Environment Variables
-const PRIVATE_RPC = process.env.MEGAETH_PRIVATE_RPC || 
-                    process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 
+
+// 🌐 CLIENT-SIDE: Use NEXT_PUBLIC_ prefixed variables (accessible in browser)
+const PRIVATE_RPC = process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 
                     'https://carrot.megaeth.com/rpc' // Fallback to public RPC
 
-const PRIVATE_WS = process.env.MEGAETH_PRIVATE_WS || 
+const PRIVATE_WS = process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_WS || 
                    'wss://carrot.megaeth.com/ws' // Fallback to public WebSocket
+
+console.log('🔒 MEGAETH CONFIG: Using RPC:', PRIVATE_RPC.includes('/mafia/') ? 'PRIVATE ✅' : 'PUBLIC ⚠️')
+console.log('🔒 MEGAETH CONFIG: Using WS:', PRIVATE_WS.includes('/mafia/') ? 'PRIVATE ✅' : 'PUBLIC ⚠️')
 
 /**
  * MegaETH Testnet Chain Configuration
