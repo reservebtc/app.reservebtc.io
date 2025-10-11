@@ -6,7 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowRight, ArrowLeft, AlertCircle, Loader2, CheckCircle, Info, Bitcoin, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Copy, Wallet, Shield, Check, ArrowUpRight, Activity } from 'lucide-react'
 import { mintFormSchema, MintForm } from '@/lib/validation-schemas'
 import { validateBitcoinAddress, getBitcoinAddressTypeLabel } from '@/lib/bitcoin-validation'
-import { useAccount, usePublicClient, useWalletClient } from 'wagmi'
+import { useAccount, useWalletClient } from 'wagmi'
+import { createPublicClient, http } from 'viem'
 import { formatEther, parseEther, encodePacked, keccak256, toBytes } from 'viem'
 import { toast } from 'sonner'
 import { DepositFeeVault } from './deposit-fee-vault'
@@ -85,7 +86,10 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   const [forceRefresh, setForceRefresh] = useState<number>(0)
   
   const { address, isConnected } = useAccount()
-  const publicClient = usePublicClient()
+  const publicClient = createPublicClient({
+    chain: { id: 6342, name: 'MegaETH Testnet', nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }, rpcUrls: { default: { http: [process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 'https://carrot.megaeth.com/rpc'] } } },
+    transport: http(process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 'https://carrot.megaeth.com/rpc')
+  })
   const { data: walletClient } = useWalletClient()
   
   const userData = useRealtimeUserData()

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useBalance, usePublicClient, useWalletClient } from 'wagmi';
+import { useAccount, useBalance, useWalletClient } from 'wagmi';
+import { createPublicClient, http } from 'viem';
 import { parseEther, formatEther } from 'viem';
 import { CONTRACTS, CONTRACT_ABIS, FEE_CONFIG } from '@/app/lib/contracts';
 import { getOracleAbi } from '@/app/lib/abi-utils';
@@ -31,7 +32,10 @@ const Badge = ({ variant = 'default', className = '', children }: BadgeProps) =>
 export function DepositFeeVault() {
   const { address, isConnected } = useAccount();
   const { data: balance } = useBalance({ address });
-  const publicClient = usePublicClient();
+  const publicClient = createPublicClient({
+    chain: { id: 6342, name: 'MegaETH Testnet', nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }, rpcUrls: { default: { http: [process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 'https://carrot.megaeth.com/rpc'] } } },
+    transport: http(process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 'https://carrot.megaeth.com/rpc')
+  });
   const { data: walletClient } = useWalletClient();
   
   // Real-time integration with Supabase
