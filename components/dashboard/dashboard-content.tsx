@@ -21,8 +21,6 @@ import {
   Percent
 } from 'lucide-react'
 import Link from 'next/link'
-import { CONTRACTS } from '@/app/lib/contracts'
-import { useRealtimeUserData, useRealtimeTransactions, useFormattedBalance, useTransactionFormatter } from '@/lib/professional-realtime-hooks'
 import { oracleService } from '@/lib/oracle-service'
 import { mempoolService } from '@/lib/mempool-service'
 
@@ -46,6 +44,7 @@ const Badge = ({ variant = 'default', className = '', children }: BadgeProps) =>
   )
 }
 
+// TypeScript interfaces for type safety
 interface BitcoinAddress {
   bitcoin_address: string
   network: string
@@ -91,31 +90,25 @@ interface TransactionRecord {
 }
 
 interface OracleUserData {
-  ethAddress?: string;
-  bitcoinAddress?: string;
-  btcAddress?: string;
-  btcAddresses?: string[];
-  bitcoinAddresses?: string[];
-  mintedAddresses?: string[];
-  monitoredAddresses?: string[];
-  mintTransactions?: Record<string, string>;
-  registeredAt?: string;
-  lastActivityAt?: string;
-  lastSyncedBalance?: number;
-  transactionCount?: number;
-  verificationStatus?: string;
-  source?: string;
+  ethAddress?: string
+  bitcoinAddress?: string
+  btcAddress?: string
+  btcAddresses?: string[]
+  bitcoinAddresses?: string[]
+  mintedAddresses?: string[]
+  monitoredAddresses?: string[]
+  mintTransactions?: Record<string, string>
+  registeredAt?: string
+  lastActivityAt?: string
+  lastSyncedBalance?: number
+  transactionCount?: number
+  verificationStatus?: string
+  source?: string
 }
 
 export function DashboardContent() {
   const { address, isConnected } = useAccount()
   const router = useRouter()
-  
-  // Real-time hooks
-  const userData = useRealtimeUserData()
-  const realtimeTransactions = useRealtimeTransactions(50)
-  const formatBalance = useFormattedBalance()
-  const formatTx = useTransactionFormatter()
   
   // 🔥 PRODUCTION: REAL Bitcoin balance from Mempool API (same as Mint page)
   const [realBitcoinBalance, setRealBitcoinBalance] = useState<number>(0)
@@ -194,7 +187,7 @@ export function DashboardContent() {
   }, [])
 
   // Load transactions from Supabase
-  const loadTransactionsFromSupabase = async () => {
+  const loadTransactionsFromSupabase = useCallback(async () => {
     if (!address) return
     
     console.log('📊 DASHBOARD: Loading transactions from Supabase...')
@@ -217,31 +210,10 @@ export function DashboardContent() {
     } finally {
       setLoadingSupabaseTransactions(false)
     }
-  }
-
-  // Merge real-time and Supabase transactions
-  const allTransactions = useMemo(() => {
-    const txMap = new Map<string, TransactionRecord>()
-    
-    supabaseTransactions.forEach(tx => {
-      const hash = tx.tx_hash || tx.txHash || `${tx.block_number}_${tx.amount}`
-      txMap.set(hash, tx)
-    })
-    
-    realtimeTransactions.transactions.forEach((tx: any) => {
-      const hash = tx.tx_hash || tx.txHash || `${tx.blockNumber}_${tx.amount}`
-      txMap.set(hash, tx)
-    })
-    
-    return Array.from(txMap.values()).sort((a, b) => {
-      const timeA = new Date(a.block_timestamp || a.blockTimestamp || 0).getTime()
-      const timeB = new Date(b.block_timestamp || b.blockTimestamp || 0).getTime()
-      return timeB - timeA
-    })
-  }, [supabaseTransactions, realtimeTransactions.transactions])
+  }, [address])
 
   // Load Yield Scales data
-  const loadYieldScalesData = async () => {
+  const loadYieldScalesData = useCallback(async () => {
     if (!address) return
     
     console.log('⚖️ DASHBOARD: Loading Yield Scales data...')
@@ -278,13 +250,13 @@ export function DashboardContent() {
     } catch (error) {
       console.error('❌ DASHBOARD: Failed to load Yield Scales data:', error)
     }
-  }
+  }, [address])
 
   // 🔥 PRODUCTION: Load all data (SAME LOGIC AS MINT PAGE)
-  const loadAdditionalData = async () => {
+  const loadAllData = useCallback(async () => {
     if (!address) return
     
-    console.log('📊 DASHBOARD: Loading additional data...')
+    console.log('📊 DASHBOARD: Loading all data...')
     setIsLoading(true)
     
     try {
@@ -381,45 +353,46 @@ export function DashboardContent() {
         setIsBalanceLoading(false)
       }
       
-      // Load Yield Scales data
-      await loadYieldScalesData()
-      
-      // Load transactions
-      await loadTransactionsFromSupabase()
+      // Load Yield Scales data in parallel
+      await Promise.all([
+        loadYieldScalesData(),
+        loadTransactionsFromSupabase()
+      ])
       
     } catch (error) {
-      console.error('❌ DASHBOARD: Additional data loading error:', error)
+      console.error('❌ DASHBOARD: Data loading error:', error)
       setRealBitcoinBalance(0)
       setIsBalanceLoading(false)
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)
-      console.log('✅ DASHBOARD: Additional data loading complete')
+      console.log('✅ DASHBOARD: All data loading complete')
     }
-  }
+  }, [address, loadRealBitcoinBalance, loadYieldScalesData, loadTransactionsFromSupabase])
 
-  // Initial load
+  // Initial load on mount
   useEffect(() => {
     if (address) {
-      loadAdditionalData()
+      loadAllData()
     }
-  }, [address])
+  }, [address, loadAllData])
 
-  // Background refresh every 30 seconds
+  // Background refresh every 30 seconds for balance only
   useEffect(() => {
     if (!address || !currentlyMonitoredAddress) return
 
     const interval = setInterval(() => {
       console.log('🔄 DASHBOARD: Background balance refresh...')
       loadRealBitcoinBalance(currentlyMonitoredAddress)
-    }, 30000)
+    }, 30000) // 30 seconds
 
     return () => clearInterval(interval)
   }, [address, currentlyMonitoredAddress, loadRealBitcoinBalance])
 
+  // Manual refresh handler
   const handleRefresh = () => {
     setIsRefreshing(true)
-    loadAdditionalData()
+    loadAllData()
   }
 
   // Format timestamp
@@ -473,6 +446,7 @@ export function DashboardContent() {
     return displays[tier as keyof typeof displays] || displays.bronze
   }
 
+  // Wallet not connected state
   if (!isConnected || !address) {
     return (
       <div className="container max-w-6xl mx-auto p-6">
@@ -480,15 +454,15 @@ export function DashboardContent() {
           <Wallet className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Connect Your Wallet</h2>
           <p className="text-muted-foreground mb-6">
-            Please connect your MetaMask wallet to view your dashboard.
+            Please connect your wallet to view your dashboard.
           </p>
         </div>
       </div>
     )
   }
 
-  // Show loader only on initial load
-  if (isLoading || isBalanceLoading) {
+  // Loading state (only on initial load)
+  if (isLoading && !isRefreshing) {
     return (
       <div className="container max-w-6xl mx-auto p-6">
         <div className="text-center py-12">
@@ -632,7 +606,7 @@ export function DashboardContent() {
 
         {/* Total Transactions */}
         <div className="bg-card border rounded-xl p-6 relative overflow-hidden">
-          {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
+          {(loadingSupabaseTransactions || isRefreshing) && (
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-orange-500/20 overflow-hidden">
               <div className="h-full bg-orange-500 animate-pulse w-full" />
             </div>
@@ -643,16 +617,16 @@ export function DashboardContent() {
               <History className="h-5 w-5 text-orange-500" />
               <span className="font-medium">Transactions</span>
             </div>
-            {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
+            {(loadingSupabaseTransactions || isRefreshing) && (
               <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
             )}
           </div>
           
           <div className="flex items-center gap-2">
             <div className="text-2xl font-bold">
-              {allTransactions.length}
+              {supabaseTransactions.length}
             </div>
-            {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
+            {(loadingSupabaseTransactions || isRefreshing) && (
               <span className="inline-block w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
             )}
           </div>
@@ -853,7 +827,7 @@ export function DashboardContent() {
 
       {/* Transaction History */}
       <div className="bg-card border rounded-xl p-6 relative overflow-hidden">
-        {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
+        {(loadingSupabaseTransactions || isRefreshing) && (
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-500/20 overflow-hidden">
             <div className="h-full bg-blue-500 animate-pulse w-full" />
           </div>
@@ -866,24 +840,24 @@ export function DashboardContent() {
             <Badge variant="outline" className="flex items-center gap-1">
               <Activity className="h-3 w-3 text-green-500" />
               Live
-              {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
+              {(loadingSupabaseTransactions || isRefreshing) && (
                 <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse ml-1" />
               )}
             </Badge>
           </div>
-          {allTransactions.length > 0 && (
+          {supabaseTransactions.length > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">
-                Total: {allTransactions.length}
+                Total: {supabaseTransactions.length}
               </span>
-              {(loadingSupabaseTransactions || realtimeTransactions.loading || isRefreshing) && (
+              {(loadingSupabaseTransactions || isRefreshing) && (
                 <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
               )}
             </div>
           )}
         </div>
 
-        {(loadingSupabaseTransactions || realtimeTransactions.loading) && allTransactions.length === 0 ? (
+        {loadingSupabaseTransactions && supabaseTransactions.length === 0 ? (
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg animate-pulse">
@@ -898,17 +872,17 @@ export function DashboardContent() {
               </div>
             ))}
           </div>
-        ) : allTransactions.length === 0 ? (
+        ) : supabaseTransactions.length === 0 ? (
           <div className="text-center py-8">
             <History className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-medium mb-2">No transactions yet</h3>
             <p className="text-muted-foreground text-sm">
-              Your transaction history will appear here in real-time
+              Your transaction history will appear here
             </p>
           </div>
         ) : (
           <div className="space-y-3">
-            {allTransactions.map((tx: any) => {
+            {supabaseTransactions.map((tx: any) => {
               const txType = getTransactionType(tx)
               const txHash = getTransactionHash(tx)
               const txTimestamp = getTransactionTimestamp(tx)
