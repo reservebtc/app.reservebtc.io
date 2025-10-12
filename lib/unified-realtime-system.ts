@@ -77,8 +77,9 @@ class UnifiedRealtimeSystem extends EventEmitter {
   }
 
   /**
-   * Setup blockchain clients with graceful WebSocket fallback
-   * Primary: HTTP (reliable), Optional: WebSocket (real-time enhancement)
+   * Setup blockchain clients with hybrid approach
+   * PRODUCTION: Try WebSocket (fast), fallback to HTTP (reliable)
+   * No error spam, graceful degradation
    */
   private setupClients() {
     const megaeth = {
@@ -97,7 +98,7 @@ class UnifiedRealtimeSystem extends EventEmitter {
     console.log('🔒 RPC:', PRIVATE_RPC.includes('/mafia/') ? 'PRIVATE ✅' : 'PUBLIC ⚠️')
     console.log('🔒 WS:', PRIVATE_WS.includes('/mafia/') ? 'PRIVATE ✅' : 'PUBLIC ⚠️')
 
-    // 🔥 PRIMARY: HTTP client for reliable queries (always works)
+    // 🔥 PRIMARY: HTTP client (always reliable)
     this.httpClient = createPublicClient({
       chain: megaeth,
       transport: http(PRIVATE_RPC, {
@@ -108,38 +109,38 @@ class UnifiedRealtimeSystem extends EventEmitter {
       })
     });
 
-    // 🚀 OPTIONAL: Single WebSocket for real-time events (10K users = 1 connection)
-    // If WebSocket fails, system continues with HTTP polling - no errors!
-    try {
-      this.wsClient = createPublicClient({
-        chain: megaeth,
-        transport: webSocket(PRIVATE_WS, {
-          // 🔥 CRITICAL FIX: Disable automatic reconnection
-          // This prevents browser from spamming failed connection attempts
-          reconnect: false,
-          timeout: 10_000,
-        })
-      });
-
-      // Test connection silently - one attempt only
-      this.wsClient.getBlockNumber()
-        .then(() => {
-          console.log('✅ WebSocket connected - single connection for all users');
-          this.isUsingWebSocket = true;
-        })
-        .catch((error: Error) => {
-          console.log('⚠️ WebSocket unavailable, using HTTP polling (this is normal)');
-          // Graceful fallback: use HTTP client for all operations
-          this.wsClient = this.httpClient;
-          this.isUsingWebSocket = false;
+    // 🚀 TRY WebSocket (one attempt, silent fail)
+    // This gives us real-time updates IF endpoint is stable
+    // If not - no problem, we have HTTP fallback
+    const attemptWebSocket = async () => {
+      try {
+        const wsClient = createPublicClient({
+          chain: megaeth,
+          transport: webSocket(PRIVATE_WS, {
+            reconnect: false,  // No auto-reconnect spam
+            timeout: 5_000,    // Quick timeout
+          })
         });
 
-    } catch (error) {
-      console.log('⚠️ WebSocket setup failed, using HTTP-only mode (this is normal)');
-      // Graceful fallback: use HTTP client
-      this.wsClient = this.httpClient;
-      this.isUsingWebSocket = false;
-    }
+        // Silent test - ONE attempt only
+        await wsClient.getBlockNumber();
+        
+        // SUCCESS! Use WebSocket
+        this.wsClient = wsClient;
+        this.isUsingWebSocket = true;
+        console.log('⚡ WebSocket connected - real-time updates enabled');
+        
+      } catch (error) {
+        // FAIL! Use HTTP (this is fine)
+        this.wsClient = this.httpClient;
+        this.isUsingWebSocket = false;
+        console.log('📡 Using HTTP polling - reliable mode (4s intervals)');
+      }
+    };
+
+    // Start with HTTP, try WebSocket in background
+    this.wsClient = this.httpClient;
+    attemptWebSocket();
   }
 
   /**
