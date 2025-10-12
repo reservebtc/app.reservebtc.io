@@ -34,7 +34,8 @@ interface TransactionRecord {
  * PRODUCTION-GRADE real-time blockchain event monitoring system
  * 
  * Features:
- * - Automatic reconnection on WebSocket failures
+ * - Graceful WebSocket fallback to HTTP polling
+ * - Automatic reconnection with exponential backoff
  * - Duplicate transaction prevention
  * - Concurrent event processing for multiple users
  * - Single source of truth (Supabase)
@@ -49,9 +50,10 @@ class UnifiedRealtimeSystem extends EventEmitter {
   private wsClient: any;
   private httpClient: any;
   private isConnected = false;
+  private isUsingWebSocket = false;
   private processedTxs = new Set<string>();
   private reconnectAttempts = 0;
-  private readonly MAX_RECONNECT_ATTEMPTS = 5;
+  private readonly MAX_RECONNECT_ATTEMPTS = 3;
   private readonly RECONNECT_DELAY = 3000; // 3 seconds
 
   // 🏦 Contract addresses (Production deployment)
@@ -75,8 +77,8 @@ class UnifiedRealtimeSystem extends EventEmitter {
   }
 
   /**
-   * Setup blockchain clients with private endpoints
-   * Uses WebSocket for real-time events and HTTP for queries
+   * Setup blockchain clients with graceful WebSocket fallback
+   * Primary: HTTP (reliable), Optional: WebSocket (real-time enhancement)
    */
   private setupClients() {
     const megaeth = {
@@ -95,26 +97,53 @@ class UnifiedRealtimeSystem extends EventEmitter {
     console.log('🔒 RPC:', PRIVATE_RPC.includes('/mafia/') ? 'PRIVATE ✅' : 'PUBLIC ⚠️')
     console.log('🔒 WS:', PRIVATE_WS.includes('/mafia/') ? 'PRIVATE ✅' : 'PUBLIC ⚠️')
 
-    // WebSocket client for real-time events
-    this.wsClient = createPublicClient({
+    // 🔥 PRIMARY: HTTP client for reliable queries (always works)
+    this.httpClient = createPublicClient({
       chain: megaeth,
-      transport: webSocket(PRIVATE_WS, {
-        reconnect: true,
-        retryCount: this.MAX_RECONNECT_ATTEMPTS,
-        retryDelay: this.RECONNECT_DELAY
+      transport: http(PRIVATE_RPC, {
+        batch: true,
+        retryCount: 3,
+        retryDelay: 1000
       })
     });
 
-    // HTTP client for reliable queries (fallback)
-    this.httpClient = createPublicClient({
-      chain: megaeth,
-      transport: http(PRIVATE_RPC)
-    });
+    // 🚀 OPTIONAL: WebSocket client for real-time events (graceful fallback)
+    try {
+      this.wsClient = createPublicClient({
+        chain: megaeth,
+        transport: webSocket(PRIVATE_WS, {
+          reconnect: true,
+          retryCount: this.MAX_RECONNECT_ATTEMPTS,
+          retryDelay: this.RECONNECT_DELAY,
+          timeout: 10_000, // 10 second timeout
+        })
+      });
+
+      // Test WebSocket connection silently
+      this.wsClient.getBlockNumber()
+        .then(() => {
+          console.log('✅ WebSocket connected successfully');
+          this.isUsingWebSocket = true;
+        })
+        .catch((error: Error) => {
+          console.warn('⚠️ WebSocket unavailable, using HTTP polling mode');
+          // Graceful fallback: use HTTP client for all operations
+          this.wsClient = this.httpClient;
+          this.isUsingWebSocket = false;
+        });
+
+    } catch (error) {
+      console.warn('⚠️ WebSocket setup failed, using HTTP-only mode');
+      // Graceful fallback: use HTTP client
+      this.wsClient = this.httpClient;
+      this.isUsingWebSocket = false;
+    }
   }
 
   /**
    * Start unified monitoring for all contract events
    * PRODUCTION: Handles all events concurrently for maximum throughput
+   * Works with both WebSocket and HTTP polling
    */
   private async startUnifiedMonitoring() {
     console.log('🚀 Starting Unified Real-time System...');
@@ -140,12 +169,15 @@ class UnifiedRealtimeSystem extends EventEmitter {
   }
 
   /**
-   * Handle WebSocket reconnection with exponential backoff
+   * Handle reconnection with exponential backoff
    * PRODUCTION: Automatic recovery from network failures
    */
   private async handleReconnection() {
     if (this.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
-      console.error('❌ Max reconnection attempts reached. System offline.');
+      console.error('❌ Max reconnection attempts reached. Using HTTP-only mode.');
+      // Fallback to HTTP permanently
+      this.wsClient = this.httpClient;
+      this.isUsingWebSocket = false;
       this.emit('disconnected');
       return;
     }
@@ -568,6 +600,8 @@ class UnifiedRealtimeSystem extends EventEmitter {
   getStatus() {
     return {
       isConnected: this.isConnected,
+      isUsingWebSocket: this.isUsingWebSocket,
+      transport: this.isUsingWebSocket ? 'WebSocket' : 'HTTP Polling',
       processedTransactions: this.processedTxs.size,
       reconnectAttempts: this.reconnectAttempts,
       uptime: Date.now(),
