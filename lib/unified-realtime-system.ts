@@ -103,37 +103,39 @@ class UnifiedRealtimeSystem extends EventEmitter {
       transport: http(PRIVATE_RPC, {
         batch: true,
         retryCount: 3,
-        retryDelay: 1000
+        retryDelay: 1000,
+        timeout: 10_000
       })
     });
 
-    // 🚀 OPTIONAL: WebSocket client for real-time events (graceful fallback)
+    // 🚀 OPTIONAL: Single WebSocket for real-time events (10K users = 1 connection)
+    // If WebSocket fails, system continues with HTTP polling - no errors!
     try {
       this.wsClient = createPublicClient({
         chain: megaeth,
         transport: webSocket(PRIVATE_WS, {
-          reconnect: true,
-          retryCount: this.MAX_RECONNECT_ATTEMPTS,
-          retryDelay: this.RECONNECT_DELAY,
-          timeout: 10_000, // 10 second timeout
+          // 🔥 CRITICAL FIX: Disable automatic reconnection
+          // This prevents browser from spamming failed connection attempts
+          reconnect: false,
+          timeout: 10_000,
         })
       });
 
-      // Test WebSocket connection silently
+      // Test connection silently - one attempt only
       this.wsClient.getBlockNumber()
         .then(() => {
-          console.log('✅ WebSocket connected successfully');
+          console.log('✅ WebSocket connected - single connection for all users');
           this.isUsingWebSocket = true;
         })
         .catch((error: Error) => {
-          console.warn('⚠️ WebSocket unavailable, using HTTP polling mode');
+          console.log('⚠️ WebSocket unavailable, using HTTP polling (this is normal)');
           // Graceful fallback: use HTTP client for all operations
           this.wsClient = this.httpClient;
           this.isUsingWebSocket = false;
         });
 
     } catch (error) {
-      console.warn('⚠️ WebSocket setup failed, using HTTP-only mode');
+      console.log('⚠️ WebSocket setup failed, using HTTP-only mode (this is normal)');
       // Graceful fallback: use HTTP client
       this.wsClient = this.httpClient;
       this.isUsingWebSocket = false;
