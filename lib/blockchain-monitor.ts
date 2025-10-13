@@ -264,19 +264,25 @@ export class BlockchainMonitor {
       await this.createUserCardAutomatically(syncEvent.user, syncEvent.transactionHash)
 
       // Save transaction to Supabase via API
+      // CRITICAL FIX: Oracle deltaSats convention:
+      // - Negative delta (-872) = Balance INCREASED = User received tokens = MINT
+      // - Positive delta (+872) = Balance DECREASED = User burned tokens = BURN
+      const deltaValue = parseInt(syncEvent.deltaSats)
+      const transactionType = deltaValue < 0 ? 'MINT' : 'BURN'  
+
       await this.saveTransactionToDatabase({
         tx_hash: syncEvent.transactionHash,
         block_number: Number(syncEvent.blockNumber),
         block_timestamp: new Date(syncEvent.timestamp * 1000).toISOString(),
         user_address: syncEvent.user,
-        tx_type: syncEvent.deltaSats.startsWith('-') ? 'BURN' : 'MINT',
-        amount: syncEvent.deltaSats,
-        delta: syncEvent.deltaSats,
+        tx_type: transactionType,            
+        amount: Math.abs(deltaValue).toString(), 
+        delta: syncEvent.deltaSats,            
         fee_wei: syncEvent.feeWei,
         status: 'confirmed'
       })
 
-      console.log(`✅ MONITOR: User card created automatically for ${syncEvent.user}`)
+      console.log(`✅ MONITOR: Transaction saved - Type: ${transactionType}, Amount: ${Math.abs(deltaValue)} sats`)
 
     } catch (error) {
       console.error('❌ MONITOR: Failed to handle Synced event:', error)

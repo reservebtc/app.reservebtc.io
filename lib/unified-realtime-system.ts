@@ -216,12 +216,14 @@ class UnifiedRealtimeSystem extends EventEmitter {
         block_number: Number(log.blockNumber),
         block_timestamp: new Date().toISOString(),
         user_address: userAddress,
-        tx_type: delta > 0 ? 'MINT' : 'BURN',
+        tx_type: delta < 0 ? 'MINT' : 'BURN',
         amount: Math.abs(delta).toString(),
         delta: delta.toString(),
         fee_wei: feeWei,
         status: 'confirmed'
       };
+
+      console.log(`📊 UNIFIED: Delta ${delta} sats → Type: ${transaction.tx_type}`)
 
       // Write to Supabase (single source of truth)
       await this.writeToSupabase(transaction);
