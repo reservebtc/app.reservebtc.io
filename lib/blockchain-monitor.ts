@@ -119,7 +119,7 @@ export class BlockchainMonitor {
       console.log(`🔍 MONITOR: Checking blocks ${this.lastProcessedBlock + BigInt(1)} to ${currentBlock}`)
 
       // Monitor Oracle Aggregator Synced events (most important)
-      // await this.processSyncedEvents(this.lastProcessedBlock + BigInt(1), currentBlock)
+      await this.processSyncedEvents(this.lastProcessedBlock + BigInt(1), currentBlock)
 
       // Monitor rBTC-SYNTH Mint/Burn events
       // await this.processMintBurnEvents(this.lastProcessedBlock + BigInt(1), currentBlock)
@@ -396,6 +396,28 @@ export class BlockchainMonitor {
    */
   private async saveTransactionToDatabase(transaction: any): Promise<void> {
     try {
+      console.log(`💾 MONITOR: Attempting to save ${transaction.tx_hash.slice(0,10)}...`)
+      
+      // 🛡️ CHECK IF ALREADY EXISTS (prevents duplicates)
+      const checkUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/transactions?tx_hash=eq.${transaction.tx_hash}&select=tx_hash`
+      
+      const checkResponse = await fetch(checkUrl, {
+        method: 'GET',
+        headers: {
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
+        }
+      })
+      
+      if (checkResponse.ok) {
+        const existing = await checkResponse.json()
+        if (existing && existing.length > 0) {
+          console.log(`⚠️ MONITOR: Transaction ${transaction.tx_hash.slice(0,10)}... already exists (unified-system got it first), skipping`)
+          return
+        }
+      }
+      
+      // 💾 SAVE TO DATABASE (only if not exists)
       const response = await fetch('/api/cron/indexer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -406,7 +428,7 @@ export class BlockchainMonitor {
         throw new Error('Failed to save transaction to database')
       }
 
-      console.log('✅ MONITOR: Transaction saved to Supabase')
+      console.log(`✅ MONITOR: Transaction saved to Supabase: ${transaction.tx_hash.slice(0,10)}...`)
     } catch (error) {
       console.error('❌ MONITOR: Failed to save transaction:', error)
     }
