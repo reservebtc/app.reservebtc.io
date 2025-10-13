@@ -455,6 +455,32 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
         setMintTxHash(result.transactionHash);
         setMintStatus('success');
         
+        // ✅ ENABLE MONITORING IN SUPABASE AFTER SUCCESSFUL ORACLE REGISTRATION
+        try {
+          console.log('🚀 MINT: Enabling monitoring in Supabase...');
+          
+          const startMonitoringResponse = await fetch('/api/mint/start-monitoring', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ethAddress: address,
+              bitcoinAddress: data.bitcoinAddress
+            })
+          });
+          
+          const monitoringResult = await startMonitoringResponse.json();
+          
+          if (monitoringResult.success) {
+            console.log('✅ MINT: Monitoring enabled in Supabase');
+          } else {
+            console.error('❌ MINT: Failed to enable monitoring:', monitoringResult.error);
+            // Continue anyway since Oracle registration succeeded
+          }
+        } catch (monitoringError) {
+          console.error('❌ MINT: Failed to call start-monitoring API:', monitoringError);
+          // Continue anyway since Oracle registration succeeded
+        }
+        
         setAllVerifiedAddresses(prev => prev.map(addr => ({
           ...addr,
           isMonitored: addr.address === data.bitcoinAddress ? true : addr.isMonitored
