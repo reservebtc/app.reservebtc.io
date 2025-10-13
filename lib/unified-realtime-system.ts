@@ -1,16 +1,18 @@
 // lib/unified-realtime-system.ts
-// 🚀 PRODUCTION: Unified real-time system for enterprise-grade event monitoring
-// Handles blockchain events and Supabase synchronization for 10,000+ concurrent users
-// Architecture: Event-driven, scalable, fault-tolerant, HTTP-only for maximum stability
+// 🎯 PROFESSIONAL FINTECH ARCHITECTURE - Backend-Only Monitoring
+//
+// Architecture Flow:
+// 1. Oracle Server (VPS) → Monitors Bitcoin blockchain → Calls sync() on smart contracts
+// 2. Smart Contracts → Emit events → Oracle Server writes to Supabase
+// 3. Frontend (Browser) → Reads from Supabase → Displays data
+//
+// NO blockchain monitoring in browser!
+// NO localStorage!
+// Single Source of Truth: Supabase PostgreSQL
 
-import { createPublicClient, http } from 'viem';
-import { EventEmitter } from 'events';
-
-// 🔒 PRODUCTION: Use private MegaETH endpoints from environment variables
-const PRIVATE_RPC = process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 
-                    'https://carrot.megaeth.com/rpc'
-
-// TypeScript interfaces for type safety
+/**
+ * Transaction record interface for type safety
+ */
 interface TransactionRecord {
   tx_hash: string;
   block_number: number;
@@ -21,595 +23,187 @@ interface TransactionRecord {
   delta: string;
   fee_wei?: string;
   status: string;
-  gas_used?: string;
-  gas_price?: string;
 }
 
 /**
- * UnifiedRealtimeSystem
+ * UnifiedRealtimeSystem - DISABLED for browser use
  * 
- * PRODUCTION-GRADE real-time blockchain event monitoring system
+ * This class exists only for documentation and potential future server-side use.
+ * All blockchain monitoring happens on Oracle Server (VPS), not in browser.
  * 
- * Features:
- * - HTTP-only polling (4 second intervals) - reliable for all browsers
- * - Automatic reconnection with exponential backoff
- * - Duplicate transaction prevention
- * - Concurrent event processing for multiple users
- * - Single source of truth (Supabase)
- * - Memory-efficient event handling
+ * Production Architecture:
+ * - Oracle Server monitors Bitcoin addresses every 15 seconds
+ * - Oracle Server calls sync() on Oracle Aggregator contract when balance changes
+ * - Smart contract emits Synced event
+ * - Oracle Server writes transaction to Supabase
+ * - Frontend reads from Supabase and displays data
  * 
- * Scalability:
- * - Handles 10,000+ concurrent users with single HTTP polling
- * - Processing capacity: 100+ events/second
- * - Memory footprint: ~50MB for 10K users
- * - No WebSocket = no browser compatibility issues
+ * Contracts (MegaETH Testnet):
+ * - Oracle Aggregator: 0xEcCC1Bf6Ad2e875152eE65DC365F90d07da7aEAc
+ * - rBTC-SYNTH: 0x5b9375b4ac0f61C7D5af32374aCCe0d058cE6F58
+ * - Fee Vault: 0x1384d3A60a910B5b402ee09457b3eBfCC964FD4f
+ * - Vault wrBTC: 0xa10FC332f12d102Dddf431F8136E4E89279EFF87
  */
-class UnifiedRealtimeSystem extends EventEmitter {
-  private httpClient: any;
-  private isConnected = false;
-  private processedTxs = new Set<string>();
-  private reconnectAttempts = 0;
-  private readonly MAX_RECONNECT_ATTEMPTS = 3;
-  private readonly RECONNECT_DELAY = 3000; // 3 seconds
-
-  // 🏦 Contract addresses (Production deployment)
-  private readonly contracts = {
-    oracle: '0xEcCC1Bf6Ad2e875152eE65DC365F90d07da7aEAc',
-    rbtcSynth: '0x5b9375b4ac0f61C7D5af32374aCCe0d058cE6F58',
-    wrbtc: '0xa10FC332f12d102Dddf431F8136E4E89279EFF87',
-    feeVault: '0x1384d3A60a910B5b402ee09457b3eBfCC964FD4f'
-  };
-
-  // 💾 Supabase configuration
-  private readonly supabase = {
-    url: 'https://qoudozwmecstoxrqopqf.supabase.co',
-    key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-  };
-
+class UnifiedRealtimeSystem {
   constructor() {
-    super();
-    this.setupClients();
-    this.startUnifiedMonitoring();
+    console.log('✅ Professional Architecture: Backend-Only Monitoring');
+    console.log('✅ Oracle Server (VPS) handles all blockchain events');
+    console.log('✅ Frontend reads from Supabase only - no browser polling');
   }
 
   /**
-   * Setup blockchain clients with HTTP-only transport
-   * PRODUCTION: HTTP polling is reliable and scalable for 10K+ users
-   * No WebSocket = no browser security issues, no connection overhead
-   */
-  private setupClients() {
-    const megaeth = {
-      id: 6342,
-      name: 'MegaETH Testnet',
-      nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-      rpcUrls: {
-        default: { 
-          http: [PRIVATE_RPC]
-          // No WebSocket - prevents VIEM from creating connections
-        }
-      }
-    };
-
-    console.log('🔒 UNIFIED SYSTEM: Initializing with private endpoints')
-    console.log('🔒 RPC:', PRIVATE_RPC.includes('/mafia/') ? 'PRIVATE ✅' : 'PUBLIC ⚠️')
-
-    // 🔥 PRODUCTION: HTTP-only transport
-    // Single HTTP client for all 10K users - efficient and reliable
-    this.httpClient = createPublicClient({
-      chain: megaeth,
-      transport: http(PRIVATE_RPC, {
-        batch: true,        // Batch requests for efficiency
-        retryCount: 3,      // Retry failed requests
-        retryDelay: 1000,   // 1 second between retries
-        timeout: 10_000     // 10 second timeout
-      })
-    });
-
-    console.log('📡 HTTP-only transport - production stable (polling every 4s)');
-  }
-
-  /**
-   * Start unified monitoring for all contract events
-   * PRODUCTION: Single HTTP polling loop monitors ALL contracts
-   * Updates propagate to all 10K users through Supabase + EventEmitter
-   */
-  private async startUnifiedMonitoring() {
-    console.log('🚀 Starting Unified Real-time System...');
-    
-    try {
-      // Monitor all contract events concurrently with HTTP polling
-      // VIEM's watchContractEvent uses HTTP polling when WebSocket not available
-      await Promise.all([
-        this.monitorOracleEvents(),
-        this.monitorRBTCEvents(),
-        this.monitorWRBTCEvents(),
-        this.monitorFeeVaultEvents()
-      ]);
-
-      this.isConnected = true;
-      this.reconnectAttempts = 0;
-      this.emit('connected');
-      console.log('✅ Unified system active - monitoring all contracts');
-      
-    } catch (error) {
-      console.error('❌ Failed to start monitoring:', error);
-      this.handleReconnection();
-    }
-  }
-
-  /**
-   * Handle reconnection with exponential backoff
-   * PRODUCTION: Automatic recovery from network failures
-   */
-  private async handleReconnection() {
-    if (this.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
-      console.error('❌ Max reconnection attempts reached. System will retry on next page load.');
-      this.emit('disconnected');
-      return;
-    }
-
-    this.reconnectAttempts++;
-    const delay = this.RECONNECT_DELAY * Math.pow(2, this.reconnectAttempts - 1);
-    
-    console.log(`⏳ Reconnection attempt ${this.reconnectAttempts}/${this.MAX_RECONNECT_ATTEMPTS} in ${delay}ms...`);
-    
-    setTimeout(() => {
-      this.setupClients();
-      this.startUnifiedMonitoring();
-    }, delay);
-  }
-
-  /**
-   * Monitor Oracle Synced events (MINT/BURN operations)
-   * Event: Synced(address user, uint64 newBalanceSats, int64 deltaSats, ...)
-   * 
-   * PRODUCTION: Single monitoring for all users
-   * When ANY user mints/burns, this catches it and updates Supabase
-   */
-  private async monitorOracleEvents() {
-    this.httpClient.watchContractEvent({
-      address: this.contracts.oracle,
-      abi: [{
-        name: 'Synced',
-        type: 'event',
-        inputs: [
-          { name: 'user', type: 'address', indexed: true },
-          { name: 'newBalanceSats', type: 'uint64', indexed: false },
-          { name: 'deltaSats', type: 'int64', indexed: false },
-          { name: 'feeWei', type: 'uint256', indexed: false },
-          { name: 'height', type: 'uint32', indexed: false },
-          { name: 'timestamp', type: 'uint64', indexed: false }
-        ]
-      }],
-      eventName: 'Synced',
-      onLogs: async (logs: any[]) => {
-        for (const log of logs) {
-          await this.processOracleSync(log);
-        }
-      }
-    });
-  }
-
-  /**
-   * Process Oracle sync event
-   * PRODUCTION: Atomic transaction recording with duplicate prevention
-   * Writes to Supabase (single source of truth) and emits events for connected clients
-   */
-  private async processOracleSync(log: any) {
-    const txKey = `${log.transactionHash}-${log.logIndex}`;
-    
-    // Duplicate prevention for concurrent processing
-    if (this.processedTxs.has(txKey)) return;
-    this.processedTxs.add(txKey);
-
-    try {
-      const { args } = log;
-      const userAddress = args.user.toLowerCase();
-      const newBalance = Number(args.newBalanceSats);
-      const delta = Number(args.deltaSats);
-      const feeWei = args.feeWei.toString();
-
-      console.log(`🔄 Oracle Sync: ${userAddress.slice(0,10)}... ${delta > 0 ? '+' : ''}${delta} sats`);
-
-      const transaction: TransactionRecord = {
-        tx_hash: log.transactionHash,
-        block_number: Number(log.blockNumber),
-        block_timestamp: new Date().toISOString(),
-        user_address: userAddress,
-        tx_type: delta < 0 ? 'MINT' : 'BURN',
-        amount: Math.abs(delta).toString(),
-        delta: delta.toString(),
-        fee_wei: feeWei,
-        status: 'confirmed'
-      };
-
-      console.log(`📊 UNIFIED: Delta ${delta} sats → Type: ${transaction.tx_type}`)
-
-      // Write to Supabase (single source of truth)
-      await this.writeToSupabase(transaction);
-
-      // Emit real-time events for connected clients
-      // Any component subscribed to this user will receive instant updates
-      this.emit('newTransaction', transaction);
-      this.emit('balanceUpdate', {
-        userAddress,
-        rbtcBalance: newBalance,
-        lastSats: newBalance,
-        lastUpdate: Date.now(),
-        blockNumber: Number(log.blockNumber)
-      });
-
-      console.log(`✅ Processed: ${log.transactionHash.slice(0,10)}...`);
-
-    } catch (error) {
-      console.error(`❌ Error processing Oracle sync:`, error);
-      // Remove from processed set to allow retry
-      this.processedTxs.delete(txKey);
-    }
-  }
-
-  /**
-   * Write transaction to Supabase
-   * PRODUCTION: Idempotent writes with error handling
-   */
-  private async writeToSupabase(transaction: TransactionRecord) {
-    try {
-      const response = await fetch(`${this.supabase.url}/rest/v1/transactions`, {
-        method: 'POST',
-        headers: {
-          'apikey': this.supabase.key,
-          'Authorization': `Bearer ${this.supabase.key}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify(transaction)
-      });
-
-      if (!response.ok) {
-        // Check if it's a duplicate key error (expected in concurrent scenarios)
-        if (response.status === 409) {
-          console.log(`⚠️ Duplicate transaction (expected): ${transaction.tx_hash.slice(0,10)}...`);
-          return;
-        }
-        throw new Error(`Supabase write failed: ${response.status}`);
-      }
-
-      console.log(`💾 Supabase: ${transaction.tx_hash.slice(0,10)}...`);
-      
-    } catch (error) {
-      console.error(`❌ Supabase error:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Monitor rBTC-SYNTH Transfer events
-   * Note: Mint/Burn are handled by Oracle, skip to avoid duplication
-   */
-  private async monitorRBTCEvents() {
-    this.httpClient.watchContractEvent({
-      address: this.contracts.rbtcSynth,
-      abi: [{
-        name: 'Transfer',
-        type: 'event',
-        inputs: [
-          { name: 'from', type: 'address', indexed: true },
-          { name: 'to', type: 'address', indexed: true },
-          { name: 'value', type: 'uint256', indexed: false }
-        ]
-      }],
-      eventName: 'Transfer',
-      onLogs: async (logs: any[]) => {
-        for (const log of logs) {
-          await this.processRBTCTransfer(log);
-        }
-      }
-    });
-  }
-
-  /**
-   * Process rBTC Transfer events
-   * Skip mint/burn (handled by Oracle) to avoid duplication
-   */
-  private async processRBTCTransfer(log: any) {
-    const { args } = log;
-    const from = args.from.toLowerCase();
-    const to = args.to.toLowerCase();
-    
-    // Zero address = mint/burn, handled by Oracle sync
-    const zeroAddress = '0x0000000000000000000000000000000000000000';
-    if (from === zeroAddress || to === zeroAddress) {
-      return;
-    }
-    
-    // Regular transfers between users (if any in future)
-    // Currently rBTC-SYNTH is soulbound, so this won't trigger
-  }
-
-  /**
-   * Monitor wrBTC Wrapped/Redeemed events
-   */
-  private async monitorWRBTCEvents() {
-    // Monitor Wrapped events
-    this.httpClient.watchContractEvent({
-      address: this.contracts.wrbtc,
-      abi: [{
-        name: 'Wrapped',
-        type: 'event',
-        inputs: [
-          { name: 'user', type: 'address', indexed: true },
-          { name: 'amount', type: 'uint256', indexed: false }
-        ]
-      }],
-      eventName: 'Wrapped',
-      onLogs: async (logs: any[]) => {
-        for (const log of logs) {
-          await this.processWRBTCEvent(log, 'WRAP');
-        }
-      }
-    });
-
-    // Monitor Redeemed events
-    this.httpClient.watchContractEvent({
-      address: this.contracts.wrbtc,
-      abi: [{
-        name: 'Redeemed',
-        type: 'event',
-        inputs: [
-          { name: 'user', type: 'address', indexed: true },
-          { name: 'amount', type: 'uint256', indexed: false }
-        ]
-      }],
-      eventName: 'Redeemed',
-      onLogs: async (logs: any[]) => {
-        for (const log of logs) {
-          await this.processWRBTCEvent(log, 'UNWRAP');
-        }
-      }
-    });
-  }
-
-  /**
-   * Process wrBTC Wrap/Unwrap events
-   */
-  private async processWRBTCEvent(log: any, txType: 'WRAP' | 'UNWRAP') {
-    const txKey = `${log.transactionHash}-${log.logIndex}`;
-    if (this.processedTxs.has(txKey)) return;
-    this.processedTxs.add(txKey);
-
-    try {
-      const { args } = log;
-      const userAddress = args.user.toLowerCase();
-      const amount = Number(args.amount);
-
-      const transaction: TransactionRecord = {
-        tx_hash: log.transactionHash,
-        block_number: Number(log.blockNumber),
-        block_timestamp: new Date().toISOString(),
-        user_address: userAddress,
-        tx_type: txType,
-        amount: amount.toString(),
-        delta: txType === 'WRAP' ? amount.toString() : (-amount).toString(),
-        status: 'confirmed'
-      };
-
-      await this.writeToSupabase(transaction);
-      this.emit('newTransaction', transaction);
-
-      console.log(`✅ ${txType}: ${userAddress.slice(0,10)}... ${amount} tokens`);
-
-    } catch (error) {
-      console.error(`❌ Error processing ${txType}:`, error);
-      this.processedTxs.delete(txKey);
-    }
-  }
-
-  /**
-   * Monitor FeeVault Deposited/Withdrawn events
-   */
-  private async monitorFeeVaultEvents() {
-    // Monitor Deposited events
-    this.httpClient.watchContractEvent({
-      address: this.contracts.feeVault,
-      abi: [{
-        name: 'Deposited',
-        type: 'event',
-        inputs: [
-          { name: 'user', type: 'address', indexed: true },
-          { name: 'amount', type: 'uint256', indexed: false }
-        ]
-      }],
-      eventName: 'Deposited',
-      onLogs: async (logs: any[]) => {
-        for (const log of logs) {
-          await this.processFeeVaultEvent(log, 'DEPOSIT');
-        }
-      }
-    });
-
-    // Monitor Withdrawn events
-    this.httpClient.watchContractEvent({
-      address: this.contracts.feeVault,
-      abi: [{
-        name: 'Withdrawn',
-        type: 'event',
-        inputs: [
-          { name: 'user', type: 'address', indexed: true },
-          { name: 'amount', type: 'uint256', indexed: false }
-        ]
-      }],
-      eventName: 'Withdrawn',
-      onLogs: async (logs: any[]) => {
-        for (const log of logs) {
-          await this.processFeeVaultEvent(log, 'WITHDRAW');
-        }
-      }
-    });
-  }
-
-  /**
-   * Process FeeVault Deposit/Withdraw events
-   */
-  private async processFeeVaultEvent(log: any, txType: 'DEPOSIT' | 'WITHDRAW') {
-    const txKey = `${log.transactionHash}-${log.logIndex}`;
-    if (this.processedTxs.has(txKey)) return;
-    this.processedTxs.add(txKey);
-
-    try {
-      const { args } = log;
-      const userAddress = args.user.toLowerCase();
-      const amount = args.amount.toString();
-
-      const transaction: TransactionRecord = {
-        tx_hash: log.transactionHash,
-        block_number: Number(log.blockNumber),
-        block_timestamp: new Date().toISOString(),
-        user_address: userAddress,
-        tx_type: txType,
-        amount: amount,
-        delta: txType === 'DEPOSIT' ? amount : `-${amount}`,
-        status: 'confirmed'
-      };
-
-      await this.writeToSupabase(transaction);
-      this.emit('newTransaction', transaction);
-
-      console.log(`✅ Fee ${txType}: ${userAddress.slice(0,10)}...`);
-
-    } catch (error) {
-      console.error(`❌ Error processing Fee ${txType}:`, error);
-      this.processedTxs.delete(txKey);
-    }
-  }
-
-  /**
-   * PUBLIC API: Get user data from Supabase
-   * PRODUCTION: Single source of truth, no caching
+   * Get user data - DISABLED
+   * Frontend should query Supabase directly via API
    */
   async getUserData(userAddress: string) {
-    try {
-      const response = await fetch(
-        `${this.supabase.url}/rest/v1/transactions?user_address=eq.${userAddress.toLowerCase()}&order=block_timestamp.desc&limit=50`,
-        {
-          headers: {
-            'apikey': this.supabase.key,
-            'Authorization': `Bearer ${this.supabase.key}`
-          }
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch user data: ${response.status}`);
-      }
-
-      const transactions = await response.json();
-
-      // Calculate balances from transaction history
-      let rbtcBalance = 0;
-      let wrbtcBalance = 0;
-
-      for (const tx of transactions) {
-        if (tx.tx_type === 'MINT') rbtcBalance += parseInt(tx.amount);
-        if (tx.tx_type === 'BURN') rbtcBalance -= parseInt(tx.amount);
-        if (tx.tx_type === 'WRAP') {
-          rbtcBalance -= parseInt(tx.amount);
-          wrbtcBalance += parseInt(tx.amount);
-        }
-        if (tx.tx_type === 'UNWRAP') {
-          rbtcBalance += parseInt(tx.amount);
-          wrbtcBalance -= parseInt(tx.amount);
-        }
-      }
-
-      return {
-        user: {
-          address: userAddress.toLowerCase(),
-          rbtcBalance,
-          wrbtcBalance,
-          lastSats: rbtcBalance,
-          lastUpdate: Date.now()
-        },
-        transactions
-      };
-
-    } catch (error) {
-      console.error(`❌ Error getting user data:`, error);
-      return { user: null, transactions: [] };
-    }
+    console.warn('⚠️ Use Supabase API directly in components');
+    return { user: null, transactions: [] };
   }
 
   /**
-   * PUBLIC API: Subscribe to user-specific events
-   * PRODUCTION: Memory-efficient per-user subscriptions
-   * Allows 10K users to subscribe without memory overhead
+   * Subscribe to user events - DISABLED
+   * Frontend should use Supabase real-time subscriptions
    */
   subscribeToUser(userAddress: string, callback: (event: string, data: any) => void) {
-    const normalizedAddress = userAddress.toLowerCase();
-
-    const balanceHandler = (data: any) => {
-      if (data.userAddress === normalizedAddress) {
-        callback('balanceUpdate', data);
-      }
-    };
-
-    const transactionHandler = (data: any) => {
-      if (data.user_address === normalizedAddress) {
-        callback('newTransaction', data);
-      }
-    };
-
-    this.on('balanceUpdate', balanceHandler);
-    this.on('newTransaction', transactionHandler);
-
-    // Return unsubscribe function
-    return () => {
-      this.off('balanceUpdate', balanceHandler);
-      this.off('newTransaction', transactionHandler);
-    };
+    console.warn('⚠️ Use Supabase real-time subscriptions directly');
+    return () => {};
   }
 
   /**
-   * PUBLIC API: Get system status
+   * Get system status
    */
   getStatus() {
     return {
-      isConnected: this.isConnected,
-      transport: 'HTTP Polling',
-      pollingInterval: '4 seconds',
-      processedTransactions: this.processedTxs.size,
-      reconnectAttempts: this.reconnectAttempts,
-      uptime: Date.now(),
-      endpoint: PRIVATE_RPC.includes('/mafia/') ? 'private' : 'public'
+      architecture: 'Backend-Only (Professional Fintech)',
+      blockchain_monitoring: 'Oracle Server (VPS)',
+      data_source: 'Supabase PostgreSQL',
+      frontend_role: 'Read-only display',
+      scalability: '10,000+ concurrent users',
+      note: 'No blockchain operations in browser'
     };
-  }
-
-  /**
-   * PRODUCTION: Periodic cleanup of processed transactions Set
-   * Prevents memory leaks in long-running processes
-   */
-  startPeriodicCleanup() {
-    setInterval(() => {
-      const maxSize = 10000; // Keep last 10K transactions in memory
-      if (this.processedTxs.size > maxSize) {
-        const txArray = Array.from(this.processedTxs);
-        this.processedTxs = new Set(txArray.slice(-maxSize));
-        console.log(`🧹 Cleanup: Reduced processed transactions from ${txArray.length} to ${maxSize}`);
-      }
-    }, 3600000); // Every hour
   }
 }
 
-// 🌐 PRODUCTION: Global singleton instance
-// Single instance monitors ALL events for ALL 10K users
-export const unifiedRealtimeSystem = new UnifiedRealtimeSystem();
+// Export class for documentation purposes
+export { UnifiedRealtimeSystem };
 
-// Start periodic cleanup for long-running processes
-unifiedRealtimeSystem.startPeriodicCleanup();
-
-// 📡 PRODUCTION: Public API for application use
+/**
+ * PUBLIC API - Minimal no-op implementation
+ * 
+ * Frontend components should interact with Supabase directly:
+ * 
+ * @example
+ * // Correct approach - Read transactions from Supabase
+ * const { data } = await supabase
+ *   .from('transactions')
+ *   .select('*')
+ *   .eq('user_address', address)
+ *   .order('block_timestamp', { ascending: false });
+ * 
+ * @example
+ * // Correct approach - Subscribe to real-time updates
+ * supabase
+ *   .channel('public:transactions')
+ *   .on('postgres_changes', 
+ *     { 
+ *       event: 'INSERT', 
+ *       schema: 'public', 
+ *       table: 'transactions',
+ *       filter: `user_address=eq.${address}`
+ *     },
+ *     (payload) => {
+ *       // Update UI with new transaction
+ *       console.log('New transaction:', payload.new);
+ *     }
+ *   )
+ *   .subscribe();
+ */
 export const unifiedAPI = {
-  getUserData: (address: string) => unifiedRealtimeSystem.getUserData(address),
-  subscribeToUser: (address: string, callback: (event: string, data: any) => void) =>
-    unifiedRealtimeSystem.subscribeToUser(address, callback),
-  getStatus: () => unifiedRealtimeSystem.getStatus()
+  /**
+   * Get user data - Returns empty (use Supabase directly)
+   */
+  getUserData: async (address: string): Promise<{ user: null; transactions: [] }> => {
+    return { user: null, transactions: [] };
+  },
+
+  /**
+   * Subscribe to user events - No-op (use Supabase subscriptions)
+   */
+  subscribeToUser: (
+    address: string, 
+    callback: (event: string, data: any) => void
+  ): (() => void) => {
+    return () => {};
+  },
+
+  /**
+   * Get system status
+   */
+  getStatus: () => ({
+    isConnected: false,
+    transport: 'N/A',
+    architecture: 'Backend-Only',
+    monitoring: 'Oracle Server (VPS)',
+    database: 'Supabase PostgreSQL',
+    blockchain: 'MegaETH Testnet',
+    contracts: {
+      oracle: '0xEcCC1Bf6Ad2e875152eE65DC365F90d07da7aEAc',
+      rbtcSynth: '0x5b9375b4ac0f61C7D5af32374aCCe0d058cE6F58',
+      feeVault: '0x1384d3A60a910B5b402ee09457b3eBfCC964FD4f',
+      wrbtc: '0xa10FC332f12d102Dddf431F8136E4E89279EFF87'
+    },
+    note: 'Professional fintech architecture - all blockchain monitoring on backend'
+  })
 };
+
+/**
+ * PRODUCTION NOTES FOR DEVELOPERS:
+ * 
+ * System Components:
+ * 
+ * 1. Oracle Server (VPS - professional-oracle-server-fixed.js):
+ *    - Runs continuously on VPS
+ *    - Monitors Bitcoin addresses every 15 seconds via Mempool.space API
+ *    - Compares current balance with last known balance
+ *    - Calls sync() on Oracle Aggregator contract when balance changes
+ *    - Writes transaction records to Supabase
+ *    - Handles nonce management and duplicate prevention
+ * 
+ * 2. Smart Contracts (MegaETH Testnet):
+ *    - Oracle Aggregator: Receives sync() calls, emits Synced events
+ *    - rBTC-SYNTH: Soulbound token, mints/burns based on Oracle data
+ *    - Fee Vault: Stores user fees for operations
+ *    - Vault wrBTC: Handles wrapping/unwrapping
+ * 
+ * 3. Database (Supabase):
+ *    - transactions table: Single source of truth for all operations
+ *    - bitcoin_addresses table: Maps ETH addresses to Bitcoin addresses
+ *    - Real-time subscriptions: Push updates to connected clients
+ * 
+ * 4. Frontend (Next.js + React):
+ *    - Connects wallet via wagmi/viem
+ *    - Reads transactions from Supabase
+ *    - Subscribes to real-time updates via Supabase channels
+ *    - NO blockchain monitoring in browser
+ *    - NO localStorage usage
+ *    - Pure display and user interaction layer
+ * 
+ * Why This Architecture?
+ * ✅ Scalability: Backend handles 10,000+ users efficiently
+ * ✅ Reliability: Oracle Server never stops, browser refresh doesn't affect monitoring
+ * ✅ Performance: No heavy blockchain operations in browser
+ * ✅ Security: Private keys only on backend VPS
+ * ✅ Professional: Follows enterprise fintech best practices
+ * ✅ Simple: Clear separation of concerns
+ * 
+ * Data Flow Example (MINT operation):
+ * 1. User sends Bitcoin to their deposit address
+ * 2. Oracle Server detects balance change (15s polling)
+ * 3. Oracle Server calls sync(user, newBalance, proof) on contract
+ * 4. Contract emits Synced(user, newBalance, delta, ...)
+ * 5. Oracle Server writes to Supabase transactions table
+ * 6. Frontend subscribed to Supabase receives instant update
+ * 7. UI updates to show new MINT transaction
+ * 
+ * Total latency: ~15-30 seconds (Bitcoin confirmation + polling interval)
+ */
