@@ -257,7 +257,8 @@ export async function POST(request: NextRequest) {
             eth_address: ethereumAddress || null,
             network: cleanAddress.startsWith('tb1') || cleanAddress.startsWith('2') ? 'testnet' : 'mainnet',
             verified_at: new Date().toISOString(),
-            is_monitoring: false
+            is_monitoring: true,
+            monitoring_started_at: new Date().toISOString()
           }
           
           console.log('🔍 DEBUG: Data to insert:', JSON.stringify(dataToInsert, null, 2))
