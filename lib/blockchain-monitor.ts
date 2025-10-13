@@ -52,6 +52,8 @@ export class BlockchainMonitor {
   private isMonitoring = false
   private monitoringInterval: NodeJS.Timeout | null = null
   private lastProcessedBlock = BigInt(0)
+  private userCooldowns = new Map<string, number>()
+  private readonly COOLDOWN_MS = 30000
 
   /**
    * Start automatic monitoring for all contract events
@@ -246,19 +248,31 @@ export class BlockchainMonitor {
    * Handle Oracle Synced event - creates user cards automatically
    */
   private async handleSyncedEvent(log: any): Promise<void> {
-    try {
-      const syncEvent: SyncEvent = {
-        user: log.args.user,
-        newBalanceSats: log.args.newBalanceSats.toString(),
-        deltaSats: log.args.deltaSats.toString(),
-        feeWei: log.args.feeWei.toString(),
-        height: Number(log.args.height),
-        timestamp: Number(log.args.timestamp),
-        blockNumber: log.blockNumber,
-        transactionHash: log.transactionHash
-      }
+      try {
+        const syncEvent: SyncEvent = {
+          user: log.args.user,
+          newBalanceSats: log.args.newBalanceSats.toString(),
+          deltaSats: log.args.deltaSats.toString(),
+          feeWei: log.args.feeWei.toString(),
+          height: Number(log.args.height),
+          timestamp: Number(log.args.timestamp),
+          blockNumber: log.blockNumber,
+          transactionHash: log.transactionHash
+        }
 
-      console.log('🎯 MONITOR: AUTOMATIC USER DETECTED - Oracle Synced Event:', syncEvent)
+        // 🛡️ COOLDOWN CHECK: Prevent duplicate processing
+        const now = Date.now()
+        const lastProcessed = this.userCooldowns.get(syncEvent.user) || 0
+        
+        if (now - lastProcessed < this.COOLDOWN_MS) {
+          const timeSince = Math.floor((now - lastProcessed) / 1000)
+          console.log(`⚠️ MONITOR: User ${syncEvent.user.slice(0,10)}... in cooldown (${timeSince}s ago), skipping`)
+          return
+        }
+        
+        this.userCooldowns.set(syncEvent.user, now)
+
+        console.log('🎯 MONITOR: AUTOMATIC USER DETECTED - Oracle Synced Event:', syncEvent)
 
       // Automatically create user card for this new user
       await this.createUserCardAutomatically(syncEvent.user, syncEvent.transactionHash)
