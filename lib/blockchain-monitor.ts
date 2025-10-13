@@ -119,10 +119,10 @@ export class BlockchainMonitor {
       console.log(`🔍 MONITOR: Checking blocks ${this.lastProcessedBlock + BigInt(1)} to ${currentBlock}`)
 
       // Monitor Oracle Aggregator Synced events (most important)
-      await this.processSyncedEvents(this.lastProcessedBlock + BigInt(1), currentBlock)
+      // await this.processSyncedEvents(this.lastProcessedBlock + BigInt(1), currentBlock)
 
       // Monitor rBTC-SYNTH Mint/Burn events
-      await this.processMintBurnEvents(this.lastProcessedBlock + BigInt(1), currentBlock)
+      // await this.processMintBurnEvents(this.lastProcessedBlock + BigInt(1), currentBlock)
 
       // Monitor Fee Vault Deposit events
       await this.processFeeVaultEvents(this.lastProcessedBlock + BigInt(1), currentBlock)
