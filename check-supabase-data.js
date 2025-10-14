@@ -1,7 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
-  'https://qoudozwmecstoxrqopqf.supabase.co',
+  process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY   process.env.SUPABASE_SERVICE_KEY   process.env.SUPABASEckData() {
   console.log('CHECKING SUPABASE DATA\n');
   
