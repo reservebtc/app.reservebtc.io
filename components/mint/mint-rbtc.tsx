@@ -247,9 +247,12 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               const realBalance = balanceData?.balance || 0
               
               // Check if this address is monitored from Supabase
-              const monitoringResponse = await fetch(`/api/supabase/bitcoin-addresses?bitcoin_address=${btcAddr}&is_monitoring=true`)
+              const monitoringResponse = await fetch(`/api/supabase/bitcoin-addresses?bitcoin_address=${btcAddr}`)
               const monitoringData = await monitoringResponse.json()
-              const isMonitored = monitoringData.addresses && monitoringData.addresses.length > 0
+
+              // Check if address exists AND has is_monitoring = true
+              const addressData = monitoringData.addresses?.[0]
+              const isMonitored = addressData?.is_monitoring === true
               
               verifiedAddrs.push({
                 address: btcAddr,

@@ -297,9 +297,12 @@ export function DashboardContent() {
             const realBalance = balanceData?.balance || 0
             
             // Check if this address is monitored from Supabase
-            const monitoringResponse = await fetch(`/api/supabase/bitcoin-addresses?bitcoin_address=${btcAddr}&is_monitoring=true&_t=${Date.now()}`)
+            const monitoringResponse = await fetch(`/api/supabase/bitcoin-addresses?bitcoin_address=${btcAddr}&_t=${Date.now()}`)
             const monitoringData = await monitoringResponse.json()
-            const isMonitored = monitoringData.addresses && monitoringData.addresses.length > 0
+
+            // Check if address exists AND has is_monitoring = true
+            const addressData = monitoringData.addresses?.[0]
+            const isMonitored = addressData?.is_monitoring === true
             
             if (isMonitored && realBalance > 0) {
               primaryMonitoredAddress = btcAddr
