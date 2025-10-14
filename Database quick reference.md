@@ -4,63 +4,63 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                  RESERVEBTC DATABASE                     │
-│                   (Supabase PostgreSQL)                  │
+│                  RESERVEBTC DATABASE                    │
+│                   (Supabase PostgreSQL)                 │
 ├─────────────────────────────────────────────────────────┤
-│                                                          │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │           CORE TABLES (8)                       │   │
-│  ├─────────────────────────────────────────────────┤   │
-│  │                                                  │   │
-│  │  📝 transactions (42 records)                   │   │
-│  │     - All MINT/BURN/WRAP/UNWRAP operations     │   │
-│  │     - Indexed by user + timestamp               │   │
-│  │     - 77 indexes total                          │   │
-│  │                                                  │   │
-│  │  👤 users (3 users)                             │   │
-│  │     - Balance tracking                          │   │
-│  │     - Lifetime totals                           │   │
-│  │                                                  │   │
-│  │  ₿  bitcoin_addresses (12 addresses)            │   │
-│  │     - ETH ↔ BTC mapping                         │   │
-│  │     - Balance in satoshis                       │   │
-│  │     - 9 actively monitored                      │   │
-│  │                                                  │   │
-│  │  🚰 faucet_requests (5 requests)                │   │
-│  │     - Testnet ETH distribution                  │   │
-│  │                                                  │   │
-│  └─────────────────────────────────────────────────┘   │
-│                                                          │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │        SYSTEM TABLES (4)                        │   │
-│  ├─────────────────────────────────────────────────┤   │
-│  │                                                  │   │
-│  │  📋 oracle_operations_log                       │   │
-│  │     - Oracle activity logging                   │   │
-│  │                                                  │   │
-│  │  🚨 system_alerts                               │   │
-│  │     - Monitoring & errors                       │   │
-│  │                                                  │   │
-│  │  🔥 emergency_burns                             │   │
-│  │     - Critical burn tracking                    │   │
-│  │                                                  │   │
-│  │  📜 system_contracts (6 contracts)              │   │
-│  │     - Smart contract registry                   │   │
-│  │                                                  │   │
-│  └─────────────────────────────────────────────────┘   │
-│                                                          │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │        FUTURE TABLES (3)                        │   │
-│  ├─────────────────────────────────────────────────┤   │
-│  │                                                  │   │
-│  │  💰 yield_monitoring                            │   │
-│  │  💰 yield_operations_log                        │   │
-│  │  💰 yield_scales_participants                   │   │
-│  │     - Reserved for DeFi yield protocol          │   │
-│  │     - Structure ready, awaiting activation      │   │
-│  │                                                  │   │
-│  └─────────────────────────────────────────────────┘   │
-│                                                          │
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │           CORE TABLES (8)                       │    │
+│  ├─────────────────────────────────────────────────┤    │
+│  │                                                 │    │
+│  │  📝 transactions (42 records)                   │    │
+│  │     - All MINT/BURN/WRAP/UNWRAP operations      │    │
+│  │     - Indexed by user + timestamp               │    │
+│  │     - 77 indexes total                          │    │
+│  │                                                 │    │
+│  │  👤 users (3 users)                             │    │
+│  │     - Balance tracking                          │    │
+│  │     - Lifetime totals                           │    │
+│  │                                                 │    │
+│  │  ₿  bitcoin_addresses (12 addresses)            │    │
+│  │     - ETH ↔ BTC mapping                         │    │
+│  │     - Balance in satoshis                       │    │
+│  │     - 9 actively monitored                      │    │
+│  │                                                 │    │
+│  │  🚰 faucet_requests (5 requests)                │    │
+│  │     - Testnet ETH distribution                  │    │
+│  │                                                 │    │
+│  └─────────────────────────────────────────────────┘    │
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │        SYSTEM TABLES (4)                        │    │
+│  ├─────────────────────────────────────────────────┤    │ 
+│  │                                                 │    │
+│  │  📋 oracle_operations_log                       │    │
+│  │     - Oracle activity logging                   │    │
+│  │                                                 │    │
+│  │  🚨 system_alerts                               │    │
+│  │     - Monitoring & errors                       │    │
+│  │                                                 │    │
+│  │  🔥 emergency_burns                             │    │
+│  │     - Critical burn tracking                    │    │
+│  │                                                 │    │
+│  │  📜 system_contracts (6 contracts)              │    │
+│  │     - Smart contract registry                   │    │
+│  │                                                 │    │
+│  └─────────────────────────────────────────────────┘    │
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │        FUTURE TABLES (3)                        │    │
+│  ├─────────────────────────────────────────────────┤    │ 
+│  │                                                 │    │
+│  │  💰 yield_monitoring                            │    │
+│  │  💰 yield_operations_log                        │    │
+│  │  💰 yield_scales_participants                   │    │
+│  │     - Reserved for DeFi yield protocol          │    │ 
+│  │     - Structure ready, awaiting activation      │    │
+│  │                                                 │    │
+│  └─────────────────────────────────────────────────┘    │
+│                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -82,7 +82,7 @@
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                      DATA FLOW                            │
+│                      DATA FLOW                           │
 └──────────────────────────────────────────────────────────┘
 
     User Deposits Bitcoin
@@ -129,7 +129,7 @@
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                  SECURITY LAYERS                          │
+│                  SECURITY LAYERS                         │
 └──────────────────────────────────────────────────────────┘
 
 ┌─────────────┐

@@ -12,122 +12,122 @@ ReserveBTC implements a **backend-driven, non-custodial architecture** for Bitco
 ┌─────────────────────────────────────────────────────────────┐
 │                    ORACLE SERVER (VPS)                      │
 │                                                             │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  Bitcoin Balance Monitoring (Every 15 seconds)       │  │
-│  │  ├─ Mempool.space API integration                    │  │
-│  │  ├─ Multi-address support per user                   │  │
-│  │  └─ Real-time balance change detection               │  │
-│  └──────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Bitcoin Balance Monitoring (Every 15 seconds)       │   │
+│  │  ├─ Mempool.space API integration                    │   │
+│  │  ├─ Multi-address support per user                   │   │
+│  │  └─ Real-time balance change detection               │   │
+│  └──────────────────────────────────────────────────────┘   │
 │                           ↓                                 │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  Smart Contract Interaction (MegaETH)                │  │
-│  │  ├─ Calls sync() on Oracle Aggregator                │  │
-│  │  ├─ Automatic nonce management                       │  │
-│  │  ├─ Gas optimization & retry logic                   │  │
-│  │  └─ Duplicate transaction prevention                 │  │
-│  └──────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Smart Contract Interaction (MegaETH)                │   │
+│  │  ├─ Calls sync() on Oracle Aggregator                │   │
+│  │  ├─ Automatic nonce management                       │   │
+│  │  ├─ Gas optimization & retry logic                   │   │
+│  │  └─ Duplicate transaction prevention                 │   │
+│  └──────────────────────────────────────────────────────┘   │
 │                           ↓                                 │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  Database Synchronization                            │  │
-│  │  ├─ Writes MINT/BURN transactions to Supabase       │  │
-│  │  ├─ Maintains state file (oracle-universal-state)   │  │
-│  │  ├─ Emergency burn tracking                          │  │
-│  │  └─ Transaction deduplication                        │  │
-│  └──────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Database Synchronization                            │   │
+│  │  ├─ Writes MINT/BURN transactions to Supabase        │   │
+│  │  ├─ Maintains state file (oracle-universal-state)    │   │
+│  │  ├─ Emergency burn tracking                          │   │
+│  │  └─ Transaction deduplication                        │   │
+│  └──────────────────────────────────────────────────────┘   │
 │                                                             │
-│  📊 Monitoring: PM2 with auto-restart                      │
-│  🔒 Security: Private keys stored on VPS only              │
-│  ⚡ Performance: ~20MB memory, <2% CPU usage               │
+│  📊 Monitoring: PM2 with auto-restart                       │
+│  🔒 Security: Private keys stored on VPS only               │
+│  ⚡ Performance: ~20MB memory, <2% CPU usage                 │
 └─────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
 │              SMART CONTRACTS (MegaETH Testnet)              │
 │                                                             │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  Oracle Aggregator                                   │  │
-│  │  Address: 0xEcCC1Bf6Ad2e875152eE65DC365F90d07da7aEAc │  │
-│  │  ├─ Receives sync() calls from Oracle Server        │  │
-│  │  ├─ Validates Bitcoin balance proofs                 │  │
-│  │  ├─ Emits Synced events                              │  │
-│  │  └─ Triggers MINT/BURN on rBTC-SYNTH                 │  │
-│  └──────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Oracle Aggregator                                   │   │
+│  │  Address: 0xEcCC1Bf6Ad2e875152eE65DC365F90d07da7aEAc │   │
+│  │  ├─ Receives sync() calls from Oracle Server         │   │
+│  │  ├─ Validates Bitcoin balance proofs                 │   │
+│  │  ├─ Emits Synced events                              │   │
+│  │  └─ Triggers MINT/BURN on rBTC-SYNTH                 │   │
+│  └──────────────────────────────────────────────────────┘   │
 │                           ↓                                 │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  rBTC-SYNTH (Soulbound Token)                        │  │
-│  │  Address: 0x5b9375b4ac0f61C7D5af32374aCCe0d058cE6F58 │  │
-│  │  ├─ 1:1 backed by Bitcoin (satoshi precision)       │  │
-│  │  ├─ Non-transferable (soulbound)                     │  │
-│  │  ├─ Automatic MINT when Bitcoin deposited            │  │
-│  │  └─ Emergency BURN when Bitcoin withdrawn            │  │
-│  └──────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  rBTC-SYNTH (Soulbound Token)                        │   │
+│  │  Address: 0x5b9375b4ac0f61C7D5af32374aCCe0d058cE6F58 │   │
+│  │  ├─ 1:1 backed by Bitcoin (satoshi precision)        │   │
+│  │  ├─ Non-transferable (soulbound)                     │   │
+│  │  ├─ Automatic MINT when Bitcoin deposited            │   │
+│  │  └─ Emergency BURN when Bitcoin withdrawn            │   │
+│  └──────────────────────────────────────────────────────┘   │
 │                                                             │
-│  Other Contracts:                                          │
-│  ├─ Fee Vault: 0x1384d3A60a910B5b402ee09457b3eBfCC964FD4f│
-│  └─ Vault wrBTC: 0xa10FC332f12d102Dddf431F8136E4E89279EFF87│
+│  Other Contracts:                                           │
+│  ├─ Fee Vault: 0x1384d3A60a910B5b402ee09457b3eBfCC964FD4f   │
+│  └─ Vault wrBTC: 0xa10FC332f12d102Dddf431F8136E4E89279EFF87 │
 └─────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
 │           SUPABASE (Single Source of Truth)                 │
 │                                                             │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  PostgreSQL Database Tables                          │  │
-│  │                                                       │  │
-│  │  📋 transactions                                      │  │
-│  │     ├─ tx_hash (primary key)                         │  │
-│  │     ├─ user_address (indexed)                        │  │
-│  │     ├─ tx_type (MINT/BURN/WRAP/UNWRAP)               │  │
-│  │     ├─ amount (satoshis)                             │  │
-│  │     ├─ delta (balance change)                        │  │
-│  │     ├─ block_number, block_timestamp                 │  │
-│  │     └─ status (confirmed/pending)                    │  │
-│  │                                                       │  │
-│  │  📋 bitcoin_addresses                                 │  │
-│  │     ├─ eth_address (user's wallet)                   │  │
-│  │     ├─ bitcoin_address (verified BTC address)        │  │
-│  │     ├─ is_monitoring (true/false)                    │  │
-│  │     ├─ network (mainnet/testnet)                     │  │
-│  │     ├─ verified_at, monitoring_started_at            │  │
-│  │     └─ Multiple Bitcoin addresses per ETH address    │  │
-│  │                                                       │  │
-│  └──────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  PostgreSQL Database Tables                          │   │
+│  │                                                      │   │
+│  │  📋 transactions                                     │   │
+│  │     ├─ tx_hash (primary key)                         │   │
+│  │     ├─ user_address (indexed)                        │   │
+│  │     ├─ tx_type (MINT/BURN/WRAP/UNWRAP)               │   │
+│  │     ├─ amount (satoshis)                             │   │
+│  │     ├─ delta (balance change)                        │   │
+│  │     ├─ block_number, block_timestamp                 │   │
+│  │     └─ status (confirmed/pending)                    │   │
+│  │                                                      │   │
+│  │  📋 bitcoin_addresses                                │   │
+│  │     ├─ eth_address (user's wallet)                   │   │
+│  │     ├─ bitcoin_address (verified BTC address)        │   │
+│  │     ├─ is_monitoring (true/false)                    │   │
+│  │     ├─ network (mainnet/testnet)                     │   │
+│  │     ├─ verified_at, monitoring_started_at            │   │
+│  │     └─ Multiple Bitcoin addresses per ETH address    │   │
+│  │                                                      │   │
+│  └──────────────────────────────────────────────────────┘   │
 │                                                             │
-│  🔄 Real-time Subscriptions: PostgreSQL Change Data Capture│
-│  🔒 Row Level Security: User-specific data isolation       │
-│  ⚡ Multi-region: Global low-latency access                │
-│  📊 Automatic backups & point-in-time recovery             │
+│  🔄 Real-time Subscriptions: PostgreSQL Change Data Capture │
+│  🔒 Row Level Security: User-specific data isolation        │
+│  ⚡ Multi-region: Global low-latency access                  │
+│  📊 Automatic backups & point-in-time recovery              │
 └─────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
 │          FRONTEND (Next.js 14 + React + TypeScript)         │
 │                                                             │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  Wallet Connection (wagmi + viem)                    │  │
-│  │  ├─ MetaMask, WalletConnect, Coinbase Wallet        │  │
-│  │  ├─ Automatic network switching to MegaETH           │  │
-│  │  └─ Read-only access to user's wallet                │  │
-│  └──────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Wallet Connection (wagmi + viem)                    │   │
+│  │  ├─ MetaMask, WalletConnect, Coinbase Wallet         │   │
+│  │  ├─ Automatic network switching to MegaETH           │   │
+│  │  └─ Read-only access to user's wallet                │   │
+│  └──────────────────────────────────────────────────────┘   │
 │                           ↓                                 │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  Data Layer (Supabase Client)                        │  │
-│  │  ├─ Read transactions from Supabase                  │  │
-│  │  ├─ Subscribe to real-time updates                   │  │
-│  │  ├─ Query bitcoin_addresses table                    │  │
-│  │  └─ NO blockchain monitoring in browser              │  │
-│  └──────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Data Layer (Supabase Client)                        │   │
+│  │  ├─ Read transactions from Supabase                  │   │
+│  │  ├─ Subscribe to real-time updates                   │   │
+│  │  ├─ Query bitcoin_addresses table                    │   │
+│  │  └─ NO blockchain monitoring in browser              │   │
+│  └──────────────────────────────────────────────────────┘   │
 │                           ↓                                 │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  User Interface Components                           │  │
-│  │  ├─ Dashboard: Portfolio overview                    │  │
-│  │  ├─ Verify: Bitcoin address verification            │  │
-│  │  ├─ Mint: Deposit flow (FeeVault + monitoring)      │  │
-│  │  ├─ Transaction History: Real-time updates           │  │
-│  │  └─ Balance Display: rBTC-SYNTH holdings             │  │
-│  └──────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  User Interface Components                           │   │
+│  │  ├─ Dashboard: Portfolio overview                    │   │
+│  │  ├─ Verify: Bitcoin address verification             │   │
+│  │  ├─ Mint: Deposit flow (FeeVault + monitoring)       │   │
+│  │  ├─ Transaction History: Real-time updates           │   │
+│  │  └─ Balance Display: rBTC-SYNTH holdings             │   │
+│  └──────────────────────────────────────────────────────┘   │
 │                                                             │
-│  ⚡ NO localStorage usage                                   │
-│  ⚡ NO blockchain polling                                   │
-│  ⚡ Pure display & interaction layer                        │
-│  🔒 Privacy: Only user's own data visible                  │
+│  ⚡ NO localStorage usage                                    │
+│  ⚡ NO blockchain polling                                    │
+│  ⚡ Pure display & interaction layer                         │
+│  🔒 Privacy: Only user's own data visible                   │
 └─────────────────────────────────────────────────────────────┘
 ```
 

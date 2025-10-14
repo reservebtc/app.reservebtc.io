@@ -66,31 +66,31 @@ OVERALL STATUS: PRODUCTION READY
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                     Frontend Layer                          │
-│  Next.js 14 + TypeScript + TailwindCSS + Wagmi + Viem      │
+│  Next.js 14 + TypeScript + TailwindCSS + Wagmi + Viem       │
 │  18 Production Pages + 19 API Endpoints                     │
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────────────────────────────────────┐
 │                    Oracle Server v2.2                       │
-│  Node.js + PM2 + Auto-discovery + Emergency Burns          │
-│  24/7 Monitoring + Multi-source Verification               │
+│  Node.js + PM2 + Auto-discovery + Emergency Burns           │
+│  24/7 Monitoring + Multi-source Verification                │
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────────────────────────────────────┐
 │                   Smart Contract Layer                      │
-│  OracleAggregator + RBTCSynth + FeeVault                   │
-│  VaultWrBTC + YieldScalesPool + FeePolicy                  │
+│  OracleAggregator + RBTCSynth + FeeVault                    │
+│  VaultWrBTC + YieldScalesPool + FeePolicy                   │
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────────────────────────────────────┐
 │                    Database Layer                           │
-│  Supabase PostgreSQL - 11 Core Tables                      │
-│  Real-time Sync + Encrypted Storage                        │
+│  Supabase PostgreSQL - 11 Core Tables                       │
+│  Real-time Sync + Encrypted Storage                         │
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────────────────────────────────────┐
 │                   Blockchain Layer                          │
-│  MegaETH Testnet (Chain ID: 6342)                          │
+│  MegaETH Testnet (Chain ID: 6342)                           │
 │  Block Height: 17,419,587                                   │
 └─────────────────────────────────────────────────────────────┘
 ```

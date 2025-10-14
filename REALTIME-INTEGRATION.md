@@ -20,108 +20,108 @@ ReserveBTC implements a **professional backend-driven architecture** for Bitcoin
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    PRODUCTION ARCHITECTURE                       │
-│                    ReserveBTC v4.0 (Oct 2025)                    │
+│                    PRODUCTION ARCHITECTURE                      │
+│                    ReserveBTC v4.0 (Oct 2025)                   │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
-│                   ORACLE SERVER (VPS - 24/7)                     │
-│                                                                   │
+│                   ORACLE SERVER (VPS - 24/7)                    │
+│                                                                 │
 │  ┌────────────────────────────────────────────────────────────┐ │
 │  │  professional-oracle-server.js (PM2)                       │ │
-│  │  ✅ Monitors Bitcoin blockchain via Mempool.space         │ │
+│  │  ✅ Monitors Bitcoin blockchain via Mempool.space          │ │
 │  │  ✅ Checks balances every 15 seconds                       │ │
-│  │  ✅ Detects MINT/BURN conditions automatically            │ │
-│  │  ✅ Calls sync() on Oracle Aggregator contract            │ │
-│  │  ✅ Writes transactions to Supabase PostgreSQL            │ │
-│  │  ✅ Updates user balances in real-time                    │ │
-│  │  ✅ Maintains state file for crash recovery               │ │
+│  │  ✅ Detects MINT/BURN conditions automatically             │ │
+│  │  ✅ Calls sync() on Oracle Aggregator contract             │ │
+│  │  ✅ Writes transactions to Supabase PostgreSQL             │ │
+│  │  ✅ Updates user balances in real-time                     │ │
+│  │  ✅ Maintains state file for crash recovery                │ │
 │  └────────────────────────────────────────────────────────────┘ │
-│                                                                   │
-│  Process Manager: PM2 (auto-restart on failure)                  │
-│  Memory Usage: ~20MB (4 users), scales to 100MB (10K users)      │
-│  CPU Usage: <2% idle, ~5% during sync operations                 │
-│  Uptime: 99.9% (automatic recovery from failures)                │
-└────────────────────────┬──────────────────────────────────────────┘
+│                                                                 │
+│  Process Manager: PM2 (auto-restart on failure)                 │
+│  Memory Usage: ~20MB (4 users), scales to 100MB (10K users)     │
+│  CPU Usage: <2% idle, ~5% during sync operations                │
+│  Uptime: 99.9% (automatic recovery from failures)               │
+└────────────────────────┬────────────────────────────────────────┘
                          │
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│           SMART CONTRACTS (MegaETH Testnet - Chain 6342)         │
-│                                                                   │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
-│  │ Oracle          │  │ rBTC-SYNTH      │  │ FeeVault        │ │
-│  │ Aggregator      │  │ (Soulbound)     │  │ (Fee Manager)   │ │
-│  │                 │  │                 │  │                 │ │
-│  │ sync() calls    │  │ mint()/burn()   │  │ balanceOf()     │ │
-│  │ from Oracle VPS │  │ automated       │  │ user deposits   │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘ │
-│                                                                   │
+│           SMART CONTRACTS (MegaETH Testnet - Chain 6342)        │
+│                                                                 │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │
+│  │ Oracle          │  │ rBTC-SYNTH      │  │ FeeVault        │  │
+│  │ Aggregator      │  │ (Soulbound)     │  │ (Fee Manager)   │  │
+│  │                 │  │                 │  │                 │  │
+│  │ sync() calls    │  │ mint()/burn()   │  │ balanceOf()     │  │
+│  │ from Oracle VPS │  │ automated       │  │ user deposits   │  │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘  │
+│                                                                 │
 │  Gas: ~250K per sync() | Block Time: <1s | Finality: Instant    │
-└────────────────────────┬──────────────────────────────────────────┘
+└────────────────────────┬────────────────────────────────────────┘
                          │
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│           SUPABASE POSTGRESQL (Single Source of Truth)           │
-│                                                                   │
+│           SUPABASE POSTGRESQL (Single Source of Truth)          │
+│                                                                 │
 │  ┌────────────────────────────────────────────────────────────┐ │
 │  │  TABLES:                                                   │ │
 │  │                                                            │ │
 │  │  • transactions                                            │ │
-│  │    - tx_hash, block_number, block_timestamp               │ │
-│  │    - user_address, tx_type (MINT/BURN/WRAP/UNWRAP)       │ │
-│  │    - amount (satoshis), delta (balance change)            │ │
-│  │    - fee_wei, status (confirmed/pending)                  │ │
-│  │    - created_at, updated_at                               │ │
+│  │    - tx_hash, block_number, block_timestamp                │ │
+│  │    - user_address, tx_type (MINT/BURN/WRAP/UNWRAP)         │ │
+│  │    - amount (satoshis), delta (balance change)             │ │
+│  │    - fee_wei, status (confirmed/pending)                   │ │
+│  │    - created_at, updated_at                                │ │
 │  │                                                            │ │
 │  │  • bitcoin_addresses                                       │ │
-│  │    - eth_address (user's wallet)                          │ │
-│  │    - bitcoin_address (verified BTC address)               │ │
-│  │    - is_monitoring (true ONLY after Mint clicked)         │ │
-│  │    - verified_at (BIP-322 signature timestamp)            │ │
-│  │    - monitoring_started_at (when user clicked Mint)       │ │
-│  │    - network (mainnet/testnet)                            │ │
+│  │    - eth_address (user's wallet)                           │ │
+│  │    - bitcoin_address (verified BTC address)                │ │
+│  │    - is_monitoring (true ONLY after Mint clicked)          │ │
+│  │    - verified_at (BIP-322 signature timestamp)             │ │
+│  │    - monitoring_started_at (when user clicked Mint)        │ │
+│  │    - network (mainnet/testnet)                             │ │
 │  │                                                            │ │
 │  └────────────────────────────────────────────────────────────┘ │
-│                                                                   │
-│  Real-time: PostgreSQL Change Data Capture (CDC)                 │
-│  Security: Row Level Security (RLS) per user                     │
-│  Backups: Automatic point-in-time recovery                       │
-│  Query Time: <100ms (indexed queries)                            │
-└────────────────────────┬──────────────────────────────────────────┘
+│                                                                 │
+│  Real-time: PostgreSQL Change Data Capture (CDC)                │
+│  Security: Row Level Security (RLS) per user                    │
+│  Backups: Automatic point-in-time recovery                      │
+│  Query Time: <100ms (indexed queries)                           │
+└────────────────────────┬────────────────────────────────────────┘
                          │
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│               FRONTEND (Next.js 14 - Vercel Edge)                │
-│                                                                   │
+│               FRONTEND (Next.js 14 - Vercel Edge)               │
+│                                                                 │
 │  ┌────────────────────────────────────────────────────────────┐ │
 │  │  PAGES:                                                    │ │
 │  │                                                            │ │
-│  │  • /verify - Bitcoin address verification (BIP-322)       │ │
-│  │    ✅ User signs message with Bitcoin wallet              │ │
-│  │    ✅ Saves to bitcoin_addresses with is_monitoring=false │ │
-│  │    ✅ No monitoring starts yet                            │ │
+│  │  • /verify - Bitcoin address verification (BIP-322)        │ │
+│  │    ✅ User signs message with Bitcoin wallet               │ │
+│  │    ✅ Saves to bitcoin_addresses with is_monitoring=false  │ │
+│  │    ✅ No monitoring starts yet                             │ │
 │  │                                                            │ │
-│  │  • /mint - Deposit ETH + Start Monitoring                 │ │
-│  │    1. User deposits 0.001 ETH to FeeVault                 │ │
-│  │    2. User clicks "Start Monitoring" button               │ │
-│  │    3. Frontend calls /api/mint/start-monitoring           │ │
-│  │    4. Updates is_monitoring = true in Supabase            │ │
-│  │    5. Oracle Server detects and begins monitoring         │ │
+│  │  • /mint - Deposit ETH + Start Monitoring                  │ │
+│  │    1. User deposits 0.001 ETH to FeeVault                  │ │
+│  │    2. User clicks "Start Monitoring" button                │ │
+│  │    3. Frontend calls /api/mint/start-monitoring            │ │
+│  │    4. Updates is_monitoring = true in Supabase             │ │
+│  │    5. Oracle Server detects and begins monitoring          │ │
 │  │                                                            │ │
-│  │  • /dashboard - View balances and transactions            │ │
-│  │    ✅ Reads from Supabase (transactions table)            │ │
-│  │    ✅ Shows rBTC-SYNTH balance from contract              │ │
-│  │    ✅ Real-time updates via Supabase subscriptions        │ │
-│  │    ✅ No blockchain polling in browser                    │ │
+│  │  • /dashboard - View balances and transactions             │ │
+│  │    ✅ Reads from Supabase (transactions table)             │ │
+│  │    ✅ Shows rBTC-SYNTH balance from contract               │ │
+│  │    ✅ Real-time updates via Supabase subscriptions         │ │
+│  │    ✅ No blockchain polling in browser                     │ │
 │  │                                                            │ │
 │  └────────────────────────────────────────────────────────────┘ │
-│                                                                   │
-│  Stack: Next.js 14 + TypeScript + Tailwind CSS                   │
-│  Wallet: wagmi 2.x + viem 2.x (MetaMask, WalletConnect)          │
-│  State: React hooks (useState, useEffect, useCallback)           │
-│  Bundle: ~300KB optimized                                        │
-│  NO localStorage: All data in Supabase                           │
-│  NO blockchain polling: Oracle Server handles everything         │
+│                                                                 │
+│  Stack: Next.js 14 + TypeScript + Tailwind CSS                  │
+│  Wallet: wagmi 2.x + viem 2.x (MetaMask, WalletConnect)         │
+│  State: React hooks (useState, useEffect, useCallback)          │
+│  Bundle: ~300KB optimized                                       │
+│  NO localStorage: All data in Supabase                          │
+│  NO blockchain polling: Oracle Server handles everything        │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -136,55 +136,55 @@ USER ACTION: Send Bitcoin to verified address
              ↓
 ┌────────────────────────────────────────────────────────────┐
 │ 1. BITCOIN NETWORK                                         │
-│    User sends 1000 sats → tb1qjvpp556s7q62862e4mn5...     │
+│    User sends 1000 sats → tb1qjvpp556s7q62862e4mn5...      │
 │    Confirmation: ~10 minutes (1 block)                     │
 └────────────────────────────────────────────────────────────┘
              ↓
 ┌────────────────────────────────────────────────────────────┐
 │ 2. ORACLE SERVER (15-second polling)                       │
-│    ✅ Checks balance via Mempool.space API                │
-│    ✅ Detects: 0 → 1000 sats (+1000)                      │
-│    ✅ Validates: is_monitoring = true in Supabase         │
-│    ✅ Decision: MINT required                             │
+│    ✅ Checks balance via Mempool.space API                 │
+│    ✅ Detects: 0 → 1000 sats (+1000)                       │
+│    ✅ Validates: is_monitoring = true in Supabase          │
+│    ✅ Decision: MINT required                              │
 └────────────────────────────────────────────────────────────┘
              ↓
 ┌────────────────────────────────────────────────────────────┐
 │ 3. SMART CONTRACT CALL                                     │
-│    Oracle calls sync() on Oracle Aggregator:              │
-│    - userAddress: 0xc381F1927257fA20782a65005a2cb094...   │
+│    Oracle calls sync() on Oracle Aggregator:               │
+│    - userAddress: 0xc381F1927257fA20782a65005a2cb094...    │
 │    - newBalanceSats: 1000                                  │
-│    - proof: 0x (Bitcoin balance verification)             │
+│    - proof: 0x (Bitcoin balance verification)              │
 │                                                            │
 │    Contract emits Synced event:                            │
-│    - deltaSats: -1000 (negative = MINT)                   │
-│    - feeWei: 50000000000000 (0.00005 ETH)                 │
+│    - deltaSats: -1000 (negative = MINT)                    │
+│    - feeWei: 50000000000000 (0.00005 ETH)                  │
 │                                                            │
-│    Contract calls rBTC-SYNTH.mint(user, 1000 sats)        │
+│    Contract calls rBTC-SYNTH.mint(user, 1000 sats)         │
 └────────────────────────────────────────────────────────────┘
              ↓
 ┌────────────────────────────────────────────────────────────┐
 │ 4. SUPABASE WRITE                                          │
 │    Oracle writes transaction to PostgreSQL:                │
 │    {                                                       │
-│      tx_hash: "0xabc123...",                              │
-│      user_address: "0xc381F1927257fA20782a65005...",      │
+│      tx_hash: "0xabc123...",                               │
+│      user_address: "0xc381F1927257fA20782a65005...",       │
 │      tx_type: "MINT",                                      │
 │      amount: "1000",                                       │
-│      delta: "-1000",  // Negative = MINT                  │
-│      block_timestamp: "2025-10-13T09:00:00.000Z",         │
+│      delta: "-1000",  // Negative = MINT                   │
+│      block_timestamp: "2025-10-13T09:00:00.000Z",          │
 │      status: "confirmed"                                   │
 │    }                                                       │
 └────────────────────────────────────────────────────────────┘
              ↓
 ┌────────────────────────────────────────────────────────────┐
-│ 5. FRONTEND UPDATE (Real-time via Supabase CDC)           │
+│ 5. FRONTEND UPDATE (Real-time via Supabase CDC)            │
 │    Dashboard subscribes to transactions table:             │
 │    - New row inserted → PostgreSQL CDC triggers            │
 │    - Supabase broadcasts change to frontend                │
 │    - React component updates automatically                 │
-│    - User sees: "✅ MINT +1000 sats"                      │
+│    - User sees: "✅ MINT +1000 sats"                       │
 │                                                            │
-│    Total latency: 15-30 seconds (Bitcoin + Oracle poll)   │
+│    Total latency: 15-30 seconds (Bitcoin + Oracle poll)    │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -201,16 +201,16 @@ USER ACTION: Withdraw Bitcoin from address
              ↓
 ┌────────────────────────────────────────────────────────────┐
 │ 1. BITCOIN NETWORK                                         │
-│    User withdraws all Bitcoin: 1000 → 0 sats              │
+│    User withdraws all Bitcoin: 1000 → 0 sats               │
 │    Confirmation: ~10 minutes                               │
 └────────────────────────────────────────────────────────────┘
              ↓
 ┌────────────────────────────────────────────────────────────┐
 │ 2. ORACLE SERVER (15-second polling)                       │
-│    ✅ Detects: 1000 → 0 sats (-1000)                      │
-│    ✅ Validates: is_monitoring = true                     │
-│    ✅ Decision: EMERGENCY BURN required                   │
-│    ✅ Reason: "Bitcoin balance became zero"               │
+│    ✅ Detects: 1000 → 0 sats (-1000)                       │
+│    ✅ Validates: is_monitoring = true                      │
+│    ✅ Decision: EMERGENCY BURN required                    │
+│    ✅ Reason: "Bitcoin balance became zero"                │
 └────────────────────────────────────────────────────────────┘
              ↓
 ┌────────────────────────────────────────────────────────────┐
@@ -219,9 +219,9 @@ USER ACTION: Withdraw Bitcoin from address
 │    - newBalanceSats: 0                                     │
 │                                                            │
 │    Contract emits Synced event:                            │
-│    - deltaSats: 1000 (positive = BURN)                    │
+│    - deltaSats: 1000 (positive = BURN)                     │
 │                                                            │
-│    Contract calls rBTC-SYNTH.burn(user, 1000 sats)        │
+│    Contract calls rBTC-SYNTH.burn(user, 1000 sats)         │
 └────────────────────────────────────────────────────────────┘
              ↓
 ┌────────────────────────────────────────────────────────────┐
@@ -230,7 +230,7 @@ USER ACTION: Withdraw Bitcoin from address
 │    {                                                       │
 │      tx_type: "BURN",                                      │
 │      amount: "1000",                                       │
-│      delta: "1000",  // Positive = BURN                   │
+│      delta: "1000",  // Positive = BURN                    │
 │      status: "confirmed"                                   │
 │    }                                                       │
 │                                                            │
@@ -238,15 +238,15 @@ USER ACTION: Withdraw Bitcoin from address
 │    {                                                       │
 │      burnedAmount: 1000,                                   │
 │      reason: "Bitcoin balance became zero",                │
-│      txHash: "0xdef456...",                               │
-│      timestamp: "2025-10-13T09:05:00.000Z"                │
+│      txHash: "0xdef456...",                                │
+│      timestamp: "2025-10-13T09:05:00.000Z"                 │
 │    }                                                       │
 └────────────────────────────────────────────────────────────┘
              ↓
 ┌────────────────────────────────────────────────────────────┐
 │ 5. FRONTEND UPDATE                                         │
-│    Dashboard shows: "🔥 BURN -1000 sats"                  │
-│    User's rBTC-SYNTH balance: 1000 → 0                    │
+│    Dashboard shows: "🔥 BURN -1000 sats"                   │
+│    User's rBTC-SYNTH balance: 1000 → 0                     │
 │                                                            │
 │    System automatically stops monitoring this address      │
 │    User can now mint a different address                   │

@@ -16,59 +16,59 @@ The Dashboard is the central hub where users monitor their Bitcoin-backed rBTC-S
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    DASHBOARD UI (Next.js 14)                     │
-│              Real-time React Components + Tailwind               │
+│                    DASHBOARD UI (Next.js 14)                    │
+│              Real-time React Components + Tailwind              │
 └────────────────────────┬────────────────────────────────────────┘
                          │
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│              SUPABASE REAL-TIME LAYER (PostgreSQL CDC)           │
-│                                                                   │
+│              SUPABASE REAL-TIME LAYER (PostgreSQL CDC)          │
+│                                                                 │
 │  ┌────────────────────────────────────────────────────────────┐ │
 │  │  PostgreSQL Change Data Capture (CDC)                      │ │
 │  │  - Instant notifications on INSERT/UPDATE/DELETE           │ │
 │  │  - WebSocket broadcast to all subscribed clients           │ │
 │  │  - No polling, pure push-based updates                     │ │
 │  └────────────────────────────────────────────────────────────┘ │
-│                                                                   │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐ │
-│  │  transactions    │  │  bitcoin_        │  │  balance_    │ │
-│  │  table           │  │  addresses       │  │  snapshots   │ │
-│  │  (MINT/BURN/     │  │  (verified +     │  │  (history)   │ │
-│  │   WRAP/UNWRAP)   │  │   monitored)     │  │              │ │
-│  └──────────────────┘  └──────────────────┘  └──────────────┘ │
+│                                                                 │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐   │
+│  │  transactions    │  │  bitcoin_        │  │  balance_    │   │
+│  │  table           │  │  addresses       │  │  snapshots   │   │
+│  │  (MINT/BURN/     │  │  (verified +     │  │  (history)   │   │
+│  │   WRAP/UNWRAP)   │  │   monitored)     │  │              │   │
+│  └──────────────────┘  └──────────────────┘  └──────────────┘   │
 └────────────────────────┬────────────────────────────────────────┘
                          │
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│           SMART CONTRACTS (MegaETH Testnet - Chain 6342)         │
-│                                                                   │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐ │
-│  │  rBTC-SYNTH      │  │  Oracle          │  │  FeeVault    │ │
-│  │  0x5b93...6F58   │  │  Aggregator      │  │  0x1384...   │ │
-│  │                  │  │  0xEcCC...aEAc   │  │  FD4f        │ │
-│  │  balanceOf()     │  │  lastSats()      │  │  balanceOf() │ │
-│  │  (soulbound)     │  │  (oracle state)  │  │  (user fees) │ │
-│  └──────────────────┘  └──────────────────┘  └──────────────┘ │
-│                                                                   │
-│  Dashboard reads from contracts ONLY on initial load             │
+│           SMART CONTRACTS (MegaETH Testnet - Chain 6342)        │
+│                                                                 │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐   │
+│  │  rBTC-SYNTH      │  │  Oracle          │  │  FeeVault    │   │
+│  │  0x5b93...6F58   │  │  Aggregator      │  │  0x1384...   │   │
+│  │                  │  │  0xEcCC...aEAc   │  │  FD4f        │   │
+│  │  balanceOf()     │  │  lastSats()      │  │  balanceOf() │   │
+│  │  (soulbound)     │  │  (oracle state)  │  │  (user fees) │   │
+│  └──────────────────┘  └──────────────────┘  └──────────────┘   │
+│                                                                 │
+│  Dashboard reads from contracts ONLY on initial load            │
 │  After that: All updates via Supabase real-time CDC             │
 └─────────────────────────────────────────────────────────────────┘
                          ↑
                          │
 ┌────────────────────────┴────────────────────────────────────────┐
-│              ORACLE SERVER (VPS - Backend 24/7)                  │
-│                                                                   │
+│              ORACLE SERVER (VPS - Backend 24/7)                 │
+│                                                                 │
 │  ┌────────────────────────────────────────────────────────────┐ │
 │  │  professional-oracle-server.js (PM2 Process)               │ │
 │  │                                                            │ │
-│  │  1. Monitors Bitcoin balances (Mempool.space API)         │ │
-│  │  2. Detects MINT/BURN conditions                          │ │
-│  │  3. Calls sync() on Oracle Aggregator                     │ │
-│  │  4. Writes transactions to Supabase                       │ │
-│  │  5. PostgreSQL CDC triggers → Dashboard updates instantly │ │
+│  │  1. Monitors Bitcoin balances (Mempool.space API)          │ │
+│  │  2. Detects MINT/BURN conditions                           │ │
+│  │  3. Calls sync() on Oracle Aggregator                      │ │
+│  │  4. Writes transactions to Supabase                        │ │
+│  │  5. PostgreSQL CDC triggers → Dashboard updates instantly  │ │
 │  └────────────────────────────────────────────────────────────┘ │
-│                                                                   │
+│                                                                 │
 │  Oracle writes → Supabase → CDC → Dashboard (no polling!)       │
 └─────────────────────────────────────────────────────────────────┘
 ```

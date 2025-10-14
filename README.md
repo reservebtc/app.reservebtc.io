@@ -129,9 +129,9 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    USER INTERFACE (Next.js 14)                   │
+│                    USER INTERFACE (Next.js 14)                  │
 │           https://app.reservebtc.io (Vercel Edge)               │
-│                                                                   │
+│                                                                 │
 │  • /verify    - Bitcoin address verification (BIP-322)          │
 │  • /mint      - Start monitoring + receive rBTC-SYNTH           │
 │  • /dashboard - Real-time portfolio view                        │
@@ -140,23 +140,23 @@
                          │
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│           SUPABASE POSTGRESQL (Single Source of Truth)           │
-│                                                                   │
-│  Tables:                                                         │
+│           SUPABASE POSTGRESQL (Single Source of Truth)          │
+│                                                                 │
+│  Tables:                                                        │
 │  • transactions       - All MINT/BURN/WRAP/UNWRAP operations    │
 │  • bitcoin_addresses  - Verified addresses + monitoring status  │
 │  • balance_snapshots  - Historical balance tracking             │
-│                                                                   │
+│                                                                 │
 │  Real-time: PostgreSQL Change Data Capture (CDC)                │
 │  Security: Row Level Security (RLS) per user                    │
 └────────────────────────┬────────────────────────────────────────┘
                          │
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│              ORACLE SERVER (VPS - Backend 24/7)                  │
-│                                                                   │
+│              ORACLE SERVER (VPS - Backend 24/7)                 │
+│                                                                 │
 │  professional-oracle-server.js (PM2 Process Manager)            │
-│                                                                   │
+│                                                                 │
 │  1. Monitors Bitcoin addresses (Mempool.space API)              │
 │     - Checks balances every 15 seconds                          │
 │  2. Detects MINT/BURN conditions                                │
@@ -168,22 +168,22 @@
 │     - Single source of truth                                    │
 │  5. PostgreSQL CDC → Real-time dashboard updates                │
 │     - No browser polling needed                                 │
-│                                                                   │
+│                                                                 │
 │  Uptime: 99.9% | Memory: ~20MB | CPU: <2%                       │
 └────────────────────────┬────────────────────────────────────────┘
                          │
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│           SMART CONTRACTS (MegaETH Testnet - Chain 6342)         │
-│                                                                   │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
-│  │ Oracle          │  │ rBTC-SYNTH      │  │ FeeVault        │ │
-│  │ Aggregator      │  │ (Soulbound)     │  │ (Fee Manager)   │ │
-│  │ 0xEcCC...aEAc   │  │ 0x5b93...6F58   │  │ 0x1384...FD4f   │ │
-│  │                 │  │                 │  │                 │ │
-│  │ sync()          │  │ mint()/burn()   │  │ balanceOf()     │ │
-│  │ lastSats()      │  │ 1:1 Bitcoin     │  │ user deposits   │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘ │
+│           SMART CONTRACTS (MegaETH Testnet - Chain 6342)        │
+│                                                                 │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │
+│  │ Oracle          │  │ rBTC-SYNTH      │  │ FeeVault        │  │
+│  │ Aggregator      │  │ (Soulbound)     │  │ (Fee Manager)   │  │
+│  │ 0xEcCC...aEAc   │  │ 0x5b93...6F58   │  │ 0x1384...FD4f   │  │
+│  │                 │  │                 │  │                 │  │
+│  │ sync()          │  │ mint()/burn()   │  │ balanceOf()     │  │
+│  │ lastSats()      │  │ 1:1 Bitcoin     │  │ user deposits   │  │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
