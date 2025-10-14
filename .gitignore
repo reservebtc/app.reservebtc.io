@@ -25,6 +25,7 @@ scripts/comprehensive-test.js
 .env.development.local
 .env.test.local
 .env.production.local
+.env.local.example
 # Allow .env.example to be committed
 !.env.example
 config.local.*

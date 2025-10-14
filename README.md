@@ -419,6 +419,7 @@ npm test
 | Document | Description | Status |
 |----------|-------------|--------|
 | [**Production Architecture v4.0**](./PRODUCTION_ARCHITECTURE.md) | Complete system design, backend-driven architecture | ✅ Current |
+| [**Active Monitoring System**](./ACTIVE-MONITORING.md) | Two-step verification → monitoring flow, emergency burn logic | ✅ v2.6 |
 | [**Mint System Testing Report v2.0**](./MINT_SYSTEM_TESTING_REPORT.md) | Two-step verification → monitoring flow validation | ✅ 100% Pass |
 | [**Dashboard Documentation v2.0**](./DASHBOARD_DOCUMENTATION.md) | Real-time Supabase CDC architecture | ✅ Operational |
 
