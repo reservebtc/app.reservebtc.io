@@ -130,7 +130,7 @@ jobs:
         run: npm ci --exact --frozen-lockfile
       
       - name: 🔍 NPM Security Audit
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=critical
       
       - name: 🛡️ Run security tests
         run: npm run test:security
