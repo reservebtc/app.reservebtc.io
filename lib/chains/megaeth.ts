@@ -6,10 +6,10 @@ import { Chain } from 'viem'
 
 // 🌐 CLIENT-SIDE: Use NEXT_PUBLIC_ prefixed variables (accessible in browser)
 const PRIVATE_RPC = process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 
-                    'https://carrot.megaeth.com/rpc' // Fallback to public RPC
+                    'https://carrot.megaeth.com/rpc'
 
 const PRIVATE_WS = process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_WS || 
-                   'wss://carrot.megaeth.com/ws' // Fallback to public WebSocket
+                   'wss://carrot.megaeth.com/ws'
 
 console.log('🔒 MEGAETH CONFIG: Using RPC:', PRIVATE_RPC.includes('/mafia/') ? 'PRIVATE ✅' : 'PUBLIC ⚠️')
 console.log('🔒 MEGAETH CONFIG: Using WS:', PRIVATE_WS.includes('/mafia/') ? 'PRIVATE ✅' : 'PUBLIC ⚠️')
@@ -51,16 +51,16 @@ export const megaeth = {
     },
   },
   blockExplorers: {
-    etherscan: { 
-      name: 'MegaExplorer', 
-      url: 'https://megaexplorer.xyz',
-      apiUrl: 'https://megaexplorer.xyz/api'
+      etherscan: { 
+        name: 'MegaETH Testnet v2 Explorer', 
+        url: 'https://megaeth-testnet-v2.blockscout.com',
+        apiUrl: 'https://megaeth-testnet-v2.blockscout.com/api'
+      },
+      default: { 
+        name: 'MegaETH Testnet v2 Explorer', 
+        url: 'https://megaeth-testnet-v2.blockscout.com' 
+      },
     },
-    default: { 
-      name: 'MegaExplorer', 
-      url: 'https://megaexplorer.xyz' 
-    },
-  },
   contracts: {
     // Standard Multicall3 contract (deployed on all chains)
     multicall3: {
@@ -108,7 +108,7 @@ export const megaethPublicInfo = {
   chainId: 6342,
   name: 'MegaETH Testnet',
   symbol: 'ETH',
-  explorer: 'https://megaexplorer.xyz',
+  explorer: 'https://megaeth-testnet-v2.blockscout.com',
   // Public RPC for documentation purposes only (not used in production)
   publicRpc: 'https://carrot.megaeth.com/rpc',
   testnet: true,
