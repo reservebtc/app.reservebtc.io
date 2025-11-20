@@ -15,7 +15,7 @@ export async function GET() {
     },
     websocketInfo: {
       walletConnectRelay: 'wss://relay.walletconnect.com (for QR code)',
-      megaethPrivate: 'wss://carrot.megaeth.com/mafia/ws/... (for blockchain events)',
+      megaethPrivate: 'wss://timothy.megaeth.com/mafia/ws/... (for blockchain events)',
       note: 'These are DIFFERENT WebSockets - no conflicts!'
     }
   })

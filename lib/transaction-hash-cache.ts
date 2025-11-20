@@ -27,7 +27,7 @@ class TransactionHashCache {
     this.config = {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       maxEntries: 1000,
-      rpcUrl: 'https://carrot.megaeth.com/rpc',
+      rpcUrl: 'https://timothy.megaeth.com/rpc',
       ...config
     };
   }

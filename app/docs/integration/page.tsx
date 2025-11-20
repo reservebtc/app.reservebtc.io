@@ -123,11 +123,11 @@ export default function IntegrationPage() {
 {`import { ethers } from 'ethers';
 
 const provider = new ethers.JsonRpcProvider(
-  'https://carrot.megaeth.com/rpc'
+  'https://timothy.megaeth.com/rpc'
 );
 
 const megaETHTestnet = {
-  chainId: 6342,
+  chainId: 6343,
   name: 'MegaETH Testnet'
 };`}
                   </pre>
@@ -246,7 +246,7 @@ function ReserveBTCDashboard() {
   useEffect(() => {
     const initProvider = async () => {
       // Connect to MegaETH Testnet
-      const p = new ethers.JsonRpcProvider('https://carrot.megaeth.com/rpc');
+      const p = new ethers.JsonRpcProvider('https://timothy.megaeth.com/rpc');
       setProvider(p);
       
       // Monitor Oracle sync events
@@ -354,7 +354,7 @@ const app = express();
 app.use(express.json());
 
 // Connect to MegaETH Testnet
-const provider = new ethers.JsonRpcProvider('https://carrot.megaeth.com/rpc');
+const provider = new ethers.JsonRpcProvider('https://timothy.megaeth.com/rpc');
 
 // Contract addresses
 const ORACLE_ADDRESS = '0x611AFD3808e732Ba89A0D9991d2902b0Df9bd149';
@@ -504,8 +504,8 @@ const getHistoricalSyncs = async (fromBlock, toBlock) => {
                 <h3 className="font-medium mb-2">Testnet Configuration</h3>
                 <div className="text-sm text-muted-foreground space-y-1">
                   <p>Network: MegaETH Testnet</p>
-                  <p>Chain ID: 6342</p>
-                  <p>RPC URL: https://carrot.megaeth.com/rpc</p>
+                  <p>Chain ID: 6343</p>
+                  <p>RPC URL: https://timothy.megaeth.com/rpc</p>
                 </div>
               </div>
               <div className="bg-card rounded-lg p-4">

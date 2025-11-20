@@ -105,11 +105,11 @@ export default function MegaETHPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">RPC URL:</span>
-                  <span>https://carrot.megaeth.com/rpc</span>
+                  <span>https://timothy.megaeth.com/rpc</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Chain ID:</span>
-                  <span>6342</span>
+                  <span>6343</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Currency:</span>
@@ -117,7 +117,7 @@ export default function MegaETHPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Explorer:</span>
-                  <span>https://megaexplorer.xyz</span>
+                  <span>https://megaeth-testnet-v2.blockscout.com</span>
                 </div>
               </div>
             </div>
@@ -263,7 +263,7 @@ export default function MegaETHPage() {
               <h3 className="font-semibold mb-3">Web3 Configuration</h3>
               <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-sm overflow-x-auto">
 {`// ethers.js
-const provider = new ethers.JsonRpcProvider('https://carrot.megaeth.com/rpc');
+const provider = new ethers.JsonRpcProvider('https://timothy.megaeth.com/rpc');
 
 // viem
 import { createPublicClient, http } from 'viem';
@@ -477,7 +477,7 @@ const wrbtcContract = {
               <h3 className="font-semibold mb-2">MegaETH Resources</h3>
               <ul className="space-y-2 text-sm">
                 <li><a href="https://megaeth.systems" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">Official Website <ExternalLink className="h-3 w-3 ml-1" /></a></li>
-                <li><a href="https://megaexplorer.xyz" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">Block Explorer <ExternalLink className="h-3 w-3 ml-1" /></a></li>
+                <li><a href="https://megaeth-testnet-v2.blockscout.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">Block Explorer <ExternalLink className="h-3 w-3 ml-1" /></a></li>
                 <li><a href="https://docs.megaeth.systems" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">Documentation <ExternalLink className="h-3 w-3 ml-1" /></a></li>
               </ul>
             </div>

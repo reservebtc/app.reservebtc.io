@@ -101,7 +101,7 @@ export default function APIPage() {
     "committee": "0xea8fFEe94Da08f65765EC2A095e9931FD03e6c1b",
     "minConfirmations": "1",
     "maxFeePerSync": "10000000000000000",
-    "chainId": 6342,
+    "chainId": 6343,
     "contractAddress": "0x611AFD3808e732Ba89A0D9991d2902b0Df9bd149"
   }
 }`}</pre>

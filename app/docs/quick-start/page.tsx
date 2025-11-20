@@ -71,10 +71,10 @@ export default function QuickStartPage() {
                 <h4 className="font-semibold mb-2 text-amber-800 dark:text-amber-200">MegaETH Network Details</h4>
                 <div className="text-sm text-amber-700 dark:text-amber-300 space-y-1">
                   <p><strong>Network Name:</strong> MegaETH Testnet</p>
-                  <p><strong>RPC URL:</strong> https://carrot.megaeth.com/rpc</p>
-                  <p><strong>Chain ID:</strong> 6342</p>
+                  <p><strong>RPC URL:</strong> https://timothy.megaeth.com/rpc</p>
+                  <p><strong>Chain ID:</strong> 6343</p>
                   <p><strong>Currency:</strong> ETH</p>
-                  <p><strong>Block Explorer:</strong> https://megaexplorer.xyz</p>
+                  <p><strong>Block Explorer:</strong> https://megaeth-testnet-v2.blockscout.com</p>
                 </div>
               </div>
             </div>
@@ -229,7 +229,7 @@ export default function QuickStartPage() {
               <h3 className="font-semibold mb-2">🔗 Useful Links</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link href="/oracle" className="text-primary hover:underline">• Oracle Dashboard</Link></li>
-                <li><a href="https://megaexplorer.xyz" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">• MegaETH Explorer <ExternalLink className="h-3 w-3 ml-1" /></a></li>
+                <li><a href="https://megaeth-testnet-v2.blockscout.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">• MegaETH Explorer <ExternalLink className="h-3 w-3 ml-1" /></a></li>
                 <li><a href="https://github.com/reservebtc" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">• GitHub Repository <ExternalLink className="h-3 w-3 ml-1" /></a></li>
                 <li><Link href="/docs/api" className="text-primary hover:underline">• API Documentation</Link></li>
               </ul>

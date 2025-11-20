@@ -961,7 +961,7 @@ export function WrapRBTC() {
                     </span>
                     {tx.txHash && (
                       <Link 
-                        href={`https://megaexplorer.xyz/tx/${tx.txHash}`}
+                        href={`https://megaeth-testnet-v2.blockscout.com/tx/${tx.txHash}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs text-muted-foreground hover:text-foreground"

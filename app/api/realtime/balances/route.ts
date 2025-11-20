@@ -10,10 +10,10 @@ export const runtime = 'nodejs' // 🔥 Changed from 'edge' to 'nodejs' - more c
 export const maxDuration = 10
 
 const megaeth = {
-  id: 6342,
+  id: 6343,
   name: 'MegaETH Testnet',
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-  rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } }
+  rpcUrls: { default: { http: ['https://timothy.megaeth.com/rpc'] } }
 }
 
 export async function GET(request: NextRequest) {
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
   
   try {
     // 🔥 CRITICAL: Create completely fresh client with random port to avoid connection pooling
-    const rpcUrl = `https://carrot.megaeth.com/rpc?_seed=${randomSeed}&_t=${Date.now()}`
+    const rpcUrl = `https://timothy.megaeth.com/rpc?_seed=${randomSeed}&_t=${Date.now()}`
     
     console.log(`🔗 API [${randomSeed}]: Creating fresh viem client...`)
     

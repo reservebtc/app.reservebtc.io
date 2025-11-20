@@ -154,11 +154,11 @@ export default function WalletSetupPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">RPC URL:</span>
-                      <span>https://carrot.megaeth.com/rpc</span>
+                      <span>https://timothy.megaeth.com/rpc</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Chain ID:</span>
-                      <span>6342</span>
+                      <span>6343</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Currency Symbol:</span>
@@ -166,7 +166,7 @@ export default function WalletSetupPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Block Explorer:</span>
-                      <span>https://megaexplorer.xyz</span>
+                      <span>https://megaeth-testnet-v2.blockscout.com</span>
                     </div>
                   </div>
                 </div>

@@ -8,7 +8,7 @@ const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ||
 
 // 🔒 PRODUCTION: Use private RPC from environment
 const PRIVATE_RPC = process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 
-                    'https://carrot.megaeth.com/rpc'
+                    'https://timothy.megaeth.com/rpc'
 
 // 🔍 DEBUG: Log WalletConnect configuration
 console.log('🔗 WalletConnect Project ID:', projectId.slice(0, 10) + '...')
@@ -18,7 +18,7 @@ console.log('🔗 WalletConnect Project ID:', projectId.slice(0, 10) + '...')
  * 
  * WebSocket Strategy:
  * - WalletConnect uses its OWN relay WebSocket (wss://relay.walletconnect.com)
- * - Unified-realtime uses MegaETH private WebSocket (wss://carrot.megaeth.com/mafia/ws/...)
+ * - Unified-realtime uses MegaETH private WebSocket (wss://timothy.megaeth.com/mafia/ws/...)
  * - NO CONFLICTS because they connect to DIFFERENT servers!
  */
 export const config = createConfig({

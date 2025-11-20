@@ -3,16 +3,16 @@
 // Fallback to public RPC if environment variables are not set
 const MEGAETH_PRIVATE_RPC = process.env.MEGAETH_PRIVATE_RPC || 
                             process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 
-                            'https://carrot.megaeth.com/rpc'
+                            'https://timothy.megaeth.com/rpc'
 
 const MEGAETH_PRIVATE_WS = process.env.MEGAETH_PRIVATE_WS || 
-                           'wss://carrot.megaeth.com/ws'
+                           'wss://timothy.megaeth.com/ws'
 
 /**
  * ReserveBTC Protocol - Smart Contract Addresses
  * 
  * Network: MegaETH Testnet
- * Chain ID: 6342
+ * Chain ID: 6343
  * Deployment Date: September 2025
  * Deployment Method: Atomic Deployment (all contracts deployed in single transaction)
  * 
@@ -30,7 +30,7 @@ const MEGAETH_PRIVATE_WS = process.env.MEGAETH_PRIVATE_WS ||
  */
 export const CONTRACTS = {
   // 🌐 Network Configuration
-  CHAIN_ID: 6342,
+  CHAIN_ID: 6343,
   
   // 🔒 PRODUCTION: Use private RPC endpoints for improved performance
   // These endpoints are proxied through environment variables
@@ -192,7 +192,7 @@ export const CONTRACT_ABIS = {
  * 🔒 PRODUCTION: Uses private endpoints for improved performance
  */
 export const MEGAETH_TESTNET = {
-  id: 6342,
+  id: 6343,
   name: 'MegaETH Testnet',
   network: 'megaeth-testnet',
   nativeCurrency: {
@@ -214,7 +214,7 @@ export const MEGAETH_TESTNET = {
   blockExplorers: {
     default: { 
       name: 'MegaExplorer', 
-      url: 'https://megaexplorer.xyz' 
+      url: 'https://megaeth-testnet-v2.blockscout.com' 
     },
   },
   testnet: true,
@@ -261,11 +261,11 @@ export const MEGAETH_PRIVATE_ENDPOINTS = {
  * Does NOT contain private endpoints
  */
 export const NETWORK_INFO = {
-  chainId: 6342,
+  chainId: 6343,
   name: 'MegaETH Testnet',
   symbol: 'ETH',
-  explorer: 'https://megaexplorer.xyz',
+  explorer: 'https://megaeth-testnet-v2.blockscout.com',
   // Public RPC for documentation only (not used in production)
-  publicRpc: 'https://carrot.megaeth.com/rpc',
+  publicRpc: 'https://timothy.megaeth.com/rpc',
   testnet: true,
 } as const

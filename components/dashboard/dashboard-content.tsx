@@ -914,7 +914,7 @@ export function DashboardContent() {
                     </div>
                     
                     <a 
-                      href={`https://www.megaexplorer.xyz/tx/${txHash}`}
+                      href={`https://megaeth-testnet-v2.blockscout.com/tx/${txHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-primary hover:underline flex items-center gap-1 justify-end"

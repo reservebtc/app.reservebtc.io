@@ -423,7 +423,7 @@ const MEGAETH_TESTNET = {
   chainId: 6342,
   name: 'MegaETH Testnet',
   rpcUrl: 'https://carrot.megaeth.com/rpc',
-  explorer: 'https://www.megaexplorer.xyz',
+  explorer: 'https://megaeth-testnet-v2.blockscout.com',
   currency: {
     name: 'Ether',
     symbol: 'ETH',

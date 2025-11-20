@@ -6,10 +6,10 @@ import { Chain } from 'viem'
 
 // 🌐 CLIENT-SIDE: Use NEXT_PUBLIC_ prefixed variables (accessible in browser)
 const PRIVATE_RPC = process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 
-                    'https://carrot.megaeth.com/rpc'
+                    'https://timothy.megaeth.com/rpc'
 
 const PRIVATE_WS = process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_WS || 
-                   'wss://carrot.megaeth.com/ws'
+                   'wss://timothy.megaeth.com/ws'
 
 console.log('🔒 MEGAETH CONFIG: Using RPC:', PRIVATE_RPC.includes('/mafia/') ? 'PRIVATE ✅' : 'PUBLIC ⚠️')
 console.log('🔒 MEGAETH CONFIG: Using WS:', PRIVATE_WS.includes('/mafia/') ? 'PRIVATE ✅' : 'PUBLIC ⚠️')
@@ -19,7 +19,7 @@ console.log('🔒 MEGAETH CONFIG: Using WS:', PRIVATE_WS.includes('/mafia/') ? '
  * 
  * PRODUCTION-READY: Uses private dedicated endpoints for improved performance
  * Network: MegaETH Testnet (Carrot)
- * Chain ID: 6342
+ * Chain ID: 6343
  * 
  * Contract Addresses (Production Deployment - September 2025):
  * - OracleAggregator: Core Oracle logic for Bitcoin balance synchronization
@@ -32,7 +32,7 @@ console.log('🔒 MEGAETH CONFIG: Using WS:', PRIVATE_WS.includes('/mafia/') ? '
  * @see https://docs.megaeth.com
  */
 export const megaeth = {
-  id: 6342,
+  id: 6343,
   name: 'MegaETH Testnet',
   nativeCurrency: {
     decimals: 18,
@@ -105,12 +105,12 @@ export const megaeth = {
  * This object contains NO private endpoints and is safe to share
  */
 export const megaethPublicInfo = {
-  chainId: 6342,
+  chainId: 6343,
   name: 'MegaETH Testnet',
   symbol: 'ETH',
   explorer: 'https://megaeth-testnet-v2.blockscout.com',
   // Public RPC for documentation purposes only (not used in production)
-  publicRpc: 'https://carrot.megaeth.com/rpc',
+  publicRpc: 'https://timothy.megaeth.com/rpc',
   testnet: true,
   
   // Contract addresses with descriptions (safe to share publicly)

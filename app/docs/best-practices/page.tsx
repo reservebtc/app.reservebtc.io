@@ -291,7 +291,7 @@ export default function BestPracticesPage() {
                 <p className="text-sm text-purple-700 dark:text-purple-300 mb-2">
                   Review all protocol interactions
                 </p>
-                <a href="https://megaexplorer.xyz" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm">
+                <a href="https://megaeth-testnet-v2.blockscout.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm">
                   View Explorer →
                 </a>
               </div>
@@ -466,7 +466,7 @@ export default function BestPracticesPage() {
             <div>
               <h3 className="font-semibold mb-2">External Tools</h3>
               <ul className="space-y-2 text-sm">
-                <li><a href="https://megaexplorer.xyz" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">MegaETH Explorer <ExternalLink className="h-3 w-3 ml-1" /></a></li>
+                <li><a href="https://megaeth-testnet-v2.blockscout.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">MegaETH Explorer <ExternalLink className="h-3 w-3 ml-1" /></a></li>
                 <li><a href="https://blockstream.info" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">Bitcoin Explorer <ExternalLink className="h-3 w-3 ml-1" /></a></li>
                 <li><a href="https://sparrowwallet.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">Sparrow Wallet <ExternalLink className="h-3 w-3 ml-1" /></a></li>
                 <li><a href="https://metamask.io" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">MetaMask <ExternalLink className="h-3 w-3 ml-1" /></a></li>

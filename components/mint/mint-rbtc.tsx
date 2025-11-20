@@ -87,8 +87,8 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
   
   const { address, isConnected } = useAccount()
   const publicClient = createPublicClient({
-    chain: { id: 6342, name: 'MegaETH Testnet', nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }, rpcUrls: { default: { http: [process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 'https://carrot.megaeth.com/rpc'] } } },
-    transport: http(process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 'https://carrot.megaeth.com/rpc')
+    chain: { id: 6343, name: 'MegaETH Testnet', nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }, rpcUrls: { default: { http: [process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 'https://timothy.megaeth.com/rpc'] } } },
+    transport: http(process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 'https://timothy.megaeth.com/rpc')
   })
   const { data: walletClient } = useWalletClient()
   
@@ -501,7 +501,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
             <strong>✅ Monitoring Activated!</strong>
             <p className="text-sm">Transaction sent successfully</p>
             <a 
-              href={`https://www.megaexplorer.xyz/tx/${result.transactionHash}`}
+              href={`https://megaeth-testnet-v2.blockscout.com/tx/${result.transactionHash}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-blue-500 hover:underline flex items-center gap-1"
@@ -1012,7 +1012,7 @@ export function MintRBTC({ onMintComplete }: MintRBTCProps) {
               <div className="p-3 bg-muted/50 rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Transaction Hash:</p>
                 <a 
-                  href={`https://www.megaexplorer.xyz/tx/${mintTxHash}`}
+                  href={`https://megaeth-testnet-v2.blockscout.com/tx/${mintTxHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-mono text-xs text-primary hover:underline flex items-center justify-center gap-1"

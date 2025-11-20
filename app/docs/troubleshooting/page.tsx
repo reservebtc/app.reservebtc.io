@@ -110,8 +110,8 @@ export default function TroubleshootingPage() {
                 <p className="text-muted-foreground"><strong>Solutions:</strong></p>
                 <ul className="list-disc list-inside space-y-1 ml-4 text-muted-foreground">
                   <li>Switch to MegaETH Testnet in MetaMask</li>
-                  <li>Add MegaETH network if missing (Chain ID: 6342)</li>
-                  <li>Verify RPC URL: https://carrot.megaeth.com/rpc</li>
+                  <li>Add MegaETH network if missing (Chain ID: 6343)</li>
+                  <li>Verify RPC URL: https://timothy.megaeth.com/rpc</li>
                   <li>Check network status on MegaETH explorer</li>
                 </ul>
               </div>
@@ -314,7 +314,7 @@ export default function TroubleshootingPage() {
                 <p className="text-indigo-700 dark:text-indigo-300"><strong>Symptoms:</strong> JSON-RPC errors or connection failures</p>
                 <p className="text-muted-foreground"><strong>Solutions:</strong></p>
                 <ul className="list-disc list-inside space-y-1 ml-4 text-muted-foreground">
-                  <li>Verify RPC URL: https://carrot.megaeth.com/rpc</li>
+                  <li>Verify RPC URL: https://timothy.megaeth.com/rpc</li>
                   <li>Check if MegaETH network is experiencing issues</li>
                   <li>Clear MetaMask cache and reconnect</li>
                   <li>Try removing and re-adding the network</li>
@@ -456,7 +456,7 @@ export default function TroubleshootingPage() {
               <h3 className="font-semibold mb-3">Check Your Setup</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link href="/oracle" className="text-primary hover:underline">🔮 Oracle Dashboard</Link> - Check Oracle status</li>
-                <li><a href="https://megaexplorer.xyz" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">🔍 MegaETH Explorer <ExternalLink className="h-3 w-3 ml-1" /></a> - View transactions</li>
+                <li><a href="https://megaeth-testnet-v2.blockscout.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">🔍 MegaETH Explorer <ExternalLink className="h-3 w-3 ml-1" /></a> - View transactions</li>
                 <li><a href="https://blockstream.info/testnet" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">₿ Bitcoin Explorer <ExternalLink className="h-3 w-3 ml-1" /></a> - Check Bitcoin balance</li>
                 <li><Link href="/docs/wallet-setup" className="text-primary hover:underline">⚙️ Wallet Configuration</Link> - Verify setup</li>
               </ul>

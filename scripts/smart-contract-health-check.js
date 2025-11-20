@@ -8,9 +8,9 @@ require('dotenv').config();
 
 // ===== CONFIGURATION =====
 const CONFIG = {
-  CHAIN_ID: 6342,
-  RPC_URL: 'https://carrot.megaeth.com/rpc',
-  EXPLORER_BASE: 'https://www.megaexplorer.xyz',
+  CHAIN_ID: 6343,
+  RPC_URL: 'https://timothy.megaeth.com/rpc',
+  EXPLORER_BASE: 'https://megaeth-testnet-v2.blockscout.com',
   
   // Contract Addresses (Current Working Deployment)
   CONTRACTS: {

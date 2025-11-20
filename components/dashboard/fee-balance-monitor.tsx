@@ -12,7 +12,7 @@ const ORACLE_CONTRACT = '0xEcCC1Bf6Ad2e875152eE65DC365F90d07da7aEAc'
 
 // 🔒 PRODUCTION: Use private MegaETH RPC
 const PRIVATE_RPC = process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 
-                    'https://carrot.megaeth.com/rpc'
+                    'https://timothy.megaeth.com/rpc'
 
 // Contract ABIs for reading blockchain data
 const FEE_VAULT_ABI = [
@@ -410,7 +410,7 @@ export function FeeBalanceMonitor() {
                 <div className="flex items-center gap-2">
                   <span className="font-mono">-{formatETH(sync.fee)} ETH</span>
                   <a 
-                    href={`https://www.megaexplorer.xyz/tx/${sync.txHash}`}
+                    href={`https://megaeth-testnet-v2.blockscout.com/tx/${sync.txHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs text-primary hover:underline"

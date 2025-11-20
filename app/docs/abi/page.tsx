@@ -261,7 +261,7 @@ event Deposit(
               <div className="bg-muted/30 rounded-lg p-4">
                 <pre className="text-sm text-muted-foreground overflow-x-auto">
 {`// Initialize contracts
-const web3 = new Web3('https://carrot.megaeth.com/rpc');
+const web3 = new Web3('https://timothy.megaeth.com/rpc');
 
 const synthContract = new web3.eth.Contract(
   RBTC_SYNTH_ABI, 
@@ -291,7 +291,7 @@ oracleContract.events.Synced()
               <div className="bg-muted/30 rounded-lg p-4">
                 <pre className="text-sm text-muted-foreground overflow-x-auto">
 {`// Initialize provider and contracts
-const provider = new ethers.JsonRpcProvider('https://carrot.megaeth.com/rpc');
+const provider = new ethers.JsonRpcProvider('https://timothy.megaeth.com/rpc');
 
 const synthContract = new ethers.Contract(
   "0x5b9375b4ac0f61C7D5af32374aCCe0d058cE6F58",

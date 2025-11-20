@@ -33,8 +33,8 @@ export function DepositFeeVault() {
   const { address, isConnected } = useAccount();
   const { data: balance } = useBalance({ address });
   const publicClient = createPublicClient({
-    chain: { id: 6342, name: 'MegaETH Testnet', nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }, rpcUrls: { default: { http: [process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 'https://carrot.megaeth.com/rpc'] } } },
-    transport: http(process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 'https://carrot.megaeth.com/rpc')
+    chain: { id: 6343, name: 'MegaETH Testnet', nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }, rpcUrls: { default: { http: [process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 'https://timothy.megaeth.com/rpc'] } } },
+    transport: http(process.env.NEXT_PUBLIC_MEGAETH_PRIVATE_RPC || 'https://timothy.megaeth.com/rpc')
   });
   const { data: walletClient } = useWalletClient();
   

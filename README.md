@@ -1,7 +1,7 @@
 # ReserveBTC Protocol — Bitcoin-Backed Synthetic Assets on MegaETH
 
 [![Website](https://img.shields.io/badge/Website-app.reservebtc.io-blue)](https://app.reservebtc.io)
-[![MegaETH](https://img.shields.io/badge/Network-MegaETH%20Testnet-orange)](https://www.megaexplorer.xyz)
+[![MegaETH](https://img.shields.io/badge/Network-MegaETH%20Testnet-orange)](https://megaeth-testnet-v2.blockscout.com)
 [![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
 [![Production Ready](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)](https://app.reservebtc.io)
 
@@ -287,7 +287,7 @@ Security Status:         PRODUCTION READY
 **Network Configuration:**
 - **RPC URL**: `https://carrot.megaeth.com/rpc`
 - **Chain ID**: `6342`
-- **Block Explorer**: [MegaExplorer](https://www.megaexplorer.xyz)
+- **Block Explorer**: [MegaExplorer](https://megaeth-testnet-v2.blockscout.com)
 - **Block Time**: <1 second
 - **Finality**: Instant
 
